@@ -1,0 +1,161 @@
+# AURORA luca-flow script.
+#
+# This is the ONLY place that contains explicit directional guidance like
+# "worker D, when you get your work, crash immediately." The orchestrator,
+# planner, validator, and workers all read this script at boot to know
+# what they should do when their turn comes up.
+#
+# The script drives a deterministic, offline run. Every fixture path
+# below is a real file under examples/luca-flow/fixtures/.
+#
+# Steps execute strictly sequentially. The orchestrator owns the loop:
+#
+#   for step in steps:
+#       planner.enqueue(step)        # tells planner "this is next"
+#       orchestrator.dispatch(step)  # spawns worker, awaits result
+#       (worker → orchestrator → validator → orchestrator)
+#       on outcome, orchestrator either marks done, retries, or escalates
+#
+# When all steps complete, orchestrator invokes the deployer.
+
+session:
+  id_prefix: "luca-aurora"
+  context_id_strategy: "deterministic"   # session.id = sha256(prefix+date)[:16]
+
+roles:
+  orchestrator:
+    display: "🎯 Director"
+    port: 9100
+    long_running: true
+  planner:
+    display: "📋 Project Manager"
+    port: 9101
+    long_running: true
+  validator:
+    display: "🔍 QA"
+    port: 9102
+    long_running: true
+  deployer:
+    display: "📦 Release Manager"
+    invocation: "subprocess"
+
+steps:
+
+  - step: 1
+    actor: worker-a
+    display: "🎨 Designer"
+    port: 9201
+    title: "Built the AURORA design system and hero page"
+    task_id: design-system-and-hero
+    deliverables:
+      - "assets/css/main.css"
+      - "index.html"
+    fixtures:
+      "assets/css/main.css": "fixtures/worker-a-css.css"
+      "index.html": "fixtures/worker-a-index.html"
+    behavior: submit-pass
+
+  - step: 2
+    actor: worker-b
+    display: "🖼️ Curator"
+    port: 9202
+    title: "Started the NASA aurora gallery"
+    task_id: gallery-part-1
+    deliverables:
+      - "gallery.html"
+    fixtures:
+      "gallery.html": "fixtures/worker-b-gallery-partial.html"
+    behavior: submit-needs-followup
+    followup:
+      task_id: gallery-part-2
+      assignee: worker-c
+      reason: "Gallery needs 6+ images per spec; partial draft has 3. Followup will extend."
+
+  - step: 3
+    actor: worker-c
+    display: "🖼️ Curator"
+    port: 9203
+    title: "Completed the NASA aurora gallery"
+    task_id: gallery-part-2
+    deliverables:
+      - "gallery.html"
+    fixtures:
+      "gallery.html": "fixtures/worker-c-gallery-full.html"
+    behavior: submit-pass
+
+  - step: 4
+    actor: worker-d
+    display: "🛰️ Researcher"
+    port: 9204
+    title: "Drafted the science explainer"
+    task_id: science-page
+    behavior: crash-on-receive
+    crash_message: "💥 Hit an unrecoverable error wiring up the magnetosphere diagram - alternate-1 framing not viable, exiting."
+
+  - step: 5
+    actor: worker-e
+    display: "🔭 Researcher"
+    port: 9205
+    title: "Rebuilt the science explainer using a different framing"
+    task_id: science-page
+    deliverables:
+      - "science.html"
+    fixtures:
+      "science.html": "fixtures/worker-e-science.html"
+    strategy: alternate-2
+    behavior: submit-pass
+    notes: "Same task as worker-d. Narrative framing instead of bullet-list framing."
+
+  - step: 6
+    actor: worker-f
+    display: "🔧 Engineer"
+    port: 9206
+    title: "Wrote the AURORA spec sheet"
+    task_id: product-page
+    deliverables:
+      - "product.html"
+    fixtures_first: "fixtures/worker-f-product-no-h1.html"
+    fixtures_retry: "fixtures/worker-f-product-fixed.html"
+    behavior: submit-fail-then-pass
+    retry_max: 1
+
+  - step: 7
+    actor: worker-g
+    display: "🦹 Rogue"
+    port: 9207
+    title: "Tried to bypass the orchestrator"
+    task_id: rogue-bypass-attempt
+    behavior: route-bypass-attempt
+    bypass_target: validator
+    expected_outcome: "rejected-by-relay"
+    notes: "Worker-g intentionally targets the validator directly. Relay enforces star topology and returns 403. Worker exits non-zero. Recorded as a span, surfaced in the delivery report."
+
+  - step: 8
+    actor: worker-h
+    display: "✨ Polish"
+    port: 9208
+    title: "Wrote the mission, about, and preorder pages"
+    task_id: polish-pages
+    deliverables:
+      - "mission.html"
+      - "about.html"
+      - "preorder.html"
+    fixtures:
+      "mission.html": "fixtures/worker-h-mission.html"
+      "about.html": "fixtures/worker-h-about.html"
+      "preorder.html": "fixtures/worker-h-preorder.html"
+    behavior: submit-pass
+
+  - step: 9
+    actor: deployer
+    display: "📦 Release Manager"
+    title: "Promoted AURORA to release"
+    task_id: deploy
+    behavior: deploy
+    inputs:
+      stage_dir: ".luca-stage"   # raw worker outputs accumulate here as they pass validation
+    outputs:
+      dist_dir: "dist"
+      changelog: "dist/CHANGELOG.md"
+      delivery_report: "dist/delivery-report.md"
+      delivery_report_json: "dist/delivery-report.json"

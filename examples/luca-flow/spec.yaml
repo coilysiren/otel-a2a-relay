@@ -1,0 +1,128 @@
+# AURORA microsite spec.
+#
+# This is what the team is building. Workers draw their tasks from here;
+# the validator checks submitted deliverables against the rules section.
+# The script (script.yaml) drives the *order* and the *deliberate failures*;
+# this file describes the steady-state target.
+#
+# Every page must satisfy:
+#   - exactly one <h1>
+#   - every <img> has alt text and a citation reference (data-nasa-id)
+#   - every NASA image referenced is in assets/img/nasa/SOURCES.yaml
+#   - all internal nav links resolve
+#   - min word count (per-page below)
+#   - no external <script> tags or runtime CDN refs
+
+project:
+  codename: AURORA
+  brand: Vent Atelier
+  tagline: "The desk lamp that mirrors the Northern Lights."
+  short_pitch: >-
+    AURORA tunes its 8-million-pixel light field to live space-weather telemetry
+    from NOAA SWPC. When the sun flares, your desk does too.
+  product:
+    sku: AURORA-1
+    price_usd: 189
+    ships: "Q3"
+  city: "Hayward, California"
+
+design_tokens:
+  palette:
+    background: "#0a0e1a"
+    surface: "#141a2e"
+    text_primary: "#e8ecf5"
+    text_muted: "#8892b0"
+    accent_green: "#3dd9a8"
+    accent_violet: "#a47cff"
+    accent_pink: "#ff6b9d"
+  type:
+    heading: "Space Grotesk"
+    body: "Inter"
+    mono: "JetBrains Mono"
+  layout:
+    prose_max_px: 720
+    gallery_max_px: 1200
+
+pages:
+  - id: index
+    title: "AURORA — desk lamp that mirrors the Northern Lights"
+    role: hero
+    nav_label: "Home"
+    nav_order: 1
+    min_words: 120
+    images_min: 1
+    deliverable: "Hero with full-bleed aurora photo, three-up tiles, primary CTA"
+
+  - id: science
+    title: "How the Northern Lights work"
+    role: science
+    nav_label: "Science"
+    nav_order: 2
+    min_words: 220
+    images_min: 2
+    deliverable: "Pop-science explainer of the magnetosphere + solar wind, with NASA imagery"
+
+  - id: product
+    title: "AURORA-1 specifications"
+    role: spec_sheet
+    nav_label: "Product"
+    nav_order: 3
+    min_words: 180
+    images_min: 1
+    deliverable: "Spec table, dimensions, calibration, pricing"
+
+  - id: gallery
+    title: "Aurora gallery"
+    role: gallery
+    nav_label: "Gallery"
+    nav_order: 4
+    min_words: 100
+    images_min: 6
+    deliverable: "Tiled grid of NASA aurora photographs with captions and credits"
+
+  - id: mission
+    title: "Inspired by NASA's THEMIS mission"
+    role: brand
+    nav_label: "Mission"
+    nav_order: 5
+    min_words: 200
+    images_min: 1
+    deliverable: "Origin story referencing THEMIS, MMS, IMAGE; deeper image set"
+
+  - id: about
+    title: "About Vent Atelier"
+    role: about
+    nav_label: "About"
+    nav_order: 6
+    min_words: 150
+    images_min: 1
+    deliverable: "Fictional company prose, link to citations"
+
+  - id: preorder
+    title: "Pre-order AURORA-1"
+    role: preorder
+    nav_label: "Pre-order"
+    nav_order: 7
+    min_words: 120
+    images_min: 1
+    deliverable: "Mock pre-order form, no submit handler, $189 price"
+
+assets:
+  css:
+    path: "assets/css/main.css"
+    min_bytes: 2000
+  fonts:
+    self_hosted: true
+    families: ["Space Grotesk", "Inter", "JetBrains Mono"]
+  images:
+    nasa_dir: "assets/img/nasa"
+    sources_file: "assets/img/nasa/SOURCES.yaml"
+
+validation:
+  html5_strict: true
+  require_one_h1: true
+  require_alt_text: true
+  require_citation_attr: "data-nasa-id"
+  require_internal_nav_resolution: true
+  reject_external_scripts: true
+  reject_runtime_cdn: true

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pre-order AURORA-1 — AURORA</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="index.html">AURORA</a>
+    <a href="science.html">Science</a>
+    <a href="product.html">Product</a>
+    <a href="gallery.html">Gallery</a>
+    <a href="mission.html">Mission</a>
+    <a href="about.html">About</a>
+    <a href="preorder.html" class="active">Pre-order</a>
+  </header>
+
+  <section class="page-hero">
+    <div class="wrap">
+      <p class="kicker">Pre-order · Q3 ship window</p>
+      <h1>Pre-order AURORA-1</h1>
+      <p class="muted">
+        $189 USD. First shipment runs in Q3. Free shipping in the continental US.
+        We charge when your unit is calibrated, not when you order.
+      </p>
+    </div>
+  </section>
+
+  <article class="prose">
+    <figure>
+      <img src="assets/img/nasa/iss072e159172.jpg"
+           alt="The aurora borealis blanketing Earth, photographed from the ISS"
+           data-nasa-id="iss072e159172">
+      <figcaption>
+        The aurora borealis from low orbit, October 2024. Credit: NASA / JSC.
+      </figcaption>
+    </figure>
+
+    <form class="preorder-form" onsubmit="return false">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email">
+
+      <label for="qty">Quantity</label>
+      <select id="qty" name="qty">
+        <option>1</option>
+        <option>2</option>
+        <option>3</option>
+      </select>
+
+      <label for="finish">Finish</label>
+      <select id="finish" name="finish">
+        <option>Anodized graphite (default)</option>
+        <option>Anodized champagne</option>
+        <option>Anodized midnight</option>
+      </select>
+
+      <div class="price">
+        <span>Total</span>
+        <span class="mono">$189.00</span>
+      </div>
+      <p class="muted" style="font-size:0.85rem;margin:0 0 1.5rem 0;">
+        Charged at calibration. Cancel any time before then.
+      </p>
+
+      <button class="btn btn-primary" type="submit" style="width:100%;">
+        Reserve a unit
+      </button>
+    </form>
+
+    <p style="text-align:center;color:var(--text-muted);font-size:0.9rem;">
+      Questions? Read the <a href="science.html">science</a>, the
+      <a href="product.html">spec sheet</a>, or the
+      <a href="about.html">studio's story</a>.
+    </p>
+  </article>
+
+  <footer class="footer">
+    <p>Imagery courtesy NASA, public domain. <a href="CITATIONS.html">Full citations</a>.</p>
+    <p>© 2026 Vent Atelier · Hayward, California</p>
+  </footer>
+</body>
+</html>

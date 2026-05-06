@@ -1,0 +1,27 @@
+# Self-hosted webfonts for the AURORA microsite.
+# All three are SIL Open Font License 1.1 - free for commercial and non-commercial
+# use, including embedding in websites. Committed to the repo so the build is
+# offline and deterministic.
+fonts:
+  - family: "Inter"
+    file: "inter.woff2"
+    license: "SIL Open Font License 1.1"
+    source: "https://rsms.me/inter/"
+    upstream: "https://github.com/rsms/inter"
+    version: "v4.1"
+    role: body
+
+  - family: "Space Grotesk"
+    file: "space-grotesk.woff2"
+    license: "SIL Open Font License 1.1"
+    source: "https://fonts.floriankarsten.com/space-grotesk"
+    upstream: "https://github.com/floriankarsten/space-grotesk"
+    weight: 600
+    role: heading
+
+  - family: "JetBrains Mono"
+    file: "jetbrains-mono.woff2"
+    license: "SIL Open Font License 1.1"
+    source: "https://www.jetbrains.com/lp/mono/"
+    upstream: "https://github.com/JetBrains/JetBrainsMono"
+    role: mono
