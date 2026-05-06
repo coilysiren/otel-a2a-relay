@@ -22,6 +22,10 @@ import uuid
 from typing import Any
 
 import httpx
+from opentelemetry.propagate import inject
+from opentelemetry.trace import SpanKind, Status, StatusCode
+
+from otel_a2a_relay.telemetry import make_provider
 
 DEFAULT_RELAY_URL = "http://127.0.0.1:8080/"
 DEFAULT_PHOENIX_URL = "http://127.0.0.1:6006"
@@ -65,13 +69,49 @@ def cmd_send() -> int:
         },
     }
 
+    provider = make_provider()
+    tracer = provider.get_tracer(f"otel-a2a-relay.client.{agent_id}")
+    body: dict[str, Any] = {}
     try:
-        resp = httpx.post(url, json=envelope, timeout=10.0)
-    except httpx.HTTPError as e:
-        print(f"[{agent_id}] relay unreachable at {url}: {e}", file=sys.stderr)
-        return 1
+        with tracer.start_as_current_span(
+            "a2a.client.send",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "session.id": context_id,
+                "a2a.task.id": task_id,
+                "agent.id": agent_id,
+                "agent.name": f"{agent_id}-client",
+                "openinference.span.kind": "AGENT",
+                "graph.node.id": agent_id,
+                "peer.agent.id": target,
+                "a2a.method": "message/send",
+                "rpc.system": "jsonrpc",
+                "rpc.service": "a2a",
+                "rpc.method": "message/send",
+                "input.value": json.dumps(
+                    {"role": "user", "parts": [{"kind": "text", "text": msg}]}
+                ),
+                "input.mime_type": "application/json",
+                "a2a.message.text": msg,
+            },
+        ) as span:
+            headers: dict[str, str] = {}
+            inject(headers)
+            try:
+                resp = httpx.post(url, json=envelope, headers=headers, timeout=10.0)
+            except httpx.HTTPError as e:
+                span.set_status(Status(StatusCode.ERROR, str(e)))
+                print(f"[{agent_id}] relay unreachable at {url}: {e}", file=sys.stderr)
+                return 1
+            body = resp.json()
+            span.set_attribute("http.status_code", resp.status_code)
+            if "error" in body:
+                span.set_status(Status(StatusCode.ERROR, str(body["error"])))
+            else:
+                span.set_status(Status(StatusCode.OK))
+    finally:
+        provider.shutdown()
 
-    body = resp.json()
     if "error" in body:
         print(f"[{agent_id}] error: {body['error']}", file=sys.stderr)
         return 1

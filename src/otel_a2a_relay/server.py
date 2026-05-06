@@ -25,7 +25,7 @@ from typing import Any
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from opentelemetry.propagate import inject
+from opentelemetry.propagate import extract, inject
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
 
@@ -82,6 +82,7 @@ def handle_message_send(
     peers: dict[str, str],
     store: TaskStore,
     http_client: httpx.Client | None = None,
+    headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Emit the relay-side a2a.task span, optionally forward to a peer, return JSON-RPC result."""
     params = payload.get("params") or {}
@@ -100,8 +101,11 @@ def handle_message_send(
         "",
     )
 
+    incoming_ctx = extract(headers or {})
+
     with tracer.start_as_current_span(
         "a2a.task",
+        context=incoming_ctx,
         kind=SpanKind.SERVER,
         attributes={
             "session.id": context_id,
@@ -132,8 +136,8 @@ def handle_message_send(
                 "method": "message/send",
                 "params": params,
             }
-            headers: dict[str, str] = {}
-            inject(headers)
+            outgoing_headers: dict[str, str] = {}
+            inject(outgoing_headers)
             with tracer.start_as_current_span(
                 "a2a.relay.forward",
                 kind=SpanKind.CLIENT,
@@ -153,7 +157,7 @@ def handle_message_send(
                 client = http_client or httpx.Client(timeout=30.0)
                 close_after = http_client is None
                 try:
-                    resp = client.post(peer_url, json=forward_payload, headers=headers)
+                    resp = client.post(peer_url, json=forward_payload, headers=outgoing_headers)
                     fwd.set_attribute("http.status_code", resp.status_code)
                     body = resp.json()
                 finally:
@@ -287,7 +291,14 @@ def create_app(
 
         if method == "message/send":
             return JSONResponse(
-                handle_message_send(tracer, payload, peers, task_store, http_client)
+                handle_message_send(
+                    tracer,
+                    payload,
+                    peers,
+                    task_store,
+                    http_client,
+                    headers=dict(request.headers),
+                )
             )
         if method == "tasks/get":
             return JSONResponse(handle_tasks_get(payload, task_store))
