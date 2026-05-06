@@ -41,3 +41,22 @@ def test_all_returns_independent_copies() -> None:
     listed = s.all()
     listed[0]["x"] = 999
     assert sorted(t["x"] for t in s.all()) == [1, 2]
+
+
+def test_lru_eviction_at_cap() -> None:
+    s = TaskStore(max_tasks=3)
+    for i in range(5):
+        s.put({"id": f"t{i}"})
+    ids = [t["id"] for t in s.all()]
+    assert ids == ["t2", "t3", "t4"]
+
+
+def test_reput_refreshes_lru_order() -> None:
+    s = TaskStore(max_tasks=3)
+    s.put({"id": "a"})
+    s.put({"id": "b"})
+    s.put({"id": "c"})
+    s.put({"id": "a"})  # refreshes a to most-recent
+    s.put({"id": "d"})  # evicts b (now oldest)
+    ids = [t["id"] for t in s.all()]
+    assert ids == ["c", "a", "d"]

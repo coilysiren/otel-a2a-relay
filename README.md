@@ -54,6 +54,7 @@ make view CTX=demo
 
 - `up` / `down` / `restart` / `status` / `wait` - lifecycle.
 - `send AS=... TO=... CTX=... MSG="..."` - JSON-RPC `message/send` to the relay.
+- `stream AS=... TO=... CTX=... MSG="..."` - JSON-RPC `message/stream` (SSE pass-through; chunks print live).
 - `view CTX=...` - GraphQL-query Phoenix for spans tagged with `session.id == $CTX` and reduce.
 - `get TASK=t-...` - `tasks/get`.
 - `tasks` - list tasks the relay has indexed in memory.
@@ -81,6 +82,7 @@ The relay's peer registry comes from `OTEL_A2A_RELAY_PEERS=A=http://...,B=http:/
 ## Methods
 
 - `message/send` - send a message, get a Task back. The originator sets `metadata.agent.id` (sender) and optionally `metadata.agent.target` (recipient).
+- `message/stream` - same envelope as `message/send`, but the response is `text/event-stream` carrying A2A `status-update` and `artifact-update` events. The relay forwards the SSE through and emits one `a2a.message.stream_chunk` span event per artifact.
 - `tasks/get` - retrieve a Task by id from the relay's in-memory store. Each peer agent indexes its own tasks too.
 - `tasks/cancel` - mark a Task as canceled and emit an `a2a.task.cancel` span.
 

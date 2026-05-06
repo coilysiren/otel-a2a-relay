@@ -11,20 +11,34 @@ from __future__ import annotations
 
 import copy
 import threading
+from collections import OrderedDict
 from typing import Any
+
+DEFAULT_MAX_TASKS = 1000
 
 
 class TaskStore:
-    def __init__(self) -> None:
+    """Thread-safe LRU-bounded task index. One per process.
+
+    Insertion order is preserved; oldest entries are evicted past the cap.
+    Re-putting an existing id refreshes its position. Not durable.
+    """
+
+    def __init__(self, max_tasks: int = DEFAULT_MAX_TASKS) -> None:
         self._lock = threading.Lock()
-        self._tasks: dict[str, dict[str, Any]] = {}
+        self._max = max_tasks
+        self._tasks: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
     def put(self, task: dict[str, Any]) -> None:
         task_id = task.get("id")
         if not task_id:
             return
         with self._lock:
+            if task_id in self._tasks:
+                self._tasks.move_to_end(task_id)
             self._tasks[task_id] = copy.deepcopy(task)
+            while len(self._tasks) > self._max:
+                self._tasks.popitem(last=False)
 
     def get(self, task_id: str) -> dict[str, Any] | None:
         with self._lock:
