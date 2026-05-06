@@ -313,3 +313,16 @@ code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
 }
 .footer a { color: var(--text-muted); border-bottom: 1px solid var(--border); }
 .footer a:hover { color: var(--green); border-color: var(--green); }
+
+/* citations long-form */
+.citations-md {
+  white-space: pre-wrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}

@@ -1,4 +1,4 @@
-.PHONY: help up down status restart wait demo relay agent-a agent-b phoenix-fg send stream view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix relay agent-a agent-b phoenix-fg send stream view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
 
 BG := scripts/bg.sh
 
@@ -24,6 +24,8 @@ help:
 	@echo '  tail-relay / tail-agent-a / tail-agent-b   tail -f the running log.'
 	@echo '  phoenix-fg                         Run Phoenix in foreground (operator).'
 	@echo '  clean-phoenix-db                   Wipe the Phoenix sqlite (operator).'
+	@echo '  luca-demo                          Run the AURORA / LUCA-flow demo (Phoenix required).'
+	@echo '  luca-demo-no-phoenix               Same, without the Phoenix healthz gate.'
 
 up: agent-a agent-b relay wait status
 
@@ -128,3 +130,13 @@ tail-agent-b:
 
 clean-phoenix-db:
 	rm -f $$HOME/.phoenix/phoenix.db
+
+# LUCA-flow demo. Star-topology multi-agent choreography that produces a
+# real static HTML site (the AURORA microsite) from real NASA imagery.
+# Phoenix is required by default; pass --no-require-phoenix to skip.
+# See examples/luca-flow/ for the spec, script, and fixtures.
+luca-demo:
+	uv run python -m otel_a2a_relay.luca.runner
+
+luca-demo-no-phoenix:
+	uv run python -m otel_a2a_relay.luca.runner --no-require-phoenix

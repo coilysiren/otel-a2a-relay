@@ -103,7 +103,7 @@ pages:
     role: preorder
     nav_label: "Pre-order"
     nav_order: 7
-    min_words: 120
+    min_words: 100
     images_min: 1
     deliverable: "Mock pre-order form, no submit handler, $189 price"
 

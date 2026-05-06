@@ -8,3 +8,4 @@ logs/
 PLAN.md
 examples/luca-flow/dist/*
 !examples/luca-flow/dist/.gitkeep
+examples/luca-flow/.luca-stage/

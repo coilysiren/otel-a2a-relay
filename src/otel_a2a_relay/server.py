@@ -216,13 +216,39 @@ def handle_message_send(
             ) as fwd:
                 client = http_client or httpx.Client(timeout=30.0)
                 close_after = http_client is None
+                forward_error: str | None = None
+                body = {}
                 try:
-                    resp = client.post(peer_url, json=forward_payload, headers=outgoing_headers)
-                    fwd.set_attribute("http.status_code", resp.status_code)
-                    body = resp.json()
+                    try:
+                        resp = client.post(peer_url, json=forward_payload, headers=outgoing_headers)
+                        fwd.set_attribute("http.status_code", resp.status_code)
+                        try:
+                            body = resp.json()
+                        except json.JSONDecodeError:
+                            forward_error = (
+                                f"peer returned non-JSON body ({resp.status_code}, "
+                                f"{len(resp.content)} bytes)"
+                            )
+                    except httpx.HTTPError as e:
+                        forward_error = f"forward to {target_id or '?'} failed: {e}"
+                        fwd.set_status(Status(StatusCode.ERROR, forward_error))
                 finally:
                     if close_after:
                         client.close()
+            if forward_error is not None:
+                # Peer crashed mid-handle or unreachable. Surface as JSON-RPC error
+                # so the originating caller can record an outcome instead of 500ing.
+                span.set_attribute("a2a.task.state", "failed")
+                span.set_status(Status(StatusCode.ERROR, forward_error))
+                span.add_event(
+                    "a2a.task.state_change",
+                    attributes={"from": "working", "to": "failed"},
+                )
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32011, "message": forward_error},
+                }
             if "error" in body:
                 span.set_attribute("a2a.task.state", "failed")
                 span.set_status(Status(StatusCode.ERROR, str(body["error"])))
