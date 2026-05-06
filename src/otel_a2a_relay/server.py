@@ -1,19 +1,30 @@
-"""Minimum viable A2A relay server.
+"""A2A relay server.
 
-Accepts JSON-RPC 2.0 `message/send` over HTTP, emits the v0.1 `a2a.task` span
-shape on the receiving side, and returns a synthetic completed Task. No peer
-forwarding, no streaming, no persistence. The point of this slice is to prove
-the relay can speak A2A and emit the right spans.
+Speaks JSON-RPC 2.0 over HTTP. Two modes per `message/send` request:
+
+1. Synthesize. No peer registered for `metadata.agent.target`. The relay
+   completes the task itself and returns a synthetic Task. Useful for
+   smoke-testing the OTel emission path without a real peer.
+2. Forward. A peer is registered. The relay POSTs the same JSON-RPC
+   envelope to the peer's URL, with W3C traceparent headers injected so
+   the peer's span attaches to the relay's forwarding span. The peer's
+   Task result flows back to the original sender.
+
+Either way, the relay emits an `a2a.task` SERVER span on its own side, so
+even agents that aren't OTel-aware contribute one routed span per hop.
 """
 
 from __future__ import annotations
 
+import os
 import time
 import uuid
 from typing import Any
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from opentelemetry.propagate import inject
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
 
@@ -22,6 +33,25 @@ from otel_a2a_relay.telemetry import make_provider
 PROTOCOL_VERSION = "0.1"
 RELAY_AGENT_ID = "relay"
 RELAY_AGENT_NAME = "otel-a2a-relay"
+
+
+def parse_peers(spec: str | None) -> dict[str, str]:
+    """Parse `A=http://host:port,B=http://...` into a dict.
+
+    Whitespace around entries is tolerated. Empty/None spec returns {}.
+    """
+    if not spec:
+        return {}
+    out: dict[str, str] = {}
+    for entry in spec.split(","):
+        entry = entry.strip()
+        if not entry or "=" not in entry:
+            continue
+        agent_id, url = entry.split("=", 1)
+        agent_id, url = agent_id.strip(), url.strip()
+        if agent_id and url:
+            out[agent_id] = url
+    return out
 
 
 def _now_iso() -> str:
@@ -34,12 +64,32 @@ def _jsonrpc_error(req_id: Any, code: int, message: str) -> JSONResponse:
     )
 
 
-def handle_message_send(tracer: Tracer, params: dict[str, Any]) -> dict[str, Any]:
-    """Emit the v0.1 a2a.task span for an incoming message/send and return a Task."""
+def _synthesize_task(message: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": message.get("taskId") or f"task-{uuid.uuid4().hex[:8]}",
+        "contextId": message.get("contextId") or str(uuid.uuid4()),
+        "kind": "task",
+        "status": {"state": "completed", "timestamp": _now_iso()},
+        "history": [message] if message else [],
+    }
+
+
+def handle_message_send(
+    tracer: Tracer,
+    payload: dict[str, Any],
+    peers: dict[str, str],
+    http_client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    """Emit the relay-side a2a.task span, optionally forward to a peer, return JSON-RPC result."""
+    params = payload.get("params") or {}
+    req_id = payload.get("id")
     message = params.get("message") or {}
+    metadata = message.get("metadata") or {}
     context_id = message.get("contextId") or str(uuid.uuid4())
     task_id = message.get("taskId") or f"task-{uuid.uuid4().hex[:8]}"
-    sender_id = (message.get("metadata") or {}).get("agent.id", "unknown")
+    sender_id = metadata.get("agent.id", "unknown")
+    target_id = metadata.get("agent.target")
+    peer_url = peers.get(target_id) if target_id else None
 
     with tracer.start_as_current_span(
         "a2a.task",
@@ -53,13 +103,62 @@ def handle_message_send(tracer: Tracer, params: dict[str, Any]) -> dict[str, Any
             "graph.node.id": RELAY_AGENT_ID,
             "graph.node.parent_id": sender_id,
             "a2a.task.state": "working",
+            "a2a.peer.target": target_id or "",
+            "a2a.relay.mode": "forward" if peer_url else "synthesize",
         },
     ) as span:
         span.add_event(
             "a2a.task.state_change",
             attributes={"from": "submitted", "to": "working"},
         )
-        # No peer forwarding yet, so no work happens. Mark complete.
+
+        result: dict[str, Any]
+        if peer_url:
+            forward_payload = {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "method": "message/send",
+                "params": params,
+            }
+            headers: dict[str, str] = {}
+            inject(headers)
+            with tracer.start_as_current_span(
+                "a2a.relay.forward",
+                kind=SpanKind.CLIENT,
+                attributes={
+                    "session.id": context_id,
+                    "a2a.task.id": task_id,
+                    "agent.id": RELAY_AGENT_ID,
+                    "graph.node.id": RELAY_AGENT_ID,
+                    "peer.agent.id": target_id or "",
+                    "peer.url": peer_url,
+                    "openinference.span.kind": "AGENT",
+                    "rpc.system": "jsonrpc",
+                    "rpc.service": "a2a",
+                    "rpc.method": "message/send",
+                },
+            ) as fwd:
+                client = http_client or httpx.Client(timeout=30.0)
+                close_after = http_client is None
+                try:
+                    resp = client.post(peer_url, json=forward_payload, headers=headers)
+                    fwd.set_attribute("http.status_code", resp.status_code)
+                    body = resp.json()
+                finally:
+                    if close_after:
+                        client.close()
+            if "error" in body:
+                span.set_attribute("a2a.task.state", "failed")
+                span.set_status(Status(StatusCode.ERROR, str(body["error"])))
+                span.add_event(
+                    "a2a.task.state_change",
+                    attributes={"from": "working", "to": "failed"},
+                )
+                return {"jsonrpc": "2.0", "id": req_id, "error": body["error"]}
+            result = body.get("result") or _synthesize_task(message)
+        else:
+            result = _synthesize_task(message)
+
         span.add_event(
             "a2a.task.state_change",
             attributes={"from": "working", "to": "completed"},
@@ -67,23 +166,28 @@ def handle_message_send(tracer: Tracer, params: dict[str, Any]) -> dict[str, Any
         span.set_attribute("a2a.task.state", "completed")
         span.set_status(Status(StatusCode.OK))
 
-    return {
-        "id": task_id,
-        "contextId": context_id,
-        "kind": "task",
-        "status": {"state": "completed", "timestamp": _now_iso()},
-        "history": [message] if message else [],
-    }
+    return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
 
-def create_app(provider: TracerProvider | None = None) -> FastAPI:
-    """Build the FastAPI app. Pass a custom TracerProvider for tests; defaults to OTLP."""
+def create_app(
+    provider: TracerProvider | None = None,
+    peers: dict[str, str] | None = None,
+    http_client: httpx.Client | None = None,
+) -> FastAPI:
+    """Build the FastAPI app. Pass a custom TracerProvider for tests; defaults to OTLP.
+
+    `peers` overrides the env-var registry. `http_client` lets tests stub the
+    forwarding HTTP call.
+    """
     tracer = (provider or make_provider()).get_tracer("otel-a2a-relay")
+    if peers is None:
+        peers = parse_peers(os.environ.get("OTEL_A2A_RELAY_PEERS"))
+
     app = FastAPI(title="otel-a2a-relay", version=PROTOCOL_VERSION)
 
     @app.get("/healthz")
-    def healthz() -> dict[str, str]:
-        return {"status": "ok", "protocol": PROTOCOL_VERSION}
+    def healthz() -> dict[str, Any]:
+        return {"status": "ok", "protocol": PROTOCOL_VERSION, "peers": sorted(peers.keys())}
 
     @app.post("/")
     async def jsonrpc(request: Request) -> JSONResponse:
@@ -97,11 +201,10 @@ def create_app(provider: TracerProvider | None = None) -> FastAPI:
 
         method = payload["method"]
         req_id = payload.get("id")
-        params = payload.get("params") or {}
 
         if method == "message/send":
-            result = handle_message_send(tracer, params)
-            return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": result})
+            response = handle_message_send(tracer, payload, peers, http_client)
+            return JSONResponse(response)
 
         return _jsonrpc_error(req_id, -32601, f"Method not found: {method}")
 

@@ -35,7 +35,7 @@ def test_healthz(captured_spans: tuple[TestClient, InMemorySpanExporter]) -> Non
     client, _ = captured_spans
     r = client.get("/healthz")
     assert r.status_code == 200
-    assert r.json() == {"status": "ok", "protocol": "0.1"}
+    assert r.json() == {"status": "ok", "protocol": "0.1", "peers": []}
 
 
 def test_message_send_returns_completed_task(

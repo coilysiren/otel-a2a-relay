@@ -41,7 +41,13 @@ cmd_start() {
   fi
   rm -f "$pf"
   : > "$log"
-  ( cd "$ROOT" && nohup "$@" >>"$log" 2>&1 & echo $! > "$pf" )
+  # Run in a fresh session so the whole process tree shares a pgid we can
+  # kill on stop. Without this, uvicorn --reload leaks its child uvicorn.
+  ( cd "$ROOT" && nohup python3 -c '
+import os, sys
+os.setsid()
+os.execvp(sys.argv[1], sys.argv[1:])
+' "$@" >>"$log" 2>&1 & echo $! > "$pf" )
   sleep 0.5
   pid="$(read_pid "$pf")"
   if ! is_alive "$pid"; then
@@ -52,18 +58,38 @@ cmd_start() {
   echo "$name started (pid $pid) -> $log"
 }
 
+# Recursively collect descendant PIDs of $1.
+_descendants() {
+  local parent="$1"
+  local children
+  children="$(pgrep -P "$parent" 2>/dev/null || true)"
+  for c in $children; do
+    echo "$c"
+    _descendants "$c"
+  done
+}
+
 cmd_stop() {
   local name="$1"
   local pf pid
   pf="$(pidfile "$name")"
   pid="$(read_pid "$pf")"
   if is_alive "$pid"; then
+    local kids
+    kids="$(_descendants "$pid")"
+    # SIGTERM the whole tree, parent last so children see the signal.
+    for k in $kids; do kill "$k" 2>/dev/null || true; done
     kill "$pid" 2>/dev/null || true
     for _ in 1 2 3 4 5 6 7 8 9 10; do
       is_alive "$pid" || break
       sleep 0.2
     done
-    is_alive "$pid" && kill -9 "$pid" 2>/dev/null || true
+    if is_alive "$pid"; then
+      for k in $kids; do kill -9 "$k" 2>/dev/null || true; done
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+    # Mop up any survivors among the descendants.
+    for k in $kids; do is_alive "$k" && kill -9 "$k" 2>/dev/null || true; done
     echo "$name stopped (pid $pid)"
   else
     echo "$name not running"

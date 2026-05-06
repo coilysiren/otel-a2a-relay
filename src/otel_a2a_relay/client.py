@@ -41,10 +41,14 @@ def cmd_send() -> int:
     agent_id = _env("AS")
     context_id = _env("CTX")
     msg = _env("MSG")
+    target = os.environ.get("TO") or ""
     url = os.environ.get("OTEL_A2A_RELAY_URL", DEFAULT_RELAY_URL)
 
     task_id = f"t-{uuid.uuid4().hex[:6]}"
     message_id = f"m-{uuid.uuid4().hex[:8]}"
+    metadata: dict[str, Any] = {"agent.id": agent_id}
+    if target:
+        metadata["agent.target"] = target
     envelope = {
         "jsonrpc": "2.0",
         "id": message_id,
@@ -56,7 +60,7 @@ def cmd_send() -> int:
                 "contextId": context_id,
                 "role": "user",
                 "parts": [{"kind": "text", "text": msg}],
-                "metadata": {"agent.id": agent_id},
+                "metadata": metadata,
             }
         },
     }
@@ -72,7 +76,8 @@ def cmd_send() -> int:
         print(f"[{agent_id}] error: {body['error']}", file=sys.stderr)
         return 1
     state = (body.get("result") or {}).get("status", {}).get("state", "?")
-    print(f"[{agent_id}] sent task={task_id} -> state={state}")
+    arrow = f"-> {target} " if target else ""
+    print(f"[{agent_id}] sent {arrow}task={task_id} state={state}")
     return 0
 
 
