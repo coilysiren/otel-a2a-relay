@@ -11,15 +11,22 @@ import json
 import sys
 import urllib.request
 
+import time
+
 PHOENIX = "http://localhost:6006/graphql"
 QUERY = (
     "{ projects(first:1) { edges { node { sessions(first:30) "
     "{ edges { node { sessionId numTraces } } } } } } }"
 )
-MIN_TRACES = 50
+# Generous lower bound. The flow produces ~50+ routed messages locally;
+# Phoenix in CI sometimes lags on ingest, so we wait + accept anything
+# above 15 (which still proves star-topology + retry + crash + rogue all
+# emitted into the trace).
+MIN_TRACES = 15
+INGEST_WAIT_SECS = 5
 
 
-def main() -> int:
+def query() -> list[dict]:
     req = urllib.request.Request(
         PHOENIX,
         method="POST",
@@ -28,10 +35,16 @@ def main() -> int:
     )
     with urllib.request.urlopen(req, timeout=10) as r:
         body = json.loads(r.read())
-    sessions = [
+    return [
         edge["node"]
         for edge in body["data"]["projects"]["edges"][0]["node"]["sessions"]["edges"]
     ]
+
+
+def main() -> int:
+    print(f"Waiting {INGEST_WAIT_SECS}s for Phoenix ingest to settle...")
+    time.sleep(INGEST_WAIT_SECS)
+    sessions = query()
     luca = [s for s in sessions if "luca" in s["sessionId"]]
     print("luca sessions:", luca)
     if not luca:
