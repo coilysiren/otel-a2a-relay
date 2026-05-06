@@ -1,11 +1,33 @@
-.PHONY: up down status relay agent-a agent-b phoenix-fg send view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: help up down status restart wait demo relay agent-a agent-b phoenix-fg send view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
 
 BG := scripts/bg.sh
 
 # Peer registry the relay reads on startup. Override on the make line if needed.
 RELAY_PEERS ?= A=http://127.0.0.1:9001,B=http://127.0.0.1:9002
 
-up: agent-a agent-b relay status
+help:
+	@echo 'Targets:'
+	@echo '  up           Bring up agent-a, agent-b, relay (Phoenix is operator-owned).'
+	@echo '  down         Stop all relay/agent processes.'
+	@echo '  restart      down + up + wait + status.'
+	@echo '  status       Print health of phoenix + relay + agents.'
+	@echo '  wait         Block until phoenix + relay + agents respond on /healthz.'
+	@echo '  demo         Restart and run a two-agent smoke flow.'
+	@echo '  send AS=A TO=B CTX=demo MSG="hi"   Post a message via the relay.'
+	@echo '  view CTX=demo                      Reduce Phoenix spans for one session.'
+	@echo '  get TASK=t-...                     tasks/get for one task id.'
+	@echo '  tasks                              List tasks the relay has indexed.'
+	@echo '  peers                              List peers + their AgentCards.'
+	@echo '  cancel TASK=t-...                  tasks/cancel for one task id.'
+	@echo '  harness                            Original Phoenix-validation harness.'
+	@echo '  test / lint                        pytest / ruff + mypy.'
+	@echo '  tail-relay / tail-agent-a / tail-agent-b   tail -f the running log.'
+	@echo '  phoenix-fg                         Run Phoenix in foreground (operator).'
+	@echo '  clean-phoenix-db                   Wipe the Phoenix sqlite (operator).'
+
+up: agent-a agent-b relay wait status
+
+restart: down up
 
 down:
 	-$(BG) stop relay
@@ -18,6 +40,24 @@ status:
 	@$(BG) status relay
 	@$(BG) status agent-a
 	@$(BG) status agent-b
+
+wait:
+	@scripts/wait-healthy.sh \
+	  http://127.0.0.1:8080/healthz \
+	  http://127.0.0.1:9001/healthz \
+	  http://127.0.0.1:9002/healthz
+
+demo: restart
+	@echo
+	@echo "===> A -> B"
+	@$(MAKE) -s send AS=A TO=B CTX=demo MSG="hello B"
+	@echo "===> B -> A"
+	@$(MAKE) -s send AS=B TO=A CTX=demo MSG="hi A"
+	@sleep 1
+	@echo
+	@$(MAKE) -s view CTX=demo
+	@echo
+	@$(MAKE) -s tasks
 
 relay:
 	OTEL_A2A_RELAY_PEERS='$(RELAY_PEERS)' $(BG) start relay -- uv run uvicorn otel_a2a_relay.server:create_app --factory --reload --host 127.0.0.1 --port 8080
