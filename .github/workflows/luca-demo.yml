@@ -1,0 +1,118 @@
+name: luca-demo
+
+# This workflow does not consume any github.event.* user-controlled fields in
+# its run: blocks. All shell commands are static. No injection surface.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/otel_a2a_relay/**'
+      - 'examples/luca-flow/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+      - '.github/workflows/luca-demo.yml'
+  pull_request:
+    paths:
+      - 'src/otel_a2a_relay/**'
+      - 'examples/luca-flow/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+      - '.github/workflows/luca-demo.yml'
+  workflow_dispatch:
+
+jobs:
+  luca-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      - name: uv sync
+        run: uv sync --frozen
+
+      - name: Run unit tests
+        run: uv run pytest -q
+
+      - name: Lint
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+          uv run mypy src tests
+
+      - name: Start Phoenix in background
+        run: |
+          mkdir -p logs
+          nohup uv run phoenix serve > logs/phoenix.log 2>&1 &
+          echo $! > logs/phoenix.pid
+
+      - name: Wait for Phoenix /healthz
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:6006/healthz > /dev/null; then
+              echo "Phoenix is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Phoenix did not become healthy in 60s"
+          tail -50 logs/phoenix.log
+          exit 1
+
+      - name: make luca-demo
+        run: make luca-demo
+
+      - name: Verify dist/ contents
+        run: |
+          set -e
+          test -f examples/luca-flow/dist/index.html
+          test -f examples/luca-flow/dist/science.html
+          test -f examples/luca-flow/dist/product.html
+          test -f examples/luca-flow/dist/gallery.html
+          test -f examples/luca-flow/dist/mission.html
+          test -f examples/luca-flow/dist/about.html
+          test -f examples/luca-flow/dist/preorder.html
+          test -f examples/luca-flow/dist/CITATIONS.html
+          test -f examples/luca-flow/dist/CHANGELOG.md
+          test -f examples/luca-flow/dist/delivery-report.md
+          test -f examples/luca-flow/dist/delivery-report.json
+          test -d examples/luca-flow/dist/assets/img/nasa
+          test -d examples/luca-flow/dist/assets/fonts
+          test -f examples/luca-flow/dist/assets/css/main.css
+          echo "All expected dist files present"
+
+      - name: Verify Phoenix recorded LUCA spans
+        run: uv run python scripts/check_luca_spans.py
+
+      - name: Upload dist/ as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-dist
+          path: examples/luca-flow/dist/
+          retention-days: 14
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luca-logs
+          path: logs/
+          retention-days: 7
+
+      - name: Stop Phoenix
+        if: always()
+        run: |
+          if [ -f logs/phoenix.pid ]; then
+            kill "$(cat logs/phoenix.pid)" 2>/dev/null || true
+          fi

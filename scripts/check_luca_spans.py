@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Verify Phoenix recorded the LUCA-flow spans after `make luca-demo`.
+
+Used by the luca-demo CI workflow as the final gate. Exits non-zero if
+no `luca-*` session is found, or if the session has fewer traces than the
+flow should produce.
+"""
+from __future__ import annotations
+
+import json
+import sys
+import urllib.request
+
+PHOENIX = "http://localhost:6006/graphql"
+QUERY = (
+    "{ projects(first:1) { edges { node { sessions(first:30) "
+    "{ edges { node { sessionId numTraces } } } } } } }"
+)
+MIN_TRACES = 50
+
+
+def main() -> int:
+    req = urllib.request.Request(
+        PHOENIX,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({"query": QUERY}).encode(),
+    )
+    with urllib.request.urlopen(req, timeout=10) as r:
+        body = json.loads(r.read())
+    sessions = [
+        edge["node"]
+        for edge in body["data"]["projects"]["edges"][0]["node"]["sessions"]["edges"]
+    ]
+    luca = [s for s in sessions if "luca" in s["sessionId"]]
+    print("luca sessions:", luca)
+    if not luca:
+        print("FAIL: no luca-* sessions found in Phoenix", file=sys.stderr)
+        return 1
+    primary = max(luca, key=lambda s: s["numTraces"])
+    if primary["numTraces"] < MIN_TRACES:
+        print(
+            f"FAIL: luca session {primary['sessionId']} has only "
+            f"{primary['numTraces']} traces, expected >= {MIN_TRACES}",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"OK: luca session {primary['sessionId']} has {primary['numTraces']} traces")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
