@@ -9,6 +9,7 @@ Tasks are keyed by `task.id`. Storing again under the same id overwrites.
 
 from __future__ import annotations
 
+import copy
 import threading
 from typing import Any
 
@@ -23,12 +24,12 @@ class TaskStore:
         if not task_id:
             return
         with self._lock:
-            self._tasks[task_id] = task
+            self._tasks[task_id] = copy.deepcopy(task)
 
     def get(self, task_id: str) -> dict[str, Any] | None:
         with self._lock:
             task = self._tasks.get(task_id)
-            return dict(task) if task else None
+            return copy.deepcopy(task) if task else None
 
     def update_state(self, task_id: str, state: str) -> dict[str, Any] | None:
         with self._lock:
@@ -36,8 +37,8 @@ class TaskStore:
             if not task:
                 return None
             task["status"] = {**task.get("status", {}), "state": state}
-            return dict(task)
+            return copy.deepcopy(task)
 
     def all(self) -> list[dict[str, Any]]:
         with self._lock:
-            return [dict(t) for t in self._tasks.values()]
+            return [copy.deepcopy(t) for t in self._tasks.values()]
