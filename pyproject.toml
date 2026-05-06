@@ -35,9 +35,6 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "A", "RUF"]
 
-[tool.ruff.lint.per-file-ignores]
-"tasks.py" = ["E501"]
-
 [tool.mypy]
 python_version = "3.13"
 strict = true
@@ -47,7 +44,6 @@ ignore_missing_imports = true
 dev = [
   "arize-phoenix>=15.0",
   "httpx>=0.28",
-  "invoke>=3.0",
   "mypy>=1.20",
   "pre-commit>=4.5",
   "pytest>=8.0",
