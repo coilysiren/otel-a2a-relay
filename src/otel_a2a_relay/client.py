@@ -187,18 +187,91 @@ def cmd_view() -> int:
     return 0
 
 
+def cmd_get() -> int:
+    """tasks/get against the relay; prints the JSON Task back."""
+    task_id = _env("TASK")
+    url = os.environ.get("OTEL_A2A_RELAY_URL", DEFAULT_RELAY_URL)
+    envelope = {
+        "jsonrpc": "2.0",
+        "id": f"g-{uuid.uuid4().hex[:6]}",
+        "method": "tasks/get",
+        "params": {"id": task_id},
+    }
+    try:
+        resp = httpx.post(url, json=envelope, timeout=10.0)
+    except httpx.HTTPError as e:
+        print(f"relay unreachable at {url}: {e}", file=sys.stderr)
+        return 1
+    body = resp.json()
+    if "error" in body:
+        print(f"error: {body['error']}", file=sys.stderr)
+        return 1
+    print(json.dumps(body.get("result"), indent=2))
+    return 0
+
+
+def cmd_tasks() -> int:
+    """List tasks the relay has observed."""
+    url = os.environ.get("OTEL_A2A_RELAY_URL", DEFAULT_RELAY_URL).rstrip("/") + "/tasks"
+    try:
+        resp = httpx.get(url, timeout=10.0)
+    except httpx.HTTPError as e:
+        print(f"relay unreachable at {url}: {e}", file=sys.stderr)
+        return 1
+    tasks = resp.json().get("tasks") or []
+    if not tasks:
+        print("(no tasks)")
+        return 0
+    for t in tasks:
+        state = t.get("status", {}).get("state", "?")
+        print(f"{t.get('id')} ctx={t.get('contextId')} state={state}")
+    return 0
+
+
+def cmd_cancel() -> int:
+    task_id = _env("TASK")
+    url = os.environ.get("OTEL_A2A_RELAY_URL", DEFAULT_RELAY_URL)
+    envelope = {
+        "jsonrpc": "2.0",
+        "id": f"c-{uuid.uuid4().hex[:6]}",
+        "method": "tasks/cancel",
+        "params": {"id": task_id},
+    }
+    try:
+        resp = httpx.post(url, json=envelope, timeout=10.0)
+    except httpx.HTTPError as e:
+        print(f"relay unreachable at {url}: {e}", file=sys.stderr)
+        return 1
+    body = resp.json()
+    if "error" in body:
+        print(f"error: {body['error']}", file=sys.stderr)
+        return 1
+    state = (body.get("result") or {}).get("status", {}).get("state", "?")
+    print(f"task={task_id} state={state}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
     if not argv:
-        print("usage: python -m otel_a2a_relay.client {send|view}", file=sys.stderr)
+        print(
+            "usage: python -m otel_a2a_relay.client {send|view|get|tasks|cancel}",
+            file=sys.stderr,
+        )
         return 2
     verb = argv[0]
-    if verb == "send":
-        return cmd_send()
-    if verb == "view":
-        return cmd_view()
-    print(f"unknown subcommand: {verb}", file=sys.stderr)
-    return 2
+    handlers = {
+        "send": cmd_send,
+        "view": cmd_view,
+        "get": cmd_get,
+        "tasks": cmd_tasks,
+        "cancel": cmd_cancel,
+    }
+    handler = handlers.get(verb)
+    if not handler:
+        print(f"unknown subcommand: {verb}", file=sys.stderr)
+        return 2
+    return handler()
 
 
 if __name__ == "__main__":

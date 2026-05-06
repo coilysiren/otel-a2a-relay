@@ -23,6 +23,7 @@ from opentelemetry.propagate import extract
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, Status, StatusCode
 
+from otel_a2a_relay.store import TaskStore
 from otel_a2a_relay.telemetry import make_provider
 
 
@@ -40,14 +41,31 @@ def create_app(
     agent_id: str,
     agent_name: str | None = None,
     provider: TracerProvider | None = None,
+    store: TaskStore | None = None,
 ) -> FastAPI:
     tracer = (provider or make_provider()).get_tracer(f"otel-a2a-relay.agent.{agent_id}")
     name = agent_name or f"{agent_id}-echo-agent"
+    task_store = store or TaskStore()
     app = FastAPI(title=f"a2a-agent-{agent_id}")
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok", "agent.id": agent_id}
+
+    @app.get("/tasks")
+    def list_tasks() -> dict[str, Any]:
+        return {"tasks": task_store.all()}
+
+    def _handle_tasks_get(payload: dict[str, Any]) -> JSONResponse:
+        params = payload.get("params") or {}
+        req_id = payload.get("id")
+        task_id = params.get("id") or params.get("taskId")
+        if not task_id:
+            return _jsonrpc_error(req_id, -32602, "Missing task id")
+        task = task_store.get(task_id)
+        if not task:
+            return _jsonrpc_error(req_id, -32001, f"Unknown task: {task_id}")
+        return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": task})
 
     @app.post("/")
     async def jsonrpc(request: Request) -> JSONResponse:
@@ -63,6 +81,8 @@ def create_app(
         req_id = payload.get("id")
         params = payload.get("params") or {}
 
+        if method == "tasks/get":
+            return _handle_tasks_get(payload)
         if method != "message/send":
             return _jsonrpc_error(req_id, -32601, f"Method not found: {method}")
 
@@ -127,6 +147,7 @@ def create_app(
             "status": {"state": "completed", "timestamp": _now_iso()},
             "history": [message, reply_message] if message else [reply_message],
         }
+        task_store.put(result)
         return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": result})
 
     return app

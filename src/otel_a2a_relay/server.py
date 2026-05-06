@@ -28,6 +28,7 @@ from opentelemetry.propagate import inject
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
 
+from otel_a2a_relay.store import TaskStore
 from otel_a2a_relay.telemetry import make_provider
 
 PROTOCOL_VERSION = "0.1"
@@ -78,6 +79,7 @@ def handle_message_send(
     tracer: Tracer,
     payload: dict[str, Any],
     peers: dict[str, str],
+    store: TaskStore,
     http_client: httpx.Client | None = None,
 ) -> dict[str, Any]:
     """Emit the relay-side a2a.task span, optionally forward to a peer, return JSON-RPC result."""
@@ -165,29 +167,100 @@ def handle_message_send(
         )
         span.set_attribute("a2a.task.state", "completed")
         span.set_status(Status(StatusCode.OK))
+        store.put(result)
 
     return {"jsonrpc": "2.0", "id": req_id, "result": result}
+
+
+def handle_tasks_get(
+    payload: dict[str, Any],
+    store: TaskStore,
+) -> dict[str, Any]:
+    params = payload.get("params") or {}
+    req_id = payload.get("id")
+    task_id = params.get("id") or params.get("taskId")
+    if not task_id:
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32602, "message": "Missing task id"},
+        }
+    task = store.get(task_id)
+    if not task:
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32001, "message": f"Unknown task: {task_id}"},
+        }
+    return {"jsonrpc": "2.0", "id": req_id, "result": task}
+
+
+def handle_tasks_cancel(
+    tracer: Tracer,
+    payload: dict[str, Any],
+    store: TaskStore,
+) -> dict[str, Any]:
+    params = payload.get("params") or {}
+    req_id = payload.get("id")
+    task_id = params.get("id") or params.get("taskId")
+    if not task_id:
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32602, "message": "Missing task id"},
+        }
+    task = store.get(task_id)
+    if not task:
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32001, "message": f"Unknown task: {task_id}"},
+        }
+    prev_state = task.get("status", {}).get("state", "unknown")
+    updated = store.update_state(task_id, "canceled") or task
+    with tracer.start_as_current_span(
+        "a2a.task.cancel",
+        kind=SpanKind.SERVER,
+        attributes={
+            "session.id": task.get("contextId", ""),
+            "a2a.task.id": task_id,
+            "agent.id": RELAY_AGENT_ID,
+            "graph.node.id": RELAY_AGENT_ID,
+            "openinference.span.kind": "AGENT",
+        },
+    ) as span:
+        span.add_event(
+            "a2a.task.state_change",
+            attributes={"from": prev_state, "to": "canceled"},
+        )
+    return {"jsonrpc": "2.0", "id": req_id, "result": updated}
 
 
 def create_app(
     provider: TracerProvider | None = None,
     peers: dict[str, str] | None = None,
     http_client: httpx.Client | None = None,
+    store: TaskStore | None = None,
 ) -> FastAPI:
     """Build the FastAPI app. Pass a custom TracerProvider for tests; defaults to OTLP.
 
     `peers` overrides the env-var registry. `http_client` lets tests stub the
-    forwarding HTTP call.
+    forwarding HTTP call. `store` is the in-memory task index; default per-app.
     """
     tracer = (provider or make_provider()).get_tracer("otel-a2a-relay")
     if peers is None:
         peers = parse_peers(os.environ.get("OTEL_A2A_RELAY_PEERS"))
+    task_store = store or TaskStore()
 
     app = FastAPI(title="otel-a2a-relay", version=PROTOCOL_VERSION)
 
     @app.get("/healthz")
     def healthz() -> dict[str, Any]:
         return {"status": "ok", "protocol": PROTOCOL_VERSION, "peers": sorted(peers.keys())}
+
+    @app.get("/tasks")
+    def list_tasks() -> dict[str, Any]:
+        return {"tasks": task_store.all()}
 
     @app.post("/")
     async def jsonrpc(request: Request) -> JSONResponse:
@@ -203,8 +276,13 @@ def create_app(
         req_id = payload.get("id")
 
         if method == "message/send":
-            response = handle_message_send(tracer, payload, peers, http_client)
-            return JSONResponse(response)
+            return JSONResponse(
+                handle_message_send(tracer, payload, peers, task_store, http_client)
+            )
+        if method == "tasks/get":
+            return JSONResponse(handle_tasks_get(payload, task_store))
+        if method == "tasks/cancel":
+            return JSONResponse(handle_tasks_cancel(tracer, payload, task_store))
 
         return _jsonrpc_error(req_id, -32601, f"Method not found: {method}")
 

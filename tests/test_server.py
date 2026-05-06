@@ -112,7 +112,7 @@ def test_unknown_method_returns_jsonrpc_error(
     client, _ = captured_spans
     r = client.post(
         "/",
-        json={"jsonrpc": "2.0", "id": 7, "method": "tasks/cancel", "params": {}},
+        json={"jsonrpc": "2.0", "id": 7, "method": "tasks/nonsense", "params": {}},
     )
     assert r.status_code == 200
     body = r.json()
