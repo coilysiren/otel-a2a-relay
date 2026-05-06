@@ -6,3 +6,5 @@ __pycache__/
 .ruff_cache/
 logs/
 PLAN.md
+examples/luca-flow/dist/*
+!examples/luca-flow/dist/.gitkeep
