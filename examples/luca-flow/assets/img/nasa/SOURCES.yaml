@@ -1,0 +1,290 @@
+# NASA imagery sources for the AURORA luca-flow demo.
+# All images are NASA-credited public-domain works under NASA media-usage guidelines.
+# This file is committed alongside the images so attribution stays load-bearing
+# even if the upstream URLs change.
+images:
+- nasa_id: iss072e159172
+  filename: iss072e159172.jpg
+  title: The aurora borealis blankets the Earth
+  description: iss072e159172 (Oct. 30, 2024) --- The aurora borealis blankets the
+    Earth in this photograph from the International Space Station as it soared 257
+    miles above Canada's province of Manitoba.
+  credit: JSC
+  date_created: '2024-10-30T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss072e159172/iss072e159172~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss072e159172
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss072e709711
+  filename: iss072e709711.jpg
+  title: The aurora borealis crowns Earth's horizon above Canada
+  description: iss072e709711 (March 2, 2025) --- The aurora borealis crowns Earth's
+    horizon with the city lights of Canada dotting the landscape below in this photograph
+    from the International Space Station as it orbited 262 miles above North America.
+    (From left) The Soyuz MS-26 spacecraft and the Pirs docking compartment silhouette
+    the foreground.
+  credit: JSC
+  date_created: '2025-03-02T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss072e709711/iss072e709711~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss072e709711
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss072e188141
+  filename: iss072e188141.jpg
+  title: A bright green aurora borealis streams above Earth's surface
+  description: iss072e188141 (Nov. 15, 2024) --- A bright green aurora borealis streams
+    above Earth's surface as the International Space Station orbited 269 miles above
+    a cloudy North Pacific Ocean south of Alaska's Aleutian Islands.
+  credit: JSC
+  date_created: '2024-11-15T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss072e188141/iss072e188141~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss072e188141
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss072e451060
+  filename: iss072e451060.jpg
+  title: A red and green aurora borealis above Canada's Gulf of St. Lawrence
+  description: iss072e451060 (Jan. 4, 2025) --- A red and green aurora borealis shimmers
+    in this photograph from the International Space Station as it orbited 260 miles
+    above Canada's Gulf of St. Lawrence.
+  credit: JSC
+  date_created: '2025-01-04T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss072e451060/iss072e451060~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss072e451060
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss072e820937
+  filename: iss072e820937.jpg
+  title: Clouds swirl over the Gulf of Alaska and underneath the aurora borealis
+  description: iss072e820937 (March 12, 2025) --- Clouds swirl over the Gulf of Alaska
+    and underneath the aurora borealis blanketing Earth's horizon in this photograph
+    from the International Space Station as it orbited 261 miles above.
+  credit: JSC
+  date_created: '2025-03-12T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss072e820937/iss072e820937~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss072e820937
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss029e012564
+  filename: iss029e012564.jpg
+  title: Aurora Borealis and city lights on the horizon  taken by the Expedition 29
+    crew
+  description: 'ISS029-E-012564 (29 Sept. 2011) --- The Midwestern United States at
+    night with Aurora Borealis is featured in this image photographed by an Expedition
+    29 crew member on the International Space Station. The night skies viewed from
+    the space station are illuminated with light from many sources. For example, the
+    Midwestern United States presents a night-time appearance not unlike a patchwork
+    quilt when viewed from orbit. The artificial light from human settlements appears
+    everywhere with a characteristic yellow tinge in this photograph. But green light
+    of the Aurora Borealis also appears strongly in this view (top left)—even seeming
+    to be reflected off Earth’s surface—in Canada—beneath the aurora. A small white
+    patch of light is almost certainly lightning from a storm on the East coast (top
+    right). Part of the International Space Station appears across the top of the
+    image. This photograph highlights the Chicago, IL, metropolitan area as the largest
+    cluster of lights at center, next to the dark patch of Lake Michigan. The other
+    largest metropolitan areas include St. Louis, MO (lower right), Minneapolis–St.
+    Paul, MN (left) and the Omaha–Council Bluffs region on the Nebraska–Iowa border
+    (lower left). City light clusters give an immediate sense of relative city size;
+    demographers have used night time satellite imagery to make estimates of city
+    populations, especially in the developing world where city growth can be very
+    rapid. The U.S. northeast seaboard lies in the most oblique (meaning viewed at
+    an angle) part of the image at top right, just beyond the Appalachian Mts., a
+    dark winding zone without major cities. Scales change significantly in oblique
+    views: Omaha is only 200 kilometers from Des Moines, but appears roughly the same
+    distance from Minneapolis—which is actually 375 kilometers to the north of Des
+    Moines. In addition to the major metropolitan areas, the rectangular NS/EW-oriented
+    pattern of townships is clearly visible in the rural, lower left part of the image.
+    This pattern instantly gives the sense of north orientation (toward the top left
+    corner) and is a distinctive characteristic of the United States, so that ISS
+    crew members can quickly know which continent they are flying over even at night.
+    In contrast to the regular township pattern, interstate highways converge on St.
+    Louis (e.g. Hwy 44), Chicago and other large cities, much like wheel spokes around
+    a central hub. Rivers—major visual features in daylight—become almost invisible
+    at night. The course of the Mississippi River appears as a slightly meandering
+    zone from Minneapolis through St. Louis (dashed line)—the river course continues
+    out of the lower right corner of the image.'
+  credit: JSC
+  date_created: '2011-09-29T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss029e012564/iss029e012564~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss029e012564
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss072e083078
+  filename: iss072e083078.jpg
+  title: The aurora australis streams over the Earth
+  description: iss072e083078 (Oct. 8, 2024) --- The aurora australis streams over
+    the Earth as the International Space Station orbited 272 miles above the Pacific
+    Ocean south of New Zealand.
+  credit: JSC
+  date_created: '2024-10-08T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss072e083078/iss072e083078~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss072e083078
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss040e040103
+  filename: iss040e040103.jpg
+  title: Time lapse - Aurora Australis
+  description: ISS040-E-040103 (5 July 2014) --- As the International Space Station
+    was flying at an altitude of 226 nautical miles on July 5 above a point in the
+    southern Indian Ocean near South Africa's Prince Edwards Islands, one of the Expedition
+    40 crew members photographed this image of Aurora Australis.
+  credit: JSC
+  date_created: '2013-07-05T00:00:00Z'
+  keywords:
+  - EARTH OBSERVATIONS (FROM SPACE)  EXPEDITION 40
+  - TWEETED PHOTO
+  - SOCIAL MEDIA
+  source_image_url: http://images-assets.nasa.gov/image/iss040e040103/iss040e040103~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss040e040103
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: iss072e011489
+  filename: iss072e011489.jpg
+  title: The aurora australis blends with Earth's atmospheric glow
+  description: iss072e011489 (Sept. 27, 2024) --- The aurora australis blends with
+    Earth's atmospheric glow blanketing the nighttime horizon in this photograph from
+    the International Space Station as it orbited 271 miles above the Pacific Ocean
+    off the coast of New Zealand.
+  credit: JSC
+  date_created: '2024-09-27T00:00:00Z'
+  keywords: []
+  source_image_url: http://images-assets.nasa.gov/image/iss072e011489/iss072e011489~large.jpg
+  source_metadata_url: https://images.nasa.gov/details-iss072e011489
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: GSFC_20171208_Archive_e000614
+  filename: GSFC_20171208_Archive_e000614.jpg
+  title: Nighttime View of Aurora Borealis
+  description: 'This is a composite image of Suomi NPP VIIRS Day/Night Band images
+    show the bright and complex signature of the aurora borealis across southern Canada
+    and the northern United States during the nighttime hours of September 8, 2015.  Credit:
+    NASA/Goddard/Suomi NPP/VIIRS/SSEC-RealEarth  <b><a href="http://www.nasa.gov/audience/formedia/features/MP_Photo_Guidelines.html"
+    rel="nofollow">NASA image use policy.</a></b>  <b><a href="http://www.nasa.gov/centers/goddard/home/index.html"
+    rel="nofollow">NASA Goddard Space Flight Center</a></b> enables NASA’s mission
+    through four scientific endeavors: Earth Science, Heliophysics, Solar System Exploration,
+    and Astrophysics. Goddard plays a leading role in NASA’s accomplishments by contributing
+    compelling scientific knowledge to advance the Agency’s mission.  <b>Follow us
+    on <a href="http://twitter.com/NASAGoddardPix" rel="nofollow">Twitter</a></b>  <b>Like
+    us on <a href="http://www.facebook.com/pages/Greenbelt-MD/NASA-Goddard/395013845897?ref=tsd"
+    rel="nofollow">Facebook</a></b>  <b>Find us on <a href="http://instagrid.me/nasagoddard/?vm=grid"
+    rel="nofollow">Instagram</a></b>'
+  credit: GSFC
+  date_created: '2017-12-08T00:00:00Z'
+  keywords:
+  - Nighttime View of Aurora Borealis
+  source_image_url: http://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000614/GSFC_20171208_Archive_e000614~small.jpg
+  source_metadata_url: https://images.nasa.gov/details-GSFC_20171208_Archive_e000614
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: GSFC_20171208_Archive_e001871
+  filename: GSFC_20171208_Archive_e001871.jpg
+  title: NASA's IMAGE Spacecraft View of Aurora Australis from Space
+  description: 'NASA file image acquired September 11, 2005  <b>To view a video of
+    this event go here: <a href="http://www.flickr.com/photos/gsfc/6257608714">www.flickr.com/photos/gsfc/6257608714</a></b>  From
+    space, the aurora is a crown of light that circles each of Earth’s poles. The
+    IMAGE satellite captured this view of the aurora australis (southern lights) on
+    September 11, 2005, four days after a record-setting solar flare sent plasma—an
+    ionized gas of protons and electrons—flying towards the Earth. The ring of light
+    that the solar storm generated over Antarctica glows green in the ultraviolet
+    part of the spectrum, shown in this image. The IMAGE observations of the aurora
+    are overlaid onto NASA’s satellite-based Blue Marble image. From the Earth’s surface,
+    the ring would appear as a curtain of light shimmering across the night sky.  Like
+    all solar storms, the September storm distorted the shape of the magnetic field
+    that surrounds the Earth. Without buffeting from the solar wind (charged particles
+    like protons and electrons that are ejected from the Sun), the Earth’s magnetic
+    field would look something like a plump doughnut, with the North and South poles
+    forming the slender hole in the center. In reality, the nearly constant solar
+    winds flatten the space side of the “doughnut” into a long tail. The amount of
+    distortion changes when solar storms, such as the flare on September 7, send stronger
+    winds towards the Earth. Changes to the magnetic field release fast-moving particles,
+    which flow with charged particles from the Sun towards the center of the “doughnut”
+    at the Earth’s poles. As the particles sink into the atmosphere, they collide
+    with oxygen and nitrogen, lighting the sky with Nature’s version of neon lights,
+    the aurora.  Though scientists knew that the aurora were caused by charged particles
+    from the Sun and their interaction with the Earth’s magnetic field, they had no
+    way to measure the interaction until NASA launched the Imager for Magnetopause-to-Aurora
+    Global Exploration (IMAGE) satellite in 2000. The satellite’s mission was to collect
+    data that would allow scientists to study the structure and dynamics of the Earth’s
+    magnetic field for the first time. Designed to operate for two years, IMAGE sent
+    its last data to Earth in December 2005 after a highly successful five-year mission.  Since
+    2000, IMAGE has provided insight into how the Earth’s powerful magnetic field
+    protects the planet from solar winds. Without the shield the magnetic field provides,
+    the upper atmosphere would evaporate into space under the influence of solar winds.
+    IMAGE has shown scientists what sort of changes the magnetic field undertakes
+    as it diverts solar winds from the Earth. For a summary of the discoveries that
+    IMAGE has made possible, see IMAGE Discovers.  Instrument: IMAGE  Credit: <a href="http://svs.gsfc.nasa.gov/index.html"
+    rel="nofollow">NASA/Goddard Space Flight Center Scientific Visualization Studio</a>  <b><a
+    href="http://www.nasa.gov/audience/formedia/features/MP_Photo_Guidelines.html"
+    rel="nofollow">NASA image use policy.</a></b>  <b><a href="http://www.nasa.gov/centers/goddard/home/index.html"
+    rel="nofollow">NASA Goddard Space Flight Center</a></b> enables NASA’s mission
+    through four scientific endeavors: Earth Science, Heliophysics, Solar System Exploration,
+    and Astrophysics. Goddard plays a leading role in NASA’s accomplishments by contributing
+    compelling scientific knowledge to advance the Agency’s mission.  <b>Follow us
+    on <a href="http://twitter.com/NASAGoddardPix" rel="nofollow">Twitter</a></b>  <b>Like
+    us on <a href="http://www.facebook.com/pages/Greenbelt-MD/NASA-Goddard/395013845897?ref=tsd"
+    rel="nofollow">Facebook</a></b>  <b>Find us on <a href="http://instagrid.me/nasagoddard/?vm=grid"
+    rel="nofollow">Instagram</a></b>'
+  credit: GSFC
+  date_created: '2017-12-08T00:00:00Z'
+  keywords:
+  - NASA's IMAGE Spacecraft View of Aurora Australis from Space
+  - earth
+  - space
+  - satellite
+  - nasa
+  - aurora
+  - goddard
+  - southernlights
+  - auroraaustralis
+  source_image_url: http://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001871/GSFC_20171208_Archive_e001871~orig.jpg
+  source_metadata_url: https://images.nasa.gov/details-GSFC_20171208_Archive_e001871
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
+- nasa_id: GSFC_20171208_Archive_e001111
+  filename: GSFC_20171208_Archive_e001111.jpg
+  title: Magnetospheric Multiscale (MMS)
+  description: 'MMS Spacecraft Animation  The Magnetospheric Multiscale (MMS) mission
+    is a Solar Terrestrial Probes mission comprising four identically instrumented
+    spacecraft that will use Earth''s magnetosphere as a laboratory to study the microphysics
+    of three fundamental plasma processes: magnetic reconnection, energetic particle
+    acceleration, and turbulence. These processes occur in all astrophysical plasma
+    systems but can be studied in situ only in our solar system and most efficiently
+    only in Earth''s magnetosphere, where they control the dynamics of the geospace
+    environment and play an important role in the processes known as &quot;space weather.&quot;  Learn
+    more about MMS at <a href="http://www.nasa.gov/mms" rel="nofollow">www.nasa.gov/mms</a>   Learn
+    more about MMS at <a href="http://www.nasa.gov/mms" rel="nofollow">www.nasa.gov/mms</a>   Credit
+    NASA/Chris Gunn  The Magnetospheric Multiscale, or MMS, will study how the sun
+    and the Earth''s magnetic fields connect and disconnect, an explosive process
+    that can accelerate particles through space to nearly the speed of light. This
+    process is called magnetic reconnection and can occur throughout all space.   <b><a
+    href="http://www.nasa.gov/audience/formedia/features/MP_Photo_Guidelines.html"
+    rel="nofollow">NASA image use policy.</a></b>  <b><a href="http://www.nasa.gov/centers/goddard/home/index.html"
+    rel="nofollow">NASA Goddard Space Flight Center</a></b> enables NASA’s mission
+    through four scientific endeavors: Earth Science, Heliophysics, Solar System Exploration,
+    and Astrophysics. Goddard plays a leading role in NASA’s accomplishments by contributing
+    compelling scientific knowledge to advance the Agency’s mission.  <b>Follow us
+    on <a href="http://twitter.com/NASAGoddardPix" rel="nofollow">Twitter</a></b>  <b>Like
+    us on <a href="http://www.facebook.com/pages/Greenbelt-MD/NASA-Goddard/395013845897?ref=tsd"
+    rel="nofollow">Facebook</a></b>  <b>Find us on <a href="http://instagram.com/nasagoddard?vm=grid"
+    rel="nofollow">Instagram</a></b>'
+  credit: GSFC
+  date_created: '2017-12-08T00:00:00Z'
+  keywords:
+  - Magnetospheric Multiscale (MMS)
+  - mms
+  - nasa
+  - goddard
+  - cleanroom
+  - nasagoddard
+  - magnetosphericmultiscale
+  source_image_url: http://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001111/GSFC_20171208_Archive_e001111~small.jpg
+  source_metadata_url: https://images.nasa.gov/details-GSFC_20171208_Archive_e001111
+  license: Public Domain (NASA media usage guidelines)
+  license_url: https://www.nasa.gov/multimedia/guidelines/index.html
