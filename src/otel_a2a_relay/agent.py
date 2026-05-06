@@ -38,20 +38,63 @@ def _jsonrpc_error(req_id: Any, code: int, message: str) -> JSONResponse:
     )
 
 
+def build_agent_card(agent_id: str, name: str, base_url: str) -> dict[str, Any]:
+    """A2A AgentCard for this echo agent. Loosely follows the public A2A spec.
+
+    Only fields meaningful for the dogfood are populated. Anything we don't
+    actually support (push notifications, auth) is omitted rather than lied
+    about.
+    """
+    return {
+        "name": name,
+        "description": (
+            f"Echo agent {agent_id}. Replies to text messages with "
+            f"'echo from {agent_id}: <input>'."
+        ),
+        "url": base_url,
+        "version": "0.1.0",
+        "protocolVersion": "0.2.5",
+        "capabilities": {
+            "streaming": False,
+            "pushNotifications": False,
+            "stateTransitionHistory": True,
+        },
+        "defaultInputModes": ["text/plain"],
+        "defaultOutputModes": ["text/plain"],
+        "skills": [
+            {
+                "id": "echo",
+                "name": "echo",
+                "description": "Echoes back any text message with the agent id prefix.",
+                "tags": ["dogfood"],
+                "examples": ["hello", "ping"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/plain"],
+            }
+        ],
+    }
+
+
 def create_app(
     agent_id: str,
     agent_name: str | None = None,
     provider: TracerProvider | None = None,
     store: TaskStore | None = None,
+    base_url: str | None = None,
 ) -> FastAPI:
     tracer = (provider or make_provider()).get_tracer(f"otel-a2a-relay.agent.{agent_id}")
     name = agent_name or f"{agent_id}-echo-agent"
     task_store = store or TaskStore()
+    self_url = base_url or "http://127.0.0.1/"
     app = FastAPI(title=f"a2a-agent-{agent_id}")
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok", "agent.id": agent_id}
+
+    @app.get("/.well-known/agent.json")
+    def agent_card() -> dict[str, Any]:
+        return build_agent_card(agent_id, name, self_url)
 
     @app.get("/tasks")
     def list_tasks() -> dict[str, Any]:
@@ -173,7 +216,8 @@ def main() -> None:
     parser.add_argument("--port", type=int, required=True)
     args = parser.parse_args()
 
-    app = create_app(args.id, args.name)
+    base_url = f"http://{args.host}:{args.port}/"
+    app = create_app(args.id, args.name, base_url=base_url)
     uvicorn.run(app, host=args.host, port=args.port)
 
 

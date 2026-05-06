@@ -83,6 +83,18 @@ def test_message_send_emits_task_span_with_input_output(
     assert attrs["a2a.task.state"] == "completed"
 
 
+def test_agent_card_endpoint(
+    agent_b: tuple[TestClient, InMemorySpanExporter],
+) -> None:
+    client, _ = agent_b
+    r = client.get("/.well-known/agent.json")
+    assert r.status_code == 200
+    card = r.json()
+    assert card["name"] == "B-echo-agent"
+    assert card["protocolVersion"] == "0.2.5"
+    assert any(s["id"] == "echo" for s in card.get("skills", []))
+
+
 def test_tasks_get_after_message_send(
     agent_b: tuple[TestClient, InMemorySpanExporter],
 ) -> None:

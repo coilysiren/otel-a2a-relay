@@ -276,6 +276,25 @@ def create_app(
     def list_tasks() -> dict[str, Any]:
         return {"tasks": task_store.all()}
 
+    @app.get("/peers")
+    def list_peers() -> dict[str, Any]:
+        out: list[dict[str, Any]] = []
+        for pid, purl in sorted(peers.items()):
+            entry: dict[str, Any] = {"id": pid, "url": purl}
+            try:
+                resp = httpx.get(
+                    purl.rstrip("/") + "/.well-known/agent.json",
+                    timeout=2.0,
+                )
+                if resp.status_code == 200:
+                    entry["card"] = resp.json()
+                else:
+                    entry["card_error"] = f"http {resp.status_code}"
+            except httpx.HTTPError as e:
+                entry["card_error"] = str(e)
+            out.append(entry)
+        return {"peers": out}
+
     @app.post("/")
     async def jsonrpc(request: Request) -> JSONResponse:
         try:

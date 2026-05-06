@@ -278,6 +278,32 @@ def cmd_tasks() -> int:
     return 0
 
 
+def cmd_peers() -> int:
+    """List peers the relay knows about, with their agent cards."""
+    url = os.environ.get("OTEL_A2A_RELAY_URL", DEFAULT_RELAY_URL).rstrip("/") + "/peers"
+    try:
+        resp = httpx.get(url, timeout=5.0)
+    except httpx.HTTPError as e:
+        print(f"relay unreachable at {url}: {e}", file=sys.stderr)
+        return 1
+    peers = resp.json().get("peers") or []
+    if not peers:
+        print("(no peers configured)")
+        return 0
+    for p in peers:
+        card = p.get("card") or {}
+        skills = ", ".join(s.get("id", "?") for s in card.get("skills") or [])
+        proto = card.get("protocolVersion", "?")
+        if "card_error" in p:
+            print(f"{p['id']} {p['url']}  error={p['card_error']}")
+        else:
+            print(
+                f"{p['id']} {p['url']}  proto={proto} "
+                f"name={card.get('name', '?')} skills=[{skills}]"
+            )
+    return 0
+
+
 def cmd_cancel() -> int:
     task_id = _env("TASK")
     url = os.environ.get("OTEL_A2A_RELAY_URL", DEFAULT_RELAY_URL)
@@ -316,6 +342,7 @@ def main(argv: list[str] | None = None) -> int:
         "get": cmd_get,
         "tasks": cmd_tasks,
         "cancel": cmd_cancel,
+        "peers": cmd_peers,
     }
     handler = handlers.get(verb)
     if not handler:

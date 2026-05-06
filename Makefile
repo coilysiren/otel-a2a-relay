@@ -1,4 +1,4 @@
-.PHONY: up down status relay agent-a agent-b phoenix-fg send view get tasks cancel harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: up down status relay agent-a agent-b phoenix-fg send view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
 
 BG := scripts/bg.sh
 
@@ -45,6 +45,9 @@ tasks:
 
 cancel:
 	TASK='$(TASK)' uv run python -m otel_a2a_relay.client cancel
+
+peers:
+	uv run python -m otel_a2a_relay.client peers
 
 harness:
 	uv run otel-a2a-relay-harness
