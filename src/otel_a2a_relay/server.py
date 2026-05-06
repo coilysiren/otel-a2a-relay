@@ -37,6 +37,11 @@ PROTOCOL_VERSION = "0.1"
 RELAY_AGENT_ID = "relay"
 RELAY_AGENT_NAME = "otel-a2a-relay"
 
+# Star-topology roles. The orchestrator is the only role that may target
+# peers other than itself; everyone else may only target the orchestrator.
+ORCHESTRATOR_ROLE = "orchestrator"
+KNOWN_ROLES = frozenset({"orchestrator", "planner", "validator", "worker", "deployer"})
+
 
 def parse_peers(spec: str | None) -> dict[str, str]:
     """Parse `A=http://host:port,B=http://...` into a dict.
@@ -77,6 +82,32 @@ def _synthesize_task(message: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _check_star_topology(
+    sender_id: str,
+    target_id: str | None,
+    peer_roles: dict[str, str],
+) -> str | None:
+    """Return None if the route is allowed under star topology, else a reason string.
+
+    Rule: if either sender or target carries the orchestrator role, the route
+    is allowed. Otherwise it's rejected. Peers without a registered role are
+    treated as unconstrained (legacy / dogfood mode).
+    """
+    sender_role = peer_roles.get(sender_id)
+    target_role = peer_roles.get(target_id) if target_id else None
+    # Both unknown: not enforced (legacy callers).
+    if sender_role is None and target_role is None:
+        return None
+    # Orchestrator on either end: allowed.
+    if sender_role == ORCHESTRATOR_ROLE or target_role == ORCHESTRATOR_ROLE:
+        return None
+    return (
+        f"star-topology violation: {sender_id} (role={sender_role!r}) "
+        f"may not target {target_id} (role={target_role!r}); "
+        f"all routes must traverse the orchestrator"
+    )
+
+
 def handle_message_send(
     tracer: Tracer,
     payload: dict[str, Any],
@@ -84,6 +115,8 @@ def handle_message_send(
     store: TaskStore,
     http_client: httpx.Client | None = None,
     headers: dict[str, str] | None = None,
+    peer_roles: dict[str, str] | None = None,
+    star_enforce: bool = False,
 ) -> dict[str, Any]:
     """Emit the relay-side a2a.task span, optionally forward to a peer, return JSON-RPC result."""
     params = payload.get("params") or {}
@@ -95,6 +128,32 @@ def handle_message_send(
     sender_id = metadata.get("agent.id", "unknown")
     target_id = metadata.get("agent.target")
     peer_url = peers.get(target_id) if target_id else None
+    peer_roles = peer_roles or {}
+
+    if star_enforce:
+        violation = _check_star_topology(sender_id, target_id, peer_roles)
+        if violation is not None:
+            with tracer.start_as_current_span(
+                "a2a.relay.reject",
+                kind=SpanKind.SERVER,
+                attributes={
+                    "session.id": context_id,
+                    "a2a.task.id": task_id,
+                    "agent.id": RELAY_AGENT_ID,
+                    "openinference.span.kind": "AGENT",
+                    "a2a.relay.mode": "reject",
+                    "a2a.relay.reject_reason": violation,
+                    "a2a.peer.target": target_id or "",
+                    "graph.node.id": RELAY_AGENT_ID,
+                    "graph.node.parent_id": sender_id,
+                },
+            ) as span:
+                span.set_status(Status(StatusCode.ERROR, violation))
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32010, "message": violation},
+            }
 
     parts = message.get("parts") or []
     input_text = next(
@@ -418,22 +477,42 @@ def create_app(
     peers: dict[str, str] | None = None,
     http_client: httpx.Client | None = None,
     store: TaskStore | None = None,
+    peer_roles: dict[str, str] | None = None,
+    star_enforce: bool | None = None,
 ) -> FastAPI:
     """Build the FastAPI app. Pass a custom TracerProvider for tests; defaults to OTLP.
 
     `peers` overrides the env-var registry. `http_client` lets tests stub the
     forwarding HTTP call. `store` is the in-memory task index; default per-app.
+    `peer_roles` is the parallel id->role map used by star-topology enforcement.
+    `star_enforce` toggles the enforcement; defaults to OTEL_A2A_RELAY_STAR_ENFORCE
+    env var, off if unset (legacy dogfood behavior).
     """
     tracer = (provider or make_provider()).get_tracer("otel-a2a-relay")
     if peers is None:
         peers = parse_peers(os.environ.get("OTEL_A2A_RELAY_PEERS"))
+    if peer_roles is None:
+        peer_roles = {}
+    if star_enforce is None:
+        star_enforce = os.environ.get("OTEL_A2A_RELAY_STAR_ENFORCE", "").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
     task_store = store or TaskStore()
 
     app = FastAPI(title="otel-a2a-relay", version=PROTOCOL_VERSION)
 
     @app.get("/healthz")
     def healthz() -> dict[str, Any]:
-        return {"status": "ok", "protocol": PROTOCOL_VERSION, "peers": sorted(peers.keys())}
+        return {
+            "status": "ok",
+            "protocol": PROTOCOL_VERSION,
+            "peers": sorted(peers.keys()),
+            "star_enforce": star_enforce,
+            "roles": dict(peer_roles),
+        }
 
     @app.get("/tasks")
     def list_tasks() -> dict[str, Any]:
@@ -443,7 +522,7 @@ def create_app(
     def list_peers() -> dict[str, Any]:
         out: list[dict[str, Any]] = []
         for pid, purl in sorted(peers.items()):
-            entry: dict[str, Any] = {"id": pid, "url": purl}
+            entry: dict[str, Any] = {"id": pid, "url": purl, "role": peer_roles.get(pid)}
             try:
                 resp = httpx.get(
                     purl.rstrip("/") + "/.well-known/agent.json",
@@ -457,6 +536,37 @@ def create_app(
                 entry["card_error"] = str(e)
             out.append(entry)
         return {"peers": out}
+
+    @app.post("/peers")
+    async def register_peer(request: Request) -> JSONResponse:
+        """Register a peer dynamically. Body: {id, url, role}. role must be in KNOWN_ROLES.
+
+        This is relay-management surface, not part of the A2A→OTel protocol.
+        See docs/protocol.md.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "invalid json"}, status_code=400)
+        pid = body.get("id")
+        purl = body.get("url")
+        role = body.get("role")
+        if not pid or not purl or not role:
+            return JSONResponse({"error": "id, url, and role are required"}, status_code=400)
+        if role not in KNOWN_ROLES:
+            return JSONResponse(
+                {"error": f"role must be one of {sorted(KNOWN_ROLES)}", "got": role},
+                status_code=400,
+            )
+        peers[pid] = purl
+        peer_roles[pid] = role
+        return JSONResponse({"ok": True, "id": pid, "url": purl, "role": role})
+
+    @app.delete("/peers/{peer_id}")
+    def deregister_peer(peer_id: str) -> JSONResponse:
+        peers.pop(peer_id, None)
+        peer_roles.pop(peer_id, None)
+        return JSONResponse({"ok": True, "id": peer_id})
 
     @app.post("/", response_model=None)
     async def jsonrpc(request: Request) -> JSONResponse | StreamingResponse:
@@ -481,6 +591,8 @@ def create_app(
                     task_store,
                     http_client,
                     headers=in_headers,
+                    peer_roles=peer_roles,
+                    star_enforce=star_enforce,
                 )
             )
         if method == "message/stream":

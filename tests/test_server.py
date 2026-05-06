@@ -35,7 +35,13 @@ def test_healthz(captured_spans: tuple[TestClient, InMemorySpanExporter]) -> Non
     client, _ = captured_spans
     r = client.get("/healthz")
     assert r.status_code == 200
-    assert r.json() == {"status": "ok", "protocol": "0.1", "peers": []}
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["protocol"] == "0.1"
+    assert body["peers"] == []
+    # Star-topology fields default off / empty in this fixture.
+    assert body["star_enforce"] is False
+    assert body["roles"] == {}
 
 
 def test_message_send_returns_completed_task(
