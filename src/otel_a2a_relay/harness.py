@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Phoenix harness for otel-a2a-relay protocol v0.
+"""Phoenix harness for otel-a2a-relay protocol v0.1.
 
 Posts the worked-example spans (A streams a task to B, B completes, A acks)
 via OTLP/HTTP to a local Phoenix and exits. Use this to confirm Phoenix's
@@ -7,8 +6,8 @@ Sessions, Agent Graph, and Trace Tree views render the protocol correctly
 before writing any relay code.
 
 Usage:
-    python post_worked_example.py
-    OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix.local:6006 python post_worked_example.py
+    uv run otel-a2a-relay-harness
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix.local:6006 uv run otel-a2a-relay-harness
 
 Defaults to http://localhost:6006 (Phoenix's default OTLP HTTP host:port).
 """
@@ -39,7 +38,7 @@ TASK_ID = "task-validate-001"
 # every span the relay emits on the agent's behalf. See docs/protocol.md.
 AGENTS = {
     "A": {"agent.id": "A", "agent.name": "alpha-agent", "agent.version": "0.1.0"},
-    "B": {"agent.id": "B", "agent.name": "beta-agent",  "agent.version": "0.1.0"},
+    "B": {"agent.id": "B", "agent.name": "beta-agent", "agent.version": "0.1.0"},
 }
 
 
@@ -47,13 +46,11 @@ def make_provider() -> TracerProvider:
     """One TracerProvider for the whole relay process. Agent identity rides on span attrs."""
     resource = Resource.create({"service.name": "otel-a2a-relay"})
     provider = TracerProvider(resource=resource)
-    provider.add_span_processor(
-        SimpleSpanProcessor(OTLPSpanExporter(endpoint=TRACES_ENDPOINT))
-    )
+    provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint=TRACES_ENDPOINT)))
     return provider
 
 
-def base_attrs(acting_agent: str) -> dict:
+def base_attrs(acting_agent: str) -> dict[str, str]:
     """Attributes every emitted span carries. Agent Card fields included redundantly."""
     return {
         "session.id": SESSION_ID,
@@ -87,9 +84,7 @@ def emit_trace_1_a_send(provider: TracerProvider) -> None:
                 "input.value": json.dumps(
                     {
                         "role": "user",
-                        "parts": [
-                            {"kind": "text", "text": "summarize the design doc"}
-                        ],
+                        "parts": [{"kind": "text", "text": "summarize the design doc"}],
                     }
                 ),
                 "input.mime_type": "application/json",
@@ -191,7 +186,10 @@ def main() -> None:
     print("Done. Validate in Phoenix:")
     print(f"  - Sessions tab: row for session.id = {SESSION_ID}")
     print("  - Agent Graph: nodes A and B, edge A->B (from B's task), edge B->A (from A's recv)")
-    print("  - Trace Tree on the a2a.task trace: state-change and stream-chunk events inline, child a2a.message.send LLM span at the end")
+    print(
+        "  - Trace Tree on the a2a.task trace: events inline, "
+        "child a2a.message.send LLM span at the end"
+    )
 
 
 if __name__ == "__main__":

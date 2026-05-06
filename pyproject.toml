@@ -1,0 +1,58 @@
+[project]
+name = "otel-a2a-relay"
+version = "0.1.0"
+description = "A2A coordination as OTel spans. Drop-in relay between A2A agents that turns wire traffic into traces any OTel-native observability tool can render."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Kai Siren" }]
+dependencies = [
+  "opentelemetry-api>=1.27",
+  "opentelemetry-sdk>=1.27",
+  "opentelemetry-exporter-otlp-proto-http>=1.27",
+]
+
+[project.scripts]
+otel-a2a-relay-harness = "otel_a2a_relay.harness:main"
+
+[tool.uv]
+managed = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/otel_a2a_relay"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tasks.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+  "arize-phoenix>=15.0",
+  "invoke>=3.0",
+  "mypy>=1.20",
+  "pre-commit>=4.5",
+  "pytest>=8.0",
+  "ruff>=0.15",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
