@@ -49,15 +49,20 @@ wait:
 
 demo: restart
 	@echo
-	@echo "===> A -> B"
+	@echo "===> A -> B  (message/send)"
 	@$(MAKE) -s send AS=A TO=B CTX=demo MSG="hello B"
-	@echo "===> B -> A"
+	@echo "===> B -> A  (message/send)"
 	@$(MAKE) -s send AS=B TO=A CTX=demo MSG="hi A"
+	@echo
+	@echo "===> A -> B  (message/stream)"
+	@$(MAKE) -s stream AS=A TO=B CTX=demo MSG="streaming hello"
 	@sleep 1
 	@echo
 	@$(MAKE) -s view CTX=demo
 	@echo
 	@$(MAKE) -s tasks
+	@echo
+	@$(MAKE) -s peers
 
 relay:
 	OTEL_A2A_RELAY_PEERS='$(RELAY_PEERS)' $(BG) start relay -- uv run uvicorn otel_a2a_relay.server:create_app --factory --reload --host 127.0.0.1 --port 8080
