@@ -106,6 +106,17 @@ The original v0.1 protocol document at [`docs/protocol.md`](docs/protocol.md) is
 - `scripts/wait-healthy.sh` - poll `/healthz` until 2xx.
 - `Makefile` - thin wrapper over the above.
 
+## LUCA-flow demo
+
+`examples/luca-flow/` is a real multi-agent choreography that dogfoods the relay end-to-end. Eight worker subprocesses + an orchestrator + a planner + a validator + a deployer build the AURORA microsite (a fictional consumer desk lamp marketed as if it physically channels solar-wind charged particles) from real public-domain NASA imagery committed to the repo. Star topology is enforced by the relay; one worker deliberately crashes, another deliberately tries to bypass the orchestrator and gets a `-32010` from the relay's gate.
+
+```sh
+make phoenix-fg     # operator-owned, in another terminal
+make luca-demo      # ~15 seconds; produces examples/luca-flow/dist/
+```
+
+The same flow runs in CI on every push (`.github/workflows/luca-demo.yml`), with Phoenix in CI as a background process. The built `dist/` is uploaded as a workflow artifact. See [`examples/luca-flow/README.md`](examples/luca-flow/README.md) for the choreography and validation rules.
+
 ## Related
 
 Operator CLI: [`coily channel`](https://github.com/coilysiren/coily) once that side catches up. Origin discussion: [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24).
