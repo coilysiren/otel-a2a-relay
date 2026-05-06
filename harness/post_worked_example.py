@@ -22,7 +22,7 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.trace import Link, SpanKind, Status, StatusCode
+from opentelemetry.trace import SpanKind, Status, StatusCode
 
 OTLP_HOST = os.environ.get(
     "OTEL_EXPORTER_OTLP_ENDPOINT",
@@ -30,23 +30,22 @@ OTLP_HOST = os.environ.get(
 ).rstrip("/")
 TRACES_ENDPOINT = f"{OTLP_HOST}/v1/traces"
 
-REPO = "coilysiren/coilyco-ai"
-ISSUE = 24
+REPO = "coilysiren/otel-a2a-relay"
+ISSUE = 1
 SESSION_ID = hashlib.sha256(f"{REPO}#{ISSUE}".encode()).hexdigest()[:16]
 TASK_ID = "task-validate-001"
 
+# Agent Cards. Phoenix drops Resource attributes, so these are stamped on
+# every span the relay emits on the agent's behalf. See docs/protocol.md.
+AGENTS = {
+    "A": {"agent.id": "A", "agent.name": "alpha-agent", "agent.version": "0.1.0"},
+    "B": {"agent.id": "B", "agent.name": "beta-agent",  "agent.version": "0.1.0"},
+}
 
-def make_provider(agent_id: str, agent_name: str, agent_version: str) -> TracerProvider:
-    """Each agent gets its own TracerProvider so Agent Card data scopes as a Resource."""
-    resource = Resource.create(
-        {
-            "service.name": f"a2a-agent-{agent_id.lower()}",
-            "agent.id": agent_id,
-            "agent.name": agent_name,
-            "agent.version": agent_version,
-            "agent.capabilities": json.dumps(["streaming", "messages"]),
-        }
-    )
+
+def make_provider() -> TracerProvider:
+    """One TracerProvider for the whole relay process. Agent identity rides on span attrs."""
+    resource = Resource.create({"service.name": "otel-a2a-relay"})
     provider = TracerProvider(resource=resource)
     provider.add_span_processor(
         SimpleSpanProcessor(OTLPSpanExporter(endpoint=TRACES_ENDPOINT))
@@ -54,34 +53,36 @@ def make_provider(agent_id: str, agent_name: str, agent_version: str) -> TracerP
     return provider
 
 
-def common_attrs() -> dict:
+def base_attrs(acting_agent: str) -> dict:
+    """Attributes every emitted span carries. Agent Card fields included redundantly."""
     return {
         "session.id": SESSION_ID,
         "a2a.task.id": TASK_ID,
+        **AGENTS[acting_agent],
     }
 
 
-def emit_trace_1_a_send(provider_a: TracerProvider):
+def emit_trace_1_a_send(provider: TracerProvider) -> None:
     """Trace 1: A sends message/stream to B. CLIENT side."""
-    tracer = provider_a.get_tracer("otel-a2a-relay-harness")
+    tracer = provider.get_tracer("otel-a2a-relay-harness")
     with tracer.start_as_current_span(
         "a2a.client.send",
         kind=SpanKind.CLIENT,
         attributes={
-            **common_attrs(),
+            **base_attrs("A"),
             "openinference.span.kind": "AGENT",
+            "graph.node.id": "A",
             "peer.agent.id": "B",
             "a2a.method": "message/stream",
             "rpc.system": "jsonrpc",
             "rpc.service": "a2a",
             "rpc.method": "message/stream",
         },
-    ) as send_span:
-        client_send_ctx = send_span.get_span_context()
+    ):
         with tracer.start_as_current_span(
             "a2a.message.send",
             attributes={
-                **common_attrs(),
+                **base_attrs("A"),
                 "openinference.span.kind": "LLM",
                 "input.value": json.dumps(
                     {
@@ -95,23 +96,22 @@ def emit_trace_1_a_send(provider_a: TracerProvider):
             },
         ):
             pass
-    return client_send_ctx
 
 
-def emit_trace_2_b_task(provider_b: TracerProvider, link_to_send_ctx):
+def emit_trace_2_b_task(provider: TracerProvider) -> None:
     """Trace 2: B executes the task. AGENT side, the meat."""
-    tracer = provider_b.get_tracer("otel-a2a-relay-harness")
+    tracer = provider.get_tracer("otel-a2a-relay-harness")
     with tracer.start_as_current_span(
         "a2a.task",
         kind=SpanKind.SERVER,
         attributes={
-            **common_attrs(),
+            **base_attrs("B"),
             "openinference.span.kind": "AGENT",
+            "graph.node.id": "B",
+            "graph.node.parent_id": "A",
             "a2a.task.state": "working",
         },
-        links=[Link(link_to_send_ctx)],
     ) as task_span:
-        task_ctx = task_span.get_span_context()
         task_span.add_event(
             "a2a.task.state_change",
             attributes={"from": "submitted", "to": "working"},
@@ -139,7 +139,7 @@ def emit_trace_2_b_task(provider_b: TracerProvider, link_to_send_ctx):
         with tracer.start_as_current_span(
             "a2a.message.send",
             attributes={
-                **common_attrs(),
+                **base_attrs("B"),
                 "openinference.span.kind": "LLM",
                 "output.value": json.dumps(
                     {
@@ -158,21 +158,21 @@ def emit_trace_2_b_task(provider_b: TracerProvider, link_to_send_ctx):
             pass
         task_span.set_attribute("a2a.task.state", "completed")
         task_span.set_status(Status(StatusCode.OK))
-    return task_ctx
 
 
-def emit_trace_3_a_recv(provider_a: TracerProvider, link_to_task_ctx):
+def emit_trace_3_a_recv(provider: TracerProvider) -> None:
     """Trace 3: A reads the result. CLIENT side."""
-    tracer = provider_a.get_tracer("otel-a2a-relay-harness")
+    tracer = provider.get_tracer("otel-a2a-relay-harness")
     with tracer.start_as_current_span(
         "a2a.client.recv",
         kind=SpanKind.CLIENT,
         attributes={
-            **common_attrs(),
+            **base_attrs("A"),
             "openinference.span.kind": "AGENT",
+            "graph.node.id": "A",
+            "graph.node.parent_id": "B",
             "a2a.method": "tasks/get",
         },
-        links=[Link(link_to_task_ctx)],
     ):
         pass
 
@@ -182,19 +182,15 @@ def main() -> None:
     print(f"  session.id = {SESSION_ID}")
     print(f"  task.id    = {TASK_ID}")
 
-    provider_a = make_provider("A", "alpha-agent", "0.1.0")
-    provider_b = make_provider("B", "beta-agent", "0.1.0")
-
-    send_ctx = emit_trace_1_a_send(provider_a)
-    task_ctx = emit_trace_2_b_task(provider_b, send_ctx)
-    emit_trace_3_a_recv(provider_a, task_ctx)
-
-    provider_a.shutdown()
-    provider_b.shutdown()
+    provider = make_provider()
+    emit_trace_1_a_send(provider)
+    emit_trace_2_b_task(provider)
+    emit_trace_3_a_recv(provider)
+    provider.shutdown()
 
     print("Done. Validate in Phoenix:")
     print(f"  - Sessions tab: row for session.id = {SESSION_ID}")
-    print("  - Agent Graph: nodes A and B with edges A->B and B->A")
+    print("  - Agent Graph: nodes A and B, edge A->B (from B's task), edge B->A (from A's recv)")
     print("  - Trace Tree on the a2a.task trace: state-change and stream-chunk events inline, child a2a.message.send LLM span at the end")
 
 
