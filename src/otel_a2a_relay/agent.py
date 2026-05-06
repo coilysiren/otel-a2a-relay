@@ -12,6 +12,7 @@ span becomes a child of the relay's forwarding span.
 from __future__ import annotations
 
 import argparse
+import json
 import time
 import uuid
 from typing import Any
@@ -110,6 +111,11 @@ def create_app(
                 "graph.node.id": agent_id,
                 "graph.node.parent_id": sender_id,
                 "a2a.task.state": "working",
+                "input.value": json.dumps(
+                    {"role": message.get("role", "user"), "parts": message.get("parts") or []}
+                ),
+                "input.mime_type": "application/json",
+                "a2a.message.text": text,
             },
         ) as span:
             span.add_event(
@@ -138,6 +144,12 @@ def create_app(
                 attributes={"from": "working", "to": "completed"},
             )
             span.set_attribute("a2a.task.state", "completed")
+            span.set_attribute(
+                "output.value",
+                json.dumps({"role": "agent", "parts": reply_message["parts"]}),
+            )
+            span.set_attribute("output.mime_type", "application/json")
+            span.set_attribute("a2a.message.reply_text", reply_text)
             span.set_status(Status(StatusCode.OK))
 
         result = {

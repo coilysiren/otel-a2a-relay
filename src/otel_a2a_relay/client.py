@@ -175,9 +175,19 @@ def cmd_view() -> int:
     for s in spans:
         a = _attrs(s)
         agent = a.get("agent.id", "?")
+        parent = a.get("graph.node.parent_id", "")
         kind = a.get("openinference.span.kind", s.get("spanKind", ""))
         task = a.get("a2a.task.id", "?")
-        print(f"[{agent}] {s.get('name')} task={task} kind={kind}")
+        state = a.get("a2a.task.state", "")
+        chain = f"{parent}->{agent}" if parent else agent
+        suffix = f" state={state}" if state else ""
+        print(f"[{chain}] {s.get('name')} task={task} kind={kind}{suffix}")
+        in_text = a.get("a2a.message.text")
+        if in_text:
+            print(f"  in: {in_text}")
+        out_text = a.get("a2a.message.reply_text")
+        if out_text:
+            print(f"  out: {out_text}")
         for ev in s.get("events") or []:
             ev_attrs = _attrs(ev)
             keep = {k: v for k, v in ev_attrs.items() if k in EVENT_FIELDS}

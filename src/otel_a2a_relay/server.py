@@ -16,6 +16,7 @@ even agents that aren't OTel-aware contribute one routed span per hop.
 
 from __future__ import annotations
 
+import json
 import os
 import time
 import uuid
@@ -93,6 +94,12 @@ def handle_message_send(
     target_id = metadata.get("agent.target")
     peer_url = peers.get(target_id) if target_id else None
 
+    parts = message.get("parts") or []
+    input_text = next(
+        (p.get("text", "") for p in parts if p.get("kind") == "text"),
+        "",
+    )
+
     with tracer.start_as_current_span(
         "a2a.task",
         kind=SpanKind.SERVER,
@@ -107,6 +114,9 @@ def handle_message_send(
             "a2a.task.state": "working",
             "a2a.peer.target": target_id or "",
             "a2a.relay.mode": "forward" if peer_url else "synthesize",
+            "input.value": json.dumps({"role": message.get("role", "user"), "parts": parts}),
+            "input.mime_type": "application/json",
+            "a2a.message.text": input_text,
         },
     ) as span:
         span.add_event(
