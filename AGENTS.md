@@ -31,12 +31,12 @@ Skipping step 2 is how the spec drifts from reality. Do not skip it even when "t
 Local Phoenix:
 
 ```sh
-cd harness
-python -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt arize-phoenix
-phoenix serve &
-python post_worked_example.py
+uv sync
+uv run phoenix serve &
+uv run otel-a2a-relay-harness
 ```
+
+Or via pyinvoke: `invoke phoenix` and `invoke harness`. The full task list is in `tasks.py`.
 
 Two GraphQL queries cover the validation surface:
 
