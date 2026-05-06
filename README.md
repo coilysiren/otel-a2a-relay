@@ -1,16 +1,16 @@
 # otel-a2a-relay (o2r)
 
-A2A coordination as OTel spans. Drop-in relay between A2A agents that turns wire traffic into traces any OTel-native observability tool can render.
+[A2A](https://a2a-protocol.org/latest/specification/) coordination as [OTel](https://opentelemetry.io/) spans. Drop-in relay between A2A agents that turns wire traffic into traces any OTel-native observability tool can render.
 
 `otel-a2a-relay` is the canonical name (repo, package, protocol doc). `o2r` is the dictation-friendly shortname used in CLI entrypoints (`o2r`, `o2r-harness`), span identifiers (`service.name=o2r`, the relay's `agent.name`), and prose below.
 
 ## Pitch
 
-Two A2A agents talk to each other through this relay. Every message becomes one or more OTel spans, exported via OTLP/HTTP to whatever you've pointed `OTEL_EXPORTER_OTLP_ENDPOINT` at. The trace IS the operations view, no derived state needed.
+Two A2A agents talk to each other through this relay. Every message becomes one or more OTel spans, exported via [OTLP/HTTP](https://opentelemetry.io/docs/specs/otlp/) to whatever you've pointed `OTEL_EXPORTER_OTLP_ENDPOINT` at. The trace IS the operations view, no derived state needed.
 
-- Agent-facing format: A2A (JSON-RPC 2.0 over HTTP, AgentCards, `message/send`, `tasks/get`, `tasks/cancel`).
-- Relay-persistence format: OTel spans, OpenInference attributes for Phoenix's Agent Graph and Sessions views.
-- Trace propagation: W3C `traceparent` end-to-end. Client → relay → peer is one trace.
+- Agent-facing format: A2A ([JSON-RPC 2.0](https://www.jsonrpc.org/specification) over HTTP, [AgentCards](https://a2a-protocol.org/latest/specification/#5-agent-discovery-the-agent-card), `message/send`, `tasks/get`, `tasks/cancel`).
+- Relay-persistence format: OTel spans, [OpenInference](https://github.com/Arize-ai/openinference) attributes for Phoenix's Agent Graph and Sessions views.
+- Trace propagation: [W3C `traceparent`](https://www.w3.org/TR/trace-context/) end-to-end. Client → relay → peer is one trace.
 - Default visualizer: [Phoenix](https://github.com/Arize-ai/phoenix). Anything OTLP-native works.
 
 ## Quickstart (dogfood loop)
@@ -56,7 +56,7 @@ make view CTX=demo
 
 - `up` / `down` / `restart` / `status` / `wait` - lifecycle.
 - `send AS=... TO=... CTX=... MSG="..."` - JSON-RPC `message/send` to the relay.
-- `stream AS=... TO=... CTX=... MSG="..."` - JSON-RPC `message/stream` (SSE pass-through; chunks print live).
+- `stream AS=... TO=... CTX=... MSG="..."` - JSON-RPC `message/stream` ([SSE](https://html.spec.whatwg.org/multipage/server-sent-events.html) pass-through; chunks print live).
 - `view CTX=...` - GraphQL-query Phoenix for spans tagged with `session.id == $CTX` and reduce.
 - `get TASK=t-...` - `tasks/get`.
 - `tasks` - list tasks the relay has indexed in memory.
