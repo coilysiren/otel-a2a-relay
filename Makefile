@@ -1,4 +1,4 @@
-.PHONY: help up down status restart wait demo relay agent-a agent-b phoenix-fg send view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: help up down status restart wait demo relay agent-a agent-b phoenix-fg send stream view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
 
 BG := scripts/bg.sh
 
@@ -73,6 +73,9 @@ phoenix-fg:
 
 send:
 	AS='$(AS)' TO='$(TO)' CTX='$(CTX)' MSG='$(MSG)' uv run python -m otel_a2a_relay.client send
+
+stream:
+	AS='$(AS)' TO='$(TO)' CTX='$(CTX)' MSG='$(MSG)' uv run python -m otel_a2a_relay.client stream
 
 view:
 	CTX='$(CTX)' uv run python -m otel_a2a_relay.client view

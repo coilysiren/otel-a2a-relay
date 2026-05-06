@@ -237,6 +237,89 @@ def cmd_view() -> int:
     return 0
 
 
+def cmd_stream() -> int:
+    agent_id = _env("AS")
+    context_id = _env("CTX")
+    msg = _env("MSG")
+    target = os.environ.get("TO") or ""
+    url = os.environ.get("OTEL_A2A_RELAY_URL", DEFAULT_RELAY_URL)
+
+    task_id = f"t-{uuid.uuid4().hex[:6]}"
+    message_id = f"m-{uuid.uuid4().hex[:8]}"
+    metadata: dict[str, Any] = {"agent.id": agent_id}
+    if target:
+        metadata["agent.target"] = target
+    envelope = {
+        "jsonrpc": "2.0",
+        "id": message_id,
+        "method": "message/stream",
+        "params": {
+            "message": {
+                "messageId": message_id,
+                "taskId": task_id,
+                "contextId": context_id,
+                "role": "user",
+                "parts": [{"kind": "text", "text": msg}],
+                "metadata": metadata,
+            }
+        },
+    }
+
+    provider = make_provider()
+    tracer = provider.get_tracer(f"otel-a2a-relay.client.{agent_id}")
+    arrow = f"-> {target} " if target else ""
+    print(f"[{agent_id}] streaming {arrow}task={task_id}")
+    try:
+        with tracer.start_as_current_span(
+            "a2a.client.stream",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "session.id": context_id,
+                "a2a.task.id": task_id,
+                "agent.id": agent_id,
+                "openinference.span.kind": "AGENT",
+                "graph.node.id": agent_id,
+                "peer.agent.id": target,
+                "a2a.method": "message/stream",
+                "rpc.system": "jsonrpc",
+                "rpc.service": "a2a",
+                "rpc.method": "message/stream",
+                "a2a.message.text": msg,
+            },
+        ) as span:
+            headers: dict[str, str] = {}
+            inject(headers)
+            try:
+                with httpx.stream("POST", url, json=envelope, headers=headers, timeout=60.0) as r:
+                    for line in r.iter_lines():
+                        if not line or not line.startswith("data: "):
+                            continue
+                        try:
+                            evt = json.loads(line[len("data: ") :])
+                        except json.JSONDecodeError:
+                            continue
+                        res = evt.get("result") or {}
+                        kind = res.get("kind", "?")
+                        if kind == "artifact-update":
+                            artifact = res.get("artifact") or {}
+                            text = (artifact.get("parts") or [{}])[0].get("text", "")
+                            sys.stdout.write(text)
+                            sys.stdout.flush()
+                        elif kind == "status-update":
+                            state = (res.get("status") or {}).get("state", "")
+                            final = res.get("final")
+                            if final:
+                                print(f"\n[{agent_id}] stream done state={state}")
+            except httpx.HTTPError as e:
+                span.set_status(Status(StatusCode.ERROR, str(e)))
+                print(f"[{agent_id}] relay unreachable at {url}: {e}", file=sys.stderr)
+                return 1
+            span.set_status(Status(StatusCode.OK))
+    finally:
+        provider.shutdown()
+    return 0
+
+
 def cmd_get() -> int:
     """tasks/get against the relay; prints the JSON Task back."""
     task_id = _env("TASK")
@@ -338,6 +421,7 @@ def main(argv: list[str] | None = None) -> int:
     verb = argv[0]
     handlers = {
         "send": cmd_send,
+        "stream": cmd_stream,
         "view": cmd_view,
         "get": cmd_get,
         "tasks": cmd_tasks,

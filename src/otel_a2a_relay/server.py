@@ -20,11 +20,12 @@ import json
 import os
 import time
 import uuid
+from collections.abc import Iterator
 from typing import Any
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from opentelemetry.propagate import extract, inject
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
@@ -186,6 +187,168 @@ def handle_message_send(
     return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
 
+def handle_message_stream(
+    tracer: Tracer,
+    payload: dict[str, Any],
+    peers: dict[str, str],
+    store: TaskStore,
+    http_client: httpx.Client | None,
+    headers: dict[str, str] | None = None,
+) -> StreamingResponse:
+    """Forward `message/stream` to a peer as SSE; pass-through chunks to caller.
+
+    If no peer is configured for the target, synthesize a minimal one-event
+    completed stream so the dogfood works without a peer.
+    """
+    params = payload.get("params") or {}
+    req_id = payload.get("id")
+    message = params.get("message") or {}
+    metadata = message.get("metadata") or {}
+    context_id = message.get("contextId") or str(uuid.uuid4())
+    task_id = message.get("taskId") or f"task-{uuid.uuid4().hex[:8]}"
+    sender_id = metadata.get("agent.id", "unknown")
+    target_id = metadata.get("agent.target")
+    peer_url = peers.get(target_id) if target_id else None
+
+    parts = message.get("parts") or []
+    input_text = next((p.get("text", "") for p in parts if p.get("kind") == "text"), "")
+    incoming_ctx = extract(headers or {})
+
+    def _emit_synthetic() -> Iterator[bytes]:
+        evt = {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "kind": "status-update",
+                "taskId": task_id,
+                "contextId": context_id,
+                "status": {"state": "completed", "timestamp": _now_iso()},
+                "final": True,
+            },
+        }
+        yield f"data: {json.dumps(evt)}\n\n".encode()
+
+    def gen() -> Iterator[bytes]:
+        with tracer.start_as_current_span(
+            "a2a.task",
+            context=incoming_ctx,
+            kind=SpanKind.SERVER,
+            attributes={
+                "session.id": context_id,
+                "a2a.task.id": task_id,
+                "agent.id": RELAY_AGENT_ID,
+                "agent.name": RELAY_AGENT_NAME,
+                "openinference.span.kind": "AGENT",
+                "graph.node.id": RELAY_AGENT_ID,
+                "graph.node.parent_id": sender_id,
+                "a2a.task.state": "working",
+                "a2a.peer.target": target_id or "",
+                "a2a.relay.mode": "forward-stream" if peer_url else "synthesize-stream",
+                "a2a.method": "message/stream",
+                "input.value": json.dumps({"role": message.get("role", "user"), "parts": parts}),
+                "input.mime_type": "application/json",
+                "a2a.message.text": input_text,
+            },
+        ) as span:
+            span.add_event(
+                "a2a.task.state_change",
+                attributes={"from": "submitted", "to": "working"},
+            )
+
+            if not peer_url:
+                yield from _emit_synthetic()
+                span.add_event(
+                    "a2a.task.state_change",
+                    attributes={"from": "working", "to": "completed"},
+                )
+                span.set_attribute("a2a.task.state", "completed")
+                span.set_status(Status(StatusCode.OK))
+                return
+
+            outgoing_headers: dict[str, str] = {}
+            inject(outgoing_headers)
+            with tracer.start_as_current_span(
+                "a2a.relay.forward",
+                kind=SpanKind.CLIENT,
+                attributes={
+                    "session.id": context_id,
+                    "a2a.task.id": task_id,
+                    "agent.id": RELAY_AGENT_ID,
+                    "graph.node.id": RELAY_AGENT_ID,
+                    "peer.agent.id": target_id or "",
+                    "peer.url": peer_url,
+                    "openinference.span.kind": "AGENT",
+                    "rpc.system": "jsonrpc",
+                    "rpc.service": "a2a",
+                    "rpc.method": "message/stream",
+                },
+            ):
+                client = http_client or httpx.Client(timeout=60.0)
+                close_after = http_client is None
+                seq = 0
+                try:
+                    with client.stream(
+                        "POST",
+                        peer_url,
+                        json={
+                            "jsonrpc": "2.0",
+                            "id": req_id,
+                            "method": "message/stream",
+                            "params": params,
+                        },
+                        headers=outgoing_headers,
+                    ) as r:
+                        for line in r.iter_lines():
+                            if not line or not line.startswith("data: "):
+                                continue
+                            try:
+                                evt = json.loads(line[len("data: ") :])
+                            except json.JSONDecodeError:
+                                continue
+                            result = evt.get("result") or {}
+                            kind = result.get("kind", "")
+                            if kind == "artifact-update":
+                                artifact = result.get("artifact") or {}
+                                first_part = (artifact.get("parts") or [{}])[0]
+                                span.add_event(
+                                    "a2a.message.stream_chunk",
+                                    attributes={
+                                        "seq": seq,
+                                        "message.role": "agent",
+                                        "final": bool(result.get("lastChunk")),
+                                        "parts": json.dumps(artifact.get("parts") or []),
+                                        "text": first_part.get("text", ""),
+                                    },
+                                )
+                                seq += 1
+                            yield (line + "\n\n").encode()
+                finally:
+                    if close_after:
+                        client.close()
+
+            span.add_event(
+                "a2a.task.state_change",
+                attributes={"from": "working", "to": "completed"},
+            )
+            span.set_attribute("a2a.task.state", "completed")
+            span.set_status(Status(StatusCode.OK))
+
+            # The relay didn't observe a full Task object on the streaming path,
+            # so we record a minimal entry so /tasks lists it.
+            store.put(
+                {
+                    "id": task_id,
+                    "contextId": context_id,
+                    "kind": "task",
+                    "status": {"state": "completed", "timestamp": _now_iso()},
+                    "history": [message] if message else [],
+                    "via": "stream",
+                }
+            )
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
 def handle_tasks_get(
     payload: dict[str, Any],
     store: TaskStore,
@@ -295,8 +458,8 @@ def create_app(
             out.append(entry)
         return {"peers": out}
 
-    @app.post("/")
-    async def jsonrpc(request: Request) -> JSONResponse:
+    @app.post("/", response_model=None)
+    async def jsonrpc(request: Request) -> JSONResponse | StreamingResponse:
         try:
             payload = await request.json()
         except Exception:
@@ -307,6 +470,7 @@ def create_app(
 
         method = payload["method"]
         req_id = payload.get("id")
+        in_headers = dict(request.headers)
 
         if method == "message/send":
             return JSONResponse(
@@ -316,8 +480,17 @@ def create_app(
                     peers,
                     task_store,
                     http_client,
-                    headers=dict(request.headers),
+                    headers=in_headers,
                 )
+            )
+        if method == "message/stream":
+            return handle_message_stream(
+                tracer,
+                payload,
+                peers,
+                task_store,
+                http_client,
+                headers=in_headers,
             )
         if method == "tasks/get":
             return JSONResponse(handle_tasks_get(payload, task_store))

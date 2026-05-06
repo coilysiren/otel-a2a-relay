@@ -95,6 +95,47 @@ def test_agent_card_endpoint(
     assert any(s["id"] == "echo" for s in card.get("skills", []))
 
 
+def test_message_stream_returns_sse_chunks(
+    agent_b: tuple[TestClient, InMemorySpanExporter],
+) -> None:
+    import json as _json
+
+    client, _ = agent_b
+    with client.stream(
+        "POST",
+        "/",
+        json={
+            "jsonrpc": "2.0",
+            "id": "x",
+            "method": "message/stream",
+            "params": {
+                "message": {
+                    "messageId": "m-1",
+                    "taskId": "t-stream",
+                    "contextId": "ctx",
+                    "parts": [{"kind": "text", "text": "hi there"}],
+                    "metadata": {"agent.id": "A"},
+                }
+            },
+        },
+    ) as r:
+        events: list[dict[str, object]] = []
+        for raw_line in r.iter_lines():
+            line = raw_line.decode() if isinstance(raw_line, bytes) else raw_line
+            if not line or not line.startswith("data: "):
+                continue
+            events.append(_json.loads(line[len("data: ") :]))
+    kinds = [e["result"]["kind"] for e in events]  # type: ignore[index]
+    # First a working status, then artifact-update chunks, then a final completed.
+    assert kinds[0] == "status-update"
+    assert kinds[-1] == "status-update"
+    assert events[-1]["result"]["status"]["state"] == "completed"  # type: ignore[index]
+    assert events[-1]["result"]["final"] is True  # type: ignore[index]
+    artifacts = [e for e in events if e["result"]["kind"] == "artifact-update"]  # type: ignore[index]
+    assert len(artifacts) >= 1
+    assert artifacts[-1]["result"]["lastChunk"] is True  # type: ignore[index]
+
+
 def test_tasks_get_after_message_send(
     agent_b: tuple[TestClient, InMemorySpanExporter],
 ) -> None:

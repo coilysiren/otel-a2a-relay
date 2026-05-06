@@ -249,6 +249,38 @@ def test_tasks_cancel_marks_canceled_and_emits_span() -> None:
     assert "a2a.task.cancel" in span_names
 
 
+def test_message_stream_synthesizes_when_no_peer() -> None:
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    app = create_app(provider=provider, peers={})
+    with TestClient(app) as client:
+        with client.stream(
+            "POST",
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "method": "message/stream",
+                "params": {
+                    "message": {
+                        "messageId": "m-1",
+                        "taskId": "t-stream-syn",
+                        "contextId": "ctx-s",
+                        "metadata": {"agent.id": "A", "agent.target": "Z"},
+                    }
+                },
+            },
+        ) as r:
+            lines = list(r.iter_lines())
+    data_lines = [line for line in lines if line.startswith("data: ")]
+    assert len(data_lines) == 1
+    spans = {s.name: s for s in exporter.get_finished_spans()}
+    assert "a2a.task" in spans
+    attrs = spans["a2a.task"].attributes or {}
+    assert attrs["a2a.relay.mode"] == "synthesize-stream"
+
+
 def test_tasks_listing_endpoint() -> None:
     app = create_app(provider=TracerProvider(), peers={})
     with TestClient(app) as client:
