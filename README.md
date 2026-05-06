@@ -68,18 +68,13 @@ make view CTX=demo
 
 ## Topology
 
-```
-make send (client.py) ── HTTP/JSON-RPC ──▶  relay (:8080)
-        │                                       │ peers={A:9001, B:9002}
-        │ a2a.client.send (CLIENT span)         │ a2a.task (SERVER span)
-        │ traceparent injected ────────────────▶│ a2a.relay.forward (CLIENT span)
-                                                │ traceparent injected
-                                                ▼
-                                       agent A or B (:9001/:9002)
-                                       a2a.task (SERVER span, kind=AGENT)
-```
+![Relay topology, simplest case: one client, one relay, one peer, one trace](assets/topology.png)
+
+This is the simplest shape the relay supports: one client, one relay, one peer, one trace. Real flows are more interesting. The [LUCA-flow demo](#luca-flow-demo) below runs eight workers, an orchestrator, a planner, a validator, and a deployer through this same relay, with star-topology enforcement, retries, a deliberate worker crash, and a rogue worker that gets gated by the relay.
 
 The relay's peer registry comes from `OTEL_A2A_RELAY_PEERS=A=http://...,B=http://...`. The Makefile sets this for you. If a target in `metadata.agent.target` has no peer registered, the relay synthesizes a completed Task and skips the forward.
+
+Diagram source: [`scripts/render_topology.py`](scripts/render_topology.py). Regenerate with `uv run --with matplotlib python scripts/render_topology.py`.
 
 ## Methods
 
