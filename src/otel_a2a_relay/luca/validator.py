@@ -97,7 +97,7 @@ def validate_one_page(
 
     h1s = [n for n in _walk(tree) if _tag(n) == "h1"]
     if len(h1s) != 1:
-        errors.append(f"{page_name}: exactly one <h1> required, found {len(h1s)}")
+        errors.append(f"{page_name}: exactly one `<h1>` required, found {len(h1s)}")
 
     imgs = [n for n in _walk(tree) if _tag(n) == "img"]
     if len(imgs) < int(spec.get("images_min", 1)):
@@ -107,18 +107,18 @@ def validate_one_page(
     for i, img in enumerate(imgs):
         alt = _attr(img, "alt")
         if not alt or not alt.strip():
-            errors.append(f"{page_name}: <img>[{i}] missing alt text")
+            errors.append(f"{page_name}: `<img>[{i}]` missing alt text")
         nasa_id = _attr(img, "data-nasa-id")
         if not nasa_id:
-            errors.append(f"{page_name}: <img>[{i}] missing data-nasa-id citation reference")
+            errors.append(f"{page_name}: `<img>[{i}]` missing data-nasa-id citation reference")
         elif nasa_id not in nasa_ids:
-            errors.append(f"{page_name}: <img>[{i}] data-nasa-id={nasa_id!r} not in SOURCES.yaml")
+            errors.append(f"{page_name}: `<img>[{i}]` data-nasa-id={nasa_id!r} not in SOURCES.yaml")
 
     scripts = [n for n in _walk(tree) if _tag(n) == "script"]
     for s in scripts:
         src = _attr(s, "src") or ""
         if src:
-            errors.append(f"{page_name}: external <script src={src!r}> not allowed")
+            errors.append(f"{page_name}: external `<script src={src!r}>` not allowed")
 
     body_text = _text_content(tree)
     wc = _word_count(body_text)
