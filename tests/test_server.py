@@ -102,14 +102,14 @@ def test_message_send_emits_v0_1_task_span(
     span = spans["a2a.task"]
     attrs = span.attributes or {}
     assert attrs["session.id"] == "ctx-xyz"
-    assert attrs["a2a.task.id"] == "task-abc"
+    assert attrs["o2r.task.id"] == "task-abc"
     assert attrs["agent.id"] == "relay"
     assert attrs["graph.node.id"] == "relay"
     assert attrs["graph.node.parent_id"] == "A"
     assert attrs["openinference.span.kind"] == "AGENT"
-    assert attrs["a2a.task.state"] == "completed"
+    assert attrs["o2r.task.state"] == "completed"
     event_names = [e.name for e in span.events]
-    assert event_names == ["a2a.task.state_change", "a2a.task.state_change"]
+    assert event_names == ["o2r.task.state_change", "o2r.task.state_change"]
 
 
 def test_unknown_method_returns_jsonrpc_error(

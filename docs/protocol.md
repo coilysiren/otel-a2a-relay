@@ -1,10 +1,10 @@
-# Protocol v0.1
+# Protocol v0.2
 
 The relay's job: translate A2A wire traffic between agents into OTel spans, with no protocol changes visible to the agents themselves.
 
 A2A is the agent-facing format. OTel is the persistence substrate. Agents never read raw spans. Drop the relay between two existing A2A agents and they coordinate normally, except every exchange is now a queryable trace.
 
-This document is the v0.1 protocol shape. v0 was rewritten after a real Phoenix harness run surfaced two findings: Phoenix drops OTel `Resource` attributes, and Phoenix does not expose span links via its API. See ["Phoenix-validated"](#phoenix-validated) below for which v0 claims survived and which were rewritten.
+This document is the v0.2 protocol shape. v0.1 was rewritten after a real Phoenix harness run surfaced two findings: Phoenix drops OTel `Resource` attributes, and Phoenix does not expose span links via its API. v0.2 renames wire-protocol attribute keys from `a2a.*` to `o2r.*` (the protocol describes its own wire mechanics, not any consumer's flow) and adds a caller-configurable `tracing.bootstrap()` entrypoint so any framework can stand up a tracer without the relay knowing who they are. See ["Phoenix-validated"](#phoenix-validated) below for which v0 claims survived and which were rewritten.
 
 ## Topology
 
@@ -43,8 +43,8 @@ agent.id:            A
 agent.name:          <from A's Agent Card>
 graph.node.id:       A
 peer.agent.id:       B
-a2a.method:          message/stream
-a2a.task.id:         T
+o2r.method:          message/stream
+o2r.task.id:         T
 rpc.system:          jsonrpc
 rpc.service:         a2a
 rpc.method:          message/stream
@@ -75,15 +75,15 @@ agent.id:            B
 agent.name:          <from B's Agent Card>
 graph.node.id:       B
 graph.node.parent_id: A
-a2a.task.id:         T
-a2a.task.state:      working   # updated to terminal state at span end
+o2r.task.id:         T
+o2r.task.state:      working   # updated to terminal state at span end
 ```
 
 State changes are span events, not separate spans:
 
 ```
-event: a2a.task.state_change   { from: submitted, to: working,   ts: ... }
-event: a2a.task.state_change   { from: working,   to: completed, ts: ... }
+event: o2r.task.state_change   { from: submitted, to: working,   ts: ... }
+event: o2r.task.state_change   { from: working,   to: completed, ts: ... }
 ```
 
 Streaming chunks. Each SSE frame from B back to A is a span event on the task span:
@@ -110,7 +110,7 @@ output.value:        <final message.parts as JSON>
 output.mime_type:    application/json
 ```
 
-Span ends. `a2a.task.state` is set to terminal at end. Status code OK on `completed`, ERROR on `failed` or `canceled`.
+Span ends. `o2r.task.state` is set to terminal at end. Status code OK on `completed`, ERROR on `failed` or `canceled`.
 
 ### Trace 3: A's read / ack burst
 
@@ -123,8 +123,8 @@ session.id:          <S>
 agent.id:            A
 graph.node.id:       A
 graph.node.parent_id: B
-a2a.method:          tasks/get   # or implicit on stream-close
-a2a.task.id:         T
+o2r.method:          tasks/get   # or implicit on stream-close
+o2r.task.id:         T
 ```
 
 A's downstream processing of the result lives as children here. Out of scope for the relay.
@@ -136,6 +136,37 @@ A's downstream processing of the result lives as children here. Out of scope for
 - **Messages = mixed.** Content-bearing initial sends and final completions are spans (LLM kind). Streaming chunks and protocol-level state pings are span events. Rule of thumb: if it would render as a node in the trace tree, it is a span. If it would render as a tick on a timeline, it is an event.
 - **Streaming and sync share span shape.** Sync is the degenerate case where the task span opens, fires one `stream_chunk` event with `final: true`, ends with a child completion span. The relay does not branch on sync vs stream at the span layer.
 - **Topology = `graph.node.*` attributes**, not span links. Span links may be emitted alongside but are not load-bearing.
+
+## Tracing bootstrap
+
+The relay is consumer-agnostic. Anything reading or writing o2r-shaped spans is a "consumer," and the relay never knows or hardcodes which one. To stand up an OTel tracer that emits into the right Phoenix project with the right resource attributes, a consumer calls `otel_a2a_relay.tracing.bootstrap(...)` once per process.
+
+```python
+from otel_a2a_relay.tracing import bootstrap
+
+tracer = bootstrap(
+    namespace="frob",          # required - logical system name (OTel service.namespace)
+    deployment="acme",         # required - the colony / enterprise install
+    role="planner",            # required - this process's role (OTel service.name)
+    product_area="checkout",   # optional - hard-boundary slice within the deployment
+    deployment_env="prod",     # optional
+    version="1.2.3",           # optional
+    git_commit="deadbeef",     # optional
+    extra_resource={...},      # optional - merged in last
+)
+```
+
+Returns a configured `Tracer`. Side effects:
+
+- Sets `PHOENIX_PROJECT_NAME` env var (if not already set) to the slugified `<deployment>.<product_area>` (or just `<deployment>` if no product area). The slug rule is: lowercase, `[a-z0-9-]`, collapse separators. Phoenix's exporter reads the env var.
+- Resource attributes record `service.namespace=<namespace>`, `service.name=<role>`, `<namespace>.colony=<deployment>`, `<namespace>.product_area=<product_area>` (if present), plus any optional fields and `extra_resource`. The relay never inspects or special-cases the namespace.
+- Emits one `tracing.session.start` span. Its `readme` attribute is a one-line `namespace=<x> deployment=<y> product_area=<z> role=<r> version=<v>` summary so any agent reading the first span in a session can identify the system without external context.
+
+What's out of scope:
+
+- Auto-detecting consumer identity from env / git / process name. The bootstrap requires explicit args so the consumer is the source of truth.
+- Multi-tenant exporter routing. One process, one Phoenix project.
+- Helpers for setting consumer-flow attributes (`step`, `task_id`, `kind.in`, `kind.out`, `role`, `graph.node.*`). Those live in the consumer's namespace and the consumer sets them on its own spans.
 
 ## Phoenix-validated
 
@@ -149,8 +180,13 @@ Run against Phoenix platform v15.4.0 via `phoenix serve` + the `harness/` postin
 
 What the harness rewrote in v0:
 
-- **Resource attributes are not exposed by Phoenix.** Agent identity must live on spans, not on the Resource. v0 specified the opposite. v0.1 fixes it.
+- **Resource attributes are not exposed by Phoenix.** Agent identity must live on spans, not on the Resource. v0 specified the opposite. v0.1 fixes it. (v0.2 still puts caller identity on the Resource via `bootstrap()` because non-Phoenix OTel consumers do read it; the relay's own span emission keeps the redundant span-level identity for Phoenix.)
 - **Span links are not exposed by Phoenix.** v0 used links for cross-trace topology. v0.1 uses `graph.node.id` / `graph.node.parent_id` instead.
+
+What v0.2 changed:
+
+- **Wire-protocol attributes are now `o2r.*`, not `a2a.*`.** The renamed keys describe this protocol's mechanics, not the consumer's flow. Specifically: `o2r.task.id`, `o2r.task.state`, `o2r.task.state_change` (event), `o2r.message.text`, `o2r.message.reply_text`, `o2r.peer.target`, `o2r.relay.mode`, `o2r.relay.reject_reason`, `o2r.method`. Span names (`a2a.task`, `a2a.client.send`, `a2a.relay.forward`, ...) keep the `a2a.*` prefix because they label A2A wire events.
+- **`tracing.bootstrap()` entrypoint** added. See ["Tracing bootstrap"](#tracing-bootstrap) above.
 
 If a future Phoenix release changes either of these, the spec backs up again.
 

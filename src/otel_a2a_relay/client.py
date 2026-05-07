@@ -78,13 +78,13 @@ def cmd_send() -> int:
             kind=SpanKind.CLIENT,
             attributes={
                 "session.id": context_id,
-                "a2a.task.id": task_id,
+                "o2r.task.id": task_id,
                 "agent.id": agent_id,
                 "agent.name": f"{agent_id}-client",
                 "openinference.span.kind": "AGENT",
                 "graph.node.id": agent_id,
                 "peer.agent.id": target,
-                "a2a.method": "message/send",
+                "o2r.method": "message/send",
                 "rpc.system": "jsonrpc",
                 "rpc.service": "a2a",
                 "rpc.method": "message/send",
@@ -92,7 +92,7 @@ def cmd_send() -> int:
                     {"role": "user", "parts": [{"kind": "text", "text": msg}]}
                 ),
                 "input.mime_type": "application/json",
-                "a2a.message.text": msg,
+                "o2r.message.text": msg,
             },
         ) as span:
             headers: dict[str, str] = {}
@@ -217,15 +217,15 @@ def cmd_view() -> int:
         agent = a.get("agent.id", "?")
         parent = a.get("graph.node.parent_id", "")
         kind = a.get("openinference.span.kind", s.get("spanKind", ""))
-        task = a.get("a2a.task.id", "?")
-        state = a.get("a2a.task.state", "")
+        task = a.get("o2r.task.id", "?")
+        state = a.get("o2r.task.state", "")
         chain = f"{parent}->{agent}" if parent else agent
         suffix = f" state={state}" if state else ""
         print(f"[{chain}] {s.get('name')} task={task} kind={kind}{suffix}")
-        in_text = a.get("a2a.message.text")
+        in_text = a.get("o2r.message.text")
         if in_text:
             print(f"  in: {in_text}")
-        out_text = a.get("a2a.message.reply_text")
+        out_text = a.get("o2r.message.reply_text")
         if out_text:
             print(f"  out: {out_text}")
         for ev in s.get("events") or []:
@@ -275,16 +275,16 @@ def cmd_stream() -> int:
             kind=SpanKind.CLIENT,
             attributes={
                 "session.id": context_id,
-                "a2a.task.id": task_id,
+                "o2r.task.id": task_id,
                 "agent.id": agent_id,
                 "openinference.span.kind": "AGENT",
                 "graph.node.id": agent_id,
                 "peer.agent.id": target,
-                "a2a.method": "message/stream",
+                "o2r.method": "message/stream",
                 "rpc.system": "jsonrpc",
                 "rpc.service": "a2a",
                 "rpc.method": "message/stream",
-                "a2a.message.text": msg,
+                "o2r.message.text": msg,
             },
         ) as span:
             headers: dict[str, str] = {}

@@ -138,12 +138,12 @@ def handle_message_send(
                 kind=SpanKind.SERVER,
                 attributes={
                     "session.id": context_id,
-                    "a2a.task.id": task_id,
+                    "o2r.task.id": task_id,
                     "agent.id": RELAY_AGENT_ID,
                     "openinference.span.kind": "AGENT",
-                    "a2a.relay.mode": "reject",
-                    "a2a.relay.reject_reason": violation,
-                    "a2a.peer.target": target_id or "",
+                    "o2r.relay.mode": "reject",
+                    "o2r.relay.reject_reason": violation,
+                    "o2r.peer.target": target_id or "",
                     "graph.node.id": RELAY_AGENT_ID,
                     "graph.node.parent_id": sender_id,
                 },
@@ -169,22 +169,22 @@ def handle_message_send(
         kind=SpanKind.SERVER,
         attributes={
             "session.id": context_id,
-            "a2a.task.id": task_id,
+            "o2r.task.id": task_id,
             "agent.id": RELAY_AGENT_ID,
             "agent.name": RELAY_AGENT_NAME,
             "openinference.span.kind": "AGENT",
             "graph.node.id": RELAY_AGENT_ID,
             "graph.node.parent_id": sender_id,
-            "a2a.task.state": "working",
-            "a2a.peer.target": target_id or "",
-            "a2a.relay.mode": "forward" if peer_url else "synthesize",
+            "o2r.task.state": "working",
+            "o2r.peer.target": target_id or "",
+            "o2r.relay.mode": "forward" if peer_url else "synthesize",
             "input.value": json.dumps({"role": message.get("role", "user"), "parts": parts}),
             "input.mime_type": "application/json",
-            "a2a.message.text": input_text,
+            "o2r.message.text": input_text,
         },
     ) as span:
         span.add_event(
-            "a2a.task.state_change",
+            "o2r.task.state_change",
             attributes={"from": "submitted", "to": "working"},
         )
 
@@ -203,7 +203,7 @@ def handle_message_send(
                 kind=SpanKind.CLIENT,
                 attributes={
                     "session.id": context_id,
-                    "a2a.task.id": task_id,
+                    "o2r.task.id": task_id,
                     "agent.id": RELAY_AGENT_ID,
                     "graph.node.id": RELAY_AGENT_ID,
                     "peer.agent.id": target_id or "",
@@ -238,10 +238,10 @@ def handle_message_send(
             if forward_error is not None:
                 # Peer crashed mid-handle or unreachable. Surface as JSON-RPC error
                 # so the originating caller can record an outcome instead of 500ing.
-                span.set_attribute("a2a.task.state", "failed")
+                span.set_attribute("o2r.task.state", "failed")
                 span.set_status(Status(StatusCode.ERROR, forward_error))
                 span.add_event(
-                    "a2a.task.state_change",
+                    "o2r.task.state_change",
                     attributes={"from": "working", "to": "failed"},
                 )
                 return {
@@ -250,10 +250,10 @@ def handle_message_send(
                     "error": {"code": -32011, "message": forward_error},
                 }
             if "error" in body:
-                span.set_attribute("a2a.task.state", "failed")
+                span.set_attribute("o2r.task.state", "failed")
                 span.set_status(Status(StatusCode.ERROR, str(body["error"])))
                 span.add_event(
-                    "a2a.task.state_change",
+                    "o2r.task.state_change",
                     attributes={"from": "working", "to": "failed"},
                 )
                 return {"jsonrpc": "2.0", "id": req_id, "error": body["error"]}
@@ -262,10 +262,10 @@ def handle_message_send(
             result = _synthesize_task(message)
 
         span.add_event(
-            "a2a.task.state_change",
+            "o2r.task.state_change",
             attributes={"from": "working", "to": "completed"},
         )
-        span.set_attribute("a2a.task.state", "completed")
+        span.set_attribute("o2r.task.state", "completed")
         span.set_status(Status(StatusCode.OK))
         store.put(result)
 
@@ -320,33 +320,33 @@ def handle_message_stream(
             kind=SpanKind.SERVER,
             attributes={
                 "session.id": context_id,
-                "a2a.task.id": task_id,
+                "o2r.task.id": task_id,
                 "agent.id": RELAY_AGENT_ID,
                 "agent.name": RELAY_AGENT_NAME,
                 "openinference.span.kind": "AGENT",
                 "graph.node.id": RELAY_AGENT_ID,
                 "graph.node.parent_id": sender_id,
-                "a2a.task.state": "working",
-                "a2a.peer.target": target_id or "",
-                "a2a.relay.mode": "forward-stream" if peer_url else "synthesize-stream",
-                "a2a.method": "message/stream",
+                "o2r.task.state": "working",
+                "o2r.peer.target": target_id or "",
+                "o2r.relay.mode": "forward-stream" if peer_url else "synthesize-stream",
+                "o2r.method": "message/stream",
                 "input.value": json.dumps({"role": message.get("role", "user"), "parts": parts}),
                 "input.mime_type": "application/json",
-                "a2a.message.text": input_text,
+                "o2r.message.text": input_text,
             },
         ) as span:
             span.add_event(
-                "a2a.task.state_change",
+                "o2r.task.state_change",
                 attributes={"from": "submitted", "to": "working"},
             )
 
             if not peer_url:
                 yield from _emit_synthetic()
                 span.add_event(
-                    "a2a.task.state_change",
+                    "o2r.task.state_change",
                     attributes={"from": "working", "to": "completed"},
                 )
-                span.set_attribute("a2a.task.state", "completed")
+                span.set_attribute("o2r.task.state", "completed")
                 span.set_status(Status(StatusCode.OK))
                 return
 
@@ -357,7 +357,7 @@ def handle_message_stream(
                 kind=SpanKind.CLIENT,
                 attributes={
                     "session.id": context_id,
-                    "a2a.task.id": task_id,
+                    "o2r.task.id": task_id,
                     "agent.id": RELAY_AGENT_ID,
                     "graph.node.id": RELAY_AGENT_ID,
                     "peer.agent.id": target_id or "",
@@ -412,10 +412,10 @@ def handle_message_stream(
                         client.close()
 
             span.add_event(
-                "a2a.task.state_change",
+                "o2r.task.state_change",
                 attributes={"from": "working", "to": "completed"},
             )
-            span.set_attribute("a2a.task.state", "completed")
+            span.set_attribute("o2r.task.state", "completed")
             span.set_status(Status(StatusCode.OK))
 
             # The relay didn't observe a full Task object on the streaming path,
@@ -485,14 +485,14 @@ def handle_tasks_cancel(
         kind=SpanKind.SERVER,
         attributes={
             "session.id": task.get("contextId", ""),
-            "a2a.task.id": task_id,
+            "o2r.task.id": task_id,
             "agent.id": RELAY_AGENT_ID,
             "graph.node.id": RELAY_AGENT_ID,
             "openinference.span.kind": "AGENT",
         },
     ) as span:
         span.add_event(
-            "a2a.task.state_change",
+            "o2r.task.state_change",
             attributes={"from": prev_state, "to": "canceled"},
         )
     return {"jsonrpc": "2.0", "id": req_id, "result": updated}

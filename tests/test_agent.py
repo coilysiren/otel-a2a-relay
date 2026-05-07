@@ -78,9 +78,9 @@ def test_message_send_emits_task_span_with_input_output(
     attrs = span.attributes or {}
     assert attrs["agent.id"] == "B"
     assert attrs["graph.node.parent_id"] == "A"
-    assert attrs["a2a.message.text"] == "hello"
-    assert attrs["a2a.message.reply_text"] == "echo from B: hello"
-    assert attrs["a2a.task.state"] == "completed"
+    assert attrs["o2r.message.text"] == "hello"
+    assert attrs["o2r.message.reply_text"] == "echo from B: hello"
+    assert attrs["o2r.task.state"] == "completed"
 
 
 def test_agent_card_endpoint(

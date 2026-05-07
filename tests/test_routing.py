@@ -98,9 +98,9 @@ def test_forward_path_emits_relay_and_forward_spans(
 
     relay_task = spans["a2a.task"]
     relay_attrs = relay_task.attributes or {}
-    assert relay_attrs["a2a.relay.mode"] == "forward"
-    assert relay_attrs["a2a.peer.target"] == "B"
-    assert relay_attrs["a2a.message.text"] == "ping"
+    assert relay_attrs["o2r.relay.mode"] == "forward"
+    assert relay_attrs["o2r.peer.target"] == "B"
+    assert relay_attrs["o2r.message.text"] == "ping"
 
     fwd = spans["a2a.relay.forward"]
     fwd_attrs = fwd.attributes or {}
@@ -160,7 +160,7 @@ def test_synthesize_path_when_no_peer_registered() -> None:
     spans = _spans_by_name(exporter)
     assert "a2a.relay.forward" not in spans
     relay_attrs = spans["a2a.task"].attributes or {}
-    assert relay_attrs["a2a.relay.mode"] == "synthesize"
+    assert relay_attrs["o2r.relay.mode"] == "synthesize"
 
 
 def test_tasks_get_returns_stored_task() -> None:
@@ -278,7 +278,7 @@ def test_message_stream_synthesizes_when_no_peer() -> None:
     spans = {s.name: s for s in exporter.get_finished_spans()}
     assert "a2a.task" in spans
     attrs = spans["a2a.task"].attributes or {}
-    assert attrs["a2a.relay.mode"] == "synthesize-stream"
+    assert attrs["o2r.relay.mode"] == "synthesize-stream"
 
 
 def test_tasks_listing_endpoint() -> None:

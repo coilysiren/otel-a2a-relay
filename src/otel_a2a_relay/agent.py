@@ -169,23 +169,23 @@ def create_app(
             kind=SpanKind.SERVER,
             attributes={
                 "session.id": context_id,
-                "a2a.task.id": task_id,
+                "o2r.task.id": task_id,
                 "agent.id": agent_id,
                 "agent.name": name,
                 "openinference.span.kind": "AGENT",
                 "graph.node.id": agent_id,
                 "graph.node.parent_id": sender_id,
-                "a2a.task.state": "working",
-                "a2a.method": "message/send",
+                "o2r.task.state": "working",
+                "o2r.method": "message/send",
                 "input.value": json.dumps(
                     {"role": message.get("role", "user"), "parts": message.get("parts") or []}
                 ),
                 "input.mime_type": "application/json",
-                "a2a.message.text": text,
+                "o2r.message.text": text,
             },
         ) as span:
             span.add_event(
-                "a2a.task.state_change",
+                "o2r.task.state_change",
                 attributes={"from": "submitted", "to": "working"},
             )
             reply_text, reply_message = _reply_message(text, task_id, context_id)
@@ -194,16 +194,16 @@ def create_app(
                 attributes={"seq": 0, "message.role": "agent", "final": True},
             )
             span.add_event(
-                "a2a.task.state_change",
+                "o2r.task.state_change",
                 attributes={"from": "working", "to": "completed"},
             )
-            span.set_attribute("a2a.task.state", "completed")
+            span.set_attribute("o2r.task.state", "completed")
             span.set_attribute(
                 "output.value",
                 json.dumps({"role": "agent", "parts": reply_message["parts"]}),
             )
             span.set_attribute("output.mime_type", "application/json")
-            span.set_attribute("a2a.message.reply_text", reply_text)
+            span.set_attribute("o2r.message.reply_text", reply_text)
             span.set_status(Status(StatusCode.OK))
 
         result = {
@@ -234,14 +234,14 @@ def create_app(
                 kind=SpanKind.SERVER,
                 attributes={
                     "session.id": context_id,
-                    "a2a.task.id": task_id,
+                    "o2r.task.id": task_id,
                     "agent.id": agent_id,
                     "agent.name": name,
                     "openinference.span.kind": "AGENT",
                     "graph.node.id": agent_id,
                     "graph.node.parent_id": sender_id,
-                    "a2a.task.state": "working",
-                    "a2a.method": "message/stream",
+                    "o2r.task.state": "working",
+                    "o2r.method": "message/stream",
                     "input.value": json.dumps(
                         {
                             "role": message.get("role", "user"),
@@ -249,11 +249,11 @@ def create_app(
                         }
                     ),
                     "input.mime_type": "application/json",
-                    "a2a.message.text": text,
+                    "o2r.message.text": text,
                 },
             ) as span:
                 span.add_event(
-                    "a2a.task.state_change",
+                    "o2r.task.state_change",
                     attributes={"from": "submitted", "to": "working"},
                 )
                 # Status event: working.
@@ -307,16 +307,16 @@ def create_app(
                     time.sleep(0.05)
 
                 span.add_event(
-                    "a2a.task.state_change",
+                    "o2r.task.state_change",
                     attributes={"from": "working", "to": "completed"},
                 )
-                span.set_attribute("a2a.task.state", "completed")
+                span.set_attribute("o2r.task.state", "completed")
                 span.set_attribute(
                     "output.value",
                     json.dumps({"role": "agent", "parts": [{"kind": "text", "text": reply_text}]}),
                 )
                 span.set_attribute("output.mime_type", "application/json")
-                span.set_attribute("a2a.message.reply_text", reply_text)
+                span.set_attribute("o2r.message.reply_text", reply_text)
                 span.set_status(Status(StatusCode.OK))
 
                 # Final status event.

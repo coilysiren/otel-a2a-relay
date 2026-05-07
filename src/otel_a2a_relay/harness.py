@@ -54,7 +54,7 @@ def base_attrs(acting_agent: str) -> dict[str, str]:
     """Attributes every emitted span carries. Agent Card fields included redundantly."""
     return {
         "session.id": SESSION_ID,
-        "a2a.task.id": TASK_ID,
+        "o2r.task.id": TASK_ID,
         **AGENTS[acting_agent],
     }
 
@@ -70,7 +70,7 @@ def emit_trace_1_a_send(provider: TracerProvider) -> None:
             "openinference.span.kind": "AGENT",
             "graph.node.id": "A",
             "peer.agent.id": "B",
-            "a2a.method": "message/stream",
+            "o2r.method": "message/stream",
             "rpc.system": "jsonrpc",
             "rpc.service": "a2a",
             "rpc.method": "message/stream",
@@ -104,11 +104,11 @@ def emit_trace_2_b_task(provider: TracerProvider) -> None:
             "openinference.span.kind": "AGENT",
             "graph.node.id": "B",
             "graph.node.parent_id": "A",
-            "a2a.task.state": "working",
+            "o2r.task.state": "working",
         },
     ) as task_span:
         task_span.add_event(
-            "a2a.task.state_change",
+            "o2r.task.state_change",
             attributes={"from": "submitted", "to": "working"},
         )
         chunks = [
@@ -128,7 +128,7 @@ def emit_trace_2_b_task(provider: TracerProvider) -> None:
             )
             time.sleep(0.01)
         task_span.add_event(
-            "a2a.task.state_change",
+            "o2r.task.state_change",
             attributes={"from": "working", "to": "completed"},
         )
         with tracer.start_as_current_span(
@@ -151,7 +151,7 @@ def emit_trace_2_b_task(provider: TracerProvider) -> None:
             },
         ):
             pass
-        task_span.set_attribute("a2a.task.state", "completed")
+        task_span.set_attribute("o2r.task.state", "completed")
         task_span.set_status(Status(StatusCode.OK))
 
 
@@ -166,7 +166,7 @@ def emit_trace_3_a_recv(provider: TracerProvider) -> None:
             "openinference.span.kind": "AGENT",
             "graph.node.id": "A",
             "graph.node.parent_id": "B",
-            "a2a.method": "tasks/get",
+            "o2r.method": "tasks/get",
         },
     ):
         pass

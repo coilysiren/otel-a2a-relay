@@ -117,21 +117,21 @@ def create_peer_app(
             kind=SpanKind.SERVER,
             attributes={
                 "session.id": message.get("contextId", ""),
-                "a2a.task.id": message.get("taskId", ""),
+                "o2r.task.id": message.get("taskId", ""),
                 "agent.id": agent_id,
                 "agent.name": f"luca-{agent_id}",
                 "openinference.span.kind": "AGENT",
                 "graph.node.id": agent_id,
                 "graph.node.parent_id": env.sender,
-                "a2a.task.state": "working",
-                "a2a.method": "message/send",
+                "o2r.task.state": "working",
+                "o2r.method": "message/send",
                 "luca.role": role,
                 "luca.kind.in": env.kind,
                 "luca.step": env.step,
                 "luca.task_id": env.task_id,
                 "input.value": json.dumps({"role": "user", "human": env.human}),
                 "input.mime_type": "application/json",
-                "a2a.message.text": env.human,
+                "o2r.message.text": env.human,
             },
         ) as span:
             try:
@@ -141,13 +141,13 @@ def create_peer_app(
                 span.set_status(Status(StatusCode.ERROR, str(e)))
                 raise
             span.set_attribute("luca.kind.out", reply.kind)
-            span.set_attribute("a2a.message.reply_text", reply.human)
+            span.set_attribute("o2r.message.reply_text", reply.human)
             span.set_attribute(
                 "output.value",
                 json.dumps({"role": "agent", "human": reply.human}),
             )
             span.set_attribute("output.mime_type", "application/json")
-            span.set_attribute("a2a.task.state", "completed")
+            span.set_attribute("o2r.task.state", "completed")
             span.set_status(Status(StatusCode.OK))
 
         reply_message = reply.to_message(
