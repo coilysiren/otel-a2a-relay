@@ -8,6 +8,7 @@ SERVER span on each receive, and dispatches to a role-specific handler.
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 import uuid
@@ -19,11 +20,13 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from opentelemetry.propagate import extract, inject
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.trace import SpanKind, Status, StatusCode
+from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
 
 from otel_a2a_relay.luca.messages import LucaEnvelope, parse_envelope
-from otel_a2a_relay.telemetry import make_provider
+from otel_a2a_relay.tracing import bootstrap
+
+LUCA_NAMESPACE = "luca"
+LUCA_DEFAULT_DEPLOYMENT = "demo"
 
 Handler = Callable[[LucaEnvelope, dict[str, Any]], LucaEnvelope]
 
@@ -65,14 +68,25 @@ def create_peer_app(
     role: str,
     base_url: str,
     handler: Handler,
-    provider: TracerProvider | None = None,
+    tracer: Tracer | None = None,
 ) -> FastAPI:
     """Build a FastAPI app for one LUCA peer.
 
     The handler is called with (incoming_envelope, raw_message) and must
     return a LucaEnvelope to send back as the response.
+
+    LUCA is the demo consumer of the o2r protocol. When `tracer` is not
+    supplied, this calls `tracing.bootstrap()` with namespace="luca" and
+    deployment from `LUCA_DEPLOYMENT` (default "demo"). Tests pass their
+    own tracer to keep emission in-process.
     """
-    tracer = (provider or make_provider()).get_tracer(f"luca.{role}.{agent_id}")
+    if tracer is None:
+        tracer = bootstrap(
+            namespace=LUCA_NAMESPACE,
+            deployment=os.environ.get("LUCA_DEPLOYMENT", LUCA_DEFAULT_DEPLOYMENT),
+            product_area=os.environ.get("LUCA_PRODUCT_AREA") or None,
+            role=role,
+        )
     app = FastAPI(title=f"luca-{agent_id}")
 
     @app.get("/healthz")
