@@ -307,9 +307,7 @@ def _record(state: FlowState, env: LucaEnvelope, direction: str) -> None:
 
 def _send(state: FlowState, env: LucaEnvelope) -> dict[str, Any]:
     _record(state, env, "out")
-    body: dict[str, Any] = send_via_relay(
-        state.relay_url, env, context_id=state.context_id
-    )
+    body: dict[str, Any] = send_via_relay(state.relay_url, env, context_id=state.context_id)
     return body
 
 
