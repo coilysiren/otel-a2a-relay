@@ -48,14 +48,14 @@ MAX_TICKS = 14  # cap big sessions so the GIF stays under ~10s
 
 # Visual constants. All in 1x (output) coordinates; the supersampler
 # multiplies them.
-NODE_R = 22
-HUB_R = 30
+NODE_R = 16
+HUB_R = 22
 NODE_RING_W = 3
 EDGE_W = 3
-PARTICLE_R = 8
+PARTICLE_R = 7
 LABEL_GAP = 14  # gap between node edge and label, in 1x output pixels
 TRAIL_FADE_TICKS = 3  # how many ticks an edge keeps a trail after firing
-LOG_LINES = 5  # how many recent messages the right-hand log shows
+LOG_LINES = 8  # cap on the append-only message log
 LOG_TEXT_MAX = 22  # truncation for long message bodies
 
 
@@ -392,7 +392,7 @@ def _render_frame(
     _draw_label(
         draw,
         pos[session.hub],
-        session.hub,
+        _label_for(session.hub, session.hub),
         theme.ink,
         font_node,
         HUB_R * scale,
@@ -406,7 +406,7 @@ def _render_frame(
         _draw_label(
             draw,
             pos[leaf],
-            leaf,
+            _label_for(leaf, session.hub),
             theme.ink,
             font_node,
             NODE_R * scale,
@@ -517,17 +517,20 @@ def _draw_log(
     theme: Theme,
     font: ImageFont.FreeTypeFont,
 ) -> None:
-    """Right-side message log: the most recent hops with non-empty text.
+    """Right-side message log, append-only.
 
-    Surfaces the actual A2A message bodies that drove the spans, so the
-    GIF reads as more than just dots-on-a-graph. Newest at top, source
-    agent's color as the leading dot, light fade for older entries.
-    Truncated to `LOG_TEXT_MAX` chars.
+    Each hop with a text body becomes one log line in the order it
+    fires (oldest at top, newest at the bottom). Lines never disappear
+    or fade, so the log reads as a rolling transcript - the eye can
+    re-trace the conversation any time during playback. Self-loops
+    are skipped (they duplicate the onward hop's text); otherwise
+    no de-dup, since two real sends of the same message body are
+    two real events.
     """
     pad = 14 * SUPERSAMPLE
     sidebar_x = (WIDTH - SIDEBAR_W) * SUPERSAMPLE + pad
     title_y = TOP_STRIP * SUPERSAMPLE
-    line_h = 22 * SUPERSAMPLE
+    line_h = 20 * SUPERSAMPLE
     dot_r = 4 * SUPERSAMPLE
     dot_gap = 12 * SUPERSAMPLE
 
@@ -542,59 +545,41 @@ def _draw_log(
         width=1,
     )
 
-    # Pick the LOG_LINES most-recent hops with a text body that have
-    # already fired by the current tick. De-dupe by text so the same
-    # message isn't repeated by every server-and-forward span pair.
-    seen: set[str] = set()
+    # Append-only ordered list of every fired hop with text, capped at
+    # LOG_LINES so a chatty session doesn't run off the canvas.
     visible: list[tuple[Hop, int]] = []
-
-    # Sort by tick desc, then prefer non-self-loop, then prefer hub-outbound
-    # (the "delivery" hop) so the log entry per message points at where the
-    # message is currently going, not where it originated.
-    def _rank(item: tuple[Hop, int]) -> tuple[int, int, int]:
-        hop_, t_ = item
-        return (
-            -t_,  # newest tick first
-            0 if hop_.src != hop_.dst else 1,  # non-self-loop first
-            0 if hop_.src == hub else 1,  # hub-outbound first within tick
-        )
-
-    for hop, t in sorted(hop_ticks.items(), key=_rank):
-        if t > tick or not hop.text:
+    for hop, t in sorted(hop_ticks.items(), key=lambda iv: iv[1]):
+        if t > tick or not hop.text or hop.src == hop.dst:
             continue
-        if hop.src == hop.dst:
-            continue  # self-loops duplicate the onward hop's text
-        if hop.text in seen:
-            continue
-        seen.add(hop.text)
         visible.append((hop, t))
         if len(visible) >= LOG_LINES:
             break
 
-    for i, (hop, t) in enumerate(visible):
+    for i, (hop, _t) in enumerate(visible):
         y = title_y + i * line_h
-        # Older entries fade to mute. Newest sits at full ink.
-        age = max(0, tick - t)
-        if hop.status == "failed":
-            text_color = theme.failed
-        elif age == 0:
-            text_color = theme.ink
-        else:
-            text_color = _alpha_blend(theme.bg, theme.mute, max(0.4, 1.0 - age * 0.18))
-        # Source-color dot.
+        text_color = theme.failed if hop.status == "failed" else theme.ink
         src_key = hop.dst if hop.src == hub else hop.src
-        dot_color = agent_color.get(src_key) or theme.ink
-        if hop.status == "failed":
-            dot_color = theme.failed
+        dot_color = (
+            theme.failed if hop.status == "failed" else (agent_color.get(src_key) or theme.ink)
+        )
         cx = sidebar_x + dot_r
         cy = y + 6 * SUPERSAMPLE
         draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=dot_color)
-        # Truncated message text.
         text = hop.text
         if len(text) > LOG_TEXT_MAX:
             text = text[: LOG_TEXT_MAX - 1] + "..."
-        prefix = f"{hop.src} -> {hop.dst}: "
+        prefix = f"{_label_for(hop.src, hub)} -> {_label_for(hop.dst, hub)}: "
         draw.text((cx + dot_gap, y), prefix + text, fill=text_color, font=font)
+
+
+def _label_for(name: str, hub: str) -> str:
+    """Render-time name transform: the hub keeps its own id (relay /
+    o2r), every leaf gets the `agent <name>` prefix so the labels
+    read as English instead of single-letter abbreviations.
+    """
+    if name == hub:
+        return name
+    return f"agent {name.lower()}"
 
 
 def _assign_agent_colors(leaves: tuple[str, ...], theme: Theme) -> dict[str, tuple[int, int, int]]:

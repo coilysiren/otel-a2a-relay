@@ -190,7 +190,6 @@ def star_layout(
     a whiteboard.
     """
     cx, cy = width / 2.0, height / 2.0
-    radius = min(width, height) / 2.0 - margin
     out: dict[str, tuple[float, float]] = {hub: (cx, cy)}
     n = len(leaves)
     if n == 0:
@@ -199,7 +198,15 @@ def star_layout(
     # so the chord runs across the canvas and the bow on each direction
     # shows above/below the hub. For n>=3 the natural top-anchored star
     # is recognizable, so we keep it.
-    start = 0.0 if n == 2 else -math.pi / 2
+    if n == 2:
+        # Only width constrains horizontal layout. Reserve a wider
+        # margin so the longer-form leaf labels ("agent a", "agent b")
+        # do not clip against the canvas edges.
+        radius = width / 2.0 - max(margin, 80)
+        start = 0.0
+    else:
+        radius = min(width, height) / 2.0 - margin
+        start = -math.pi / 2
     for i, leaf in enumerate(leaves):
         theta = start + (2 * math.pi * i / n)
         x = cx + radius * math.cos(theta)

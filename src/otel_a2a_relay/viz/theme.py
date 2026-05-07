@@ -32,13 +32,15 @@ HUB = (0xFF, 0x5F, 0xBE)  # charm-pink for the relay
 HUB_INNER = (0xFF, 0xC8, 0xE6)  # softer pink for the inner ring
 
 # Agent palette. Assigned by sorted-name index so two runs over the
-# same session id put the same color on the same agent. Five-deep is
-# enough for the dogfood case; the modulo keeps larger sessions sane.
+# same session id put the same color on the same agent. The first two
+# slots are deliberately on the cool side so they read as clearly
+# distinct from the hub's hot pink, which is what people actually see
+# in the dogfood A/B demo and the README hero.
 AGENTS = (
     (0x5F, 0xD7, 0xFF),  # cyan
-    (0xFF, 0xB0, 0x5F),  # amber
     (0x9D, 0xFF, 0x9C),  # mint
     (0xC8, 0xA0, 0xFF),  # violet
+    (0xFF, 0xB0, 0x5F),  # amber
     (0xFF, 0x9C, 0x9C),  # peach
 )
 
