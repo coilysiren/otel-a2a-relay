@@ -19,6 +19,8 @@ import shutil
 import subprocess
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -79,12 +81,11 @@ class FlowState:
 
 
 def _emit_plan_span(state: FlowState) -> None:
-    """Emit one root span at session start that captures the planned step list.
+    """Emit the planned-step span as a child of the active `orchestrator.flow` span.
 
-    Enables planned-vs-actual diffs and makes step reassignment after a worker
-    failure queryable without joining across worker spans. `output.value` is
-    the full step plan as JSON; `o2r.plan.steps` is a parallel summary list of
-    `step:actor:task_id`.
+    `output.value` is the full step plan as JSON. The span is short-lived (just
+    captures the plan) so its own duration is meaningless; it lives under the
+    flow span so the trace tree shows plan-then-execute structure.
     """
     if state.tracer is None:
         return
@@ -100,41 +101,37 @@ def _emit_plan_span(state: FlowState) -> None:
         }
         for s in steps
     ]
-    with (
-        using_session(state.context_id),
-        using_user(ORCHESTRATOR_ROLE),
-        state.tracer.start_as_current_span(
-            "orchestrator.plan",
-            kind=SpanKind.INTERNAL,
-            attributes={
-                "session.id": state.context_id,
-                "user.id": ORCHESTRATOR_ROLE,
-                "agent.id": ORCHESTRATOR_ROLE,
-                "agent.name": "luca-orchestrator",
-                "agent.role": ORCHESTRATOR_ROLE,
-                "agent.specialization": ORCHESTRATOR_ROLE,
-                "openinference.span.kind": "AGENT",
-                "graph.node.id": ORCHESTRATOR_ROLE,
-                "o2r.plan.step_count": len(plan_summary),
-                "o2r.plan.steps": json.dumps(plan_summary),
-                "input.value": json.dumps(
-                    {"task": "AURORA microsite", "step_count": len(plan_summary)}
-                ),
-                "input.mime_type": "application/json",
-                "output.value": json.dumps(plan_summary),
-                "output.mime_type": "application/json",
-            },
-        ),
+    with state.tracer.start_as_current_span(
+        "orchestrator.plan",
+        kind=SpanKind.INTERNAL,
+        attributes={
+            "session.id": state.context_id,
+            "user.id": ORCHESTRATOR_ROLE,
+            "agent.id": ORCHESTRATOR_ROLE,
+            "agent.name": "luca-orchestrator",
+            "agent.role": ORCHESTRATOR_ROLE,
+            "agent.specialization": ORCHESTRATOR_ROLE,
+            "openinference.span.kind": "CHAIN",
+            "graph.node.id": ORCHESTRATOR_ROLE,
+            "o2r.plan.step_count": len(plan_summary),
+            "o2r.plan.steps": json.dumps(plan_summary),
+            "input.value": json.dumps(
+                {"task": "AURORA microsite", "step_count": len(plan_summary)}
+            ),
+            "input.mime_type": "application/json",
+            "output.value": json.dumps(plan_summary),
+            "output.mime_type": "application/json",
+        },
     ):
         pass
 
 
 def _emit_flow_complete_span(state: FlowState) -> None:
-    """Terminal session span: one per session, summarizes outcomes.
+    """Terminal child span under `orchestrator.flow`, one per session.
 
-    Phoenix's `task_outcome_correct` annotation config (binary, score_direction
-    maximize) attaches here. Pre-fills `o2r.flow.outcome_counts` with per-class
-    counts so an annotator does not have to recompute them from per-step spans.
+    Phoenix's `task_outcome_correct` annotation config (binary, maximize)
+    attaches here. Pre-fills `o2r.flow.outcome_counts` with per-class counts so
+    an annotator does not have to recompute them from per-step spans.
     """
     if state.tracer is None:
         return
@@ -148,29 +145,25 @@ def _emit_flow_complete_span(state: FlowState) -> None:
         and counts.get("needs-followup", 0) >= 1
         and counts.get("accepted", 0) >= 5
     )
-    with (
-        using_session(state.context_id),
-        using_user(ORCHESTRATOR_ROLE),
-        state.tracer.start_as_current_span(
-            "orchestrator.flow_complete",
-            kind=SpanKind.INTERNAL,
-            attributes={
-                "session.id": state.context_id,
-                "user.id": ORCHESTRATOR_ROLE,
-                "agent.id": ORCHESTRATOR_ROLE,
-                "agent.role": ORCHESTRATOR_ROLE,
-                "agent.specialization": ORCHESTRATOR_ROLE,
-                "openinference.span.kind": "AGENT",
-                "graph.node.id": ORCHESTRATOR_ROLE,
-                "o2r.flow.outcome_counts": json.dumps(counts, sort_keys=True),
-                "o2r.flow.shape_matches_expected": expected,
-                "o2r.flow.step_count": len(state.outcomes),
-                "input.value": json.dumps({"step_count": len(state.outcomes)}),
-                "input.mime_type": "application/json",
-                "output.value": json.dumps(counts, sort_keys=True),
-                "output.mime_type": "application/json",
-            },
-        ),
+    with state.tracer.start_as_current_span(
+        "orchestrator.flow_complete",
+        kind=SpanKind.INTERNAL,
+        attributes={
+            "session.id": state.context_id,
+            "user.id": ORCHESTRATOR_ROLE,
+            "agent.id": ORCHESTRATOR_ROLE,
+            "agent.role": ORCHESTRATOR_ROLE,
+            "agent.specialization": ORCHESTRATOR_ROLE,
+            "openinference.span.kind": "CHAIN",
+            "graph.node.id": ORCHESTRATOR_ROLE,
+            "o2r.flow.outcome_counts": json.dumps(counts, sort_keys=True),
+            "o2r.flow.shape_matches_expected": expected,
+            "o2r.flow.step_count": len(state.outcomes),
+            "input.value": json.dumps({"step_count": len(state.outcomes)}),
+            "input.mime_type": "application/json",
+            "output.value": json.dumps(counts, sort_keys=True),
+            "output.mime_type": "application/json",
+        },
     ):
         pass
 
@@ -184,45 +177,114 @@ def _emit_acceptance_span(
     criterion: str,
     section_text: str = "",
 ) -> None:
-    """Emit one child-of-session span recording the orchestrator's accept/reject decision.
+    """Emit the orchestrator's accept/reject decision as a child of the active step span.
 
-    Phoenix's `task_outcome_correct` annotation config (binary, maximize)
-    applies to the terminal `flow.complete` span; this per-step span gives
-    Phoenix a queryable, scoreable signal at step granularity. `decision` is
-    one of `accepted | needs-followup | crashed | rogue-rejected | unknown`.
-    `criterion` names what determined it (`validator.pass`, `validator.fail:
-    <first-error>`, `worker.crash`, ...).
+    Sits under `orchestrator.step` so the trace tree groups dispatch + validate
+    + decide together. `decision` is one of `accepted | needs-followup |
+    crashed | rogue-rejected | unknown`. `criterion` names what determined it
+    (`validator.pass`, `validator.fail:<first-error>`, `worker.crash`, ...).
     """
     if state.tracer is None:
+        return
+    with state.tracer.start_as_current_span(
+        "orchestrator.acceptance",
+        kind=SpanKind.INTERNAL,
+        attributes={
+            "session.id": state.context_id,
+            "user.id": ORCHESTRATOR_ROLE,
+            "agent.id": ORCHESTRATOR_ROLE,
+            "agent.role": ORCHESTRATOR_ROLE,
+            "openinference.span.kind": "CHAIN",
+            "o2r.step.acceptance.decision": decision,
+            "o2r.step.acceptance.reason": reason,
+            "o2r.step.acceptance.criterion": criterion,
+            "o2r.step.acceptance.score": 1.0 if decision == "accepted" else 0.0,
+            "o2r.step": int(step.get("step", 0)),
+            "o2r.step.actor": step.get("actor", ""),
+            "o2r.step.task_id": step.get("task_id", ""),
+            "o2r.step.specialization": step.get("specialization", ""),
+            "input.value": section_text or step.get("title", ""),
+            "input.mime_type": "text/plain",
+            "output.value": decision,
+            "output.mime_type": "text/plain",
+        },
+    ):
+        pass
+
+
+@contextmanager
+def _flow_span(state: FlowState) -> Iterator[None]:
+    """Open the long-lived `orchestrator.flow` span that parents everything else.
+
+    `using_session` + `using_user` prime the OpenInference context so any
+    nested OpenInference instrumentation inherits them. `start_as_current_span`
+    makes the flow span the active OTel parent so when the orchestrator calls
+    `_send_via_relay` and traceparent is `inject()`ed into the HTTP headers,
+    the relay's `a2a.task` span attaches as a child instead of being a root.
+    """
+    if state.tracer is None:
+        yield
         return
     with (
         using_session(state.context_id),
         using_user(ORCHESTRATOR_ROLE),
         state.tracer.start_as_current_span(
-            "orchestrator.acceptance",
+            "orchestrator.flow",
             kind=SpanKind.INTERNAL,
             attributes={
                 "session.id": state.context_id,
                 "user.id": ORCHESTRATOR_ROLE,
                 "agent.id": ORCHESTRATOR_ROLE,
                 "agent.role": ORCHESTRATOR_ROLE,
-                "openinference.span.kind": "CHAIN",
-                "o2r.step.acceptance.decision": decision,
-                "o2r.step.acceptance.reason": reason,
-                "o2r.step.acceptance.criterion": criterion,
-                "o2r.step.acceptance.score": 1.0 if decision == "accepted" else 0.0,
-                "o2r.step": int(step.get("step", 0)),
-                "o2r.step.actor": step.get("actor", ""),
-                "o2r.step.task_id": step.get("task_id", ""),
-                "o2r.step.specialization": step.get("specialization", ""),
-                "input.value": section_text or step.get("title", ""),
-                "input.mime_type": "text/plain",
-                "output.value": decision,
-                "output.mime_type": "text/plain",
+                "agent.specialization": ORCHESTRATOR_ROLE,
+                "openinference.span.kind": "AGENT",
+                "graph.node.id": ORCHESTRATOR_ROLE,
+                "o2r.flow.context_id": state.context_id,
             },
         ),
     ):
-        pass
+        yield
+
+
+@contextmanager
+def _step_span(state: FlowState, step: dict[str, Any]) -> Iterator[None]:
+    """Open `orchestrator.step` for the duration of one step's coordination.
+
+    Per-step parent for: planner.next call, dispatch to worker, validate
+    request, retry dispatch (if any), and the acceptance span at the end.
+    Phoenix renders the step as one expandable subtree so `step 4 crashed`
+    is one click, not eight.
+    """
+    if state.tracer is None:
+        yield
+        return
+    with state.tracer.start_as_current_span(
+        f"orchestrator.step.{int(step.get('step', 0))}",
+        kind=SpanKind.INTERNAL,
+        attributes={
+            "session.id": state.context_id,
+            "user.id": ORCHESTRATOR_ROLE,
+            "agent.id": ORCHESTRATOR_ROLE,
+            "agent.role": ORCHESTRATOR_ROLE,
+            "openinference.span.kind": "CHAIN",
+            "o2r.step": int(step.get("step", 0)),
+            "o2r.step.actor": step.get("actor", ""),
+            "o2r.step.task_id": step.get("task_id", ""),
+            "o2r.step.specialization": step.get("specialization", ""),
+            "o2r.step.title": step.get("title", ""),
+            "o2r.step.behavior": step.get("behavior", ""),
+            "input.value": json.dumps(
+                {
+                    "step": int(step.get("step", 0)),
+                    "actor": step.get("actor", ""),
+                    "title": step.get("title", ""),
+                    "behavior": step.get("behavior", ""),
+                }
+            ),
+            "input.mime_type": "application/json",
+        },
+    ):
+        yield
 
 
 def _record(state: FlowState, env: LucaEnvelope, direction: str) -> None:
@@ -571,10 +633,47 @@ def run_flow(
     # Register orchestrator with the relay (placeholder url - nothing dials in).
     register_with_relay(relay_url, "orchestrator", "orchestrator", "http://127.0.0.1:9100/")
 
-    # Emit the planned-step span before any work fires so planned-vs-actual is queryable.
-    _emit_plan_span(state)
-
     print(f"🎯 Director: starting AURORA flow, context_id={context_id}")
+
+    with _flow_span(state):
+        # Emit the planned-step span first so it sits at the head of the
+        # flow's children in the trace tree.
+        _emit_plan_span(state)
+        _run_step_loop(state)
+
+        # Final flow-complete envelope to the planner. Inside the flow span
+        # so Phoenix's trace tree shows it as the last relay-child of the
+        # flow, alongside the orchestrator.flow_complete sibling.
+        _note_to_planner(
+            state,
+            step=0,
+            msg=humanize(
+                "🎯",
+                "Director",
+                "all script steps complete - handing off to release",
+                f"accepted={sum(1 for o in state.outcomes if o['outcome'] == 'accepted')}",
+            ),
+            data={"kind": KIND_FLOW_COMPLETE},
+        )
+
+        # Terminal session span. The `task_outcome_correct` annotation config
+        # in Phoenix attaches here, giving Phoenix one binary score per session.
+        _emit_flow_complete_span(state)
+
+    # Persist trace + outcomes for the deployer.
+    (stage_dir / "_trace.json").write_text(json.dumps(state.trace, indent=2))
+    (stage_dir / "_outcomes.json").write_text(json.dumps(state.outcomes, indent=2))
+
+    return state
+
+
+def _run_step_loop(state: FlowState) -> None:
+    """The per-step coordination loop, factored out so it sits cleanly inside
+    the `orchestrator.flow` span. Each step opens its own `orchestrator.step`
+    span so the trace tree groups dispatch + validate + decide together.
+    """
+    script = state.script
+    stage_dir = state.stage_dir
 
     for step in script.get("steps") or []:
         actor = step["actor"]
@@ -582,242 +681,232 @@ def run_flow(
         step_num = step.get("step", 0)
         print(f"🎯 Director: step {step_num}: {actor} - {title}")
 
-        # Ask the planner what's next (the planner pops; we use its response
-        # for trace richness even though we already know the step locally).
-        _ask_planner_next(state)
-
         if actor == "deployer":
-            # Deployer is invoked outside this loop by the runner.
+            # Deployer is invoked outside this loop by the runner. No span.
             break
 
-        # Spawn worker, dispatch, collect reply.
-        reply, status = _dispatch_worker(state, step)
+        with _step_span(state, step):
+            _run_one_step(state, step, stage_dir)
 
-        outcome: dict[str, Any] = {
-            "step": step_num,
-            "actor": actor,
-            "title": title,
-            "emoji": (step.get("display") or "🛠️").split(" ", 1)[0]
-            if " " in (step.get("display") or "")
-            else "🛠️",
-            "outcome": "unknown",
-            "notes": [],
-        }
 
-        if status == "crashed":
-            outcome["outcome"] = "crashed"
-            outcome["notes"].append(step.get("crash_message", "worker exited 1"))
-            _note_to_planner(
-                state, step_num, f"💥 step {step_num} crashed: {actor}", {"reason": "crashed"}
+def _run_one_step(state: FlowState, step: dict[str, Any], stage_dir: Path) -> None:
+    """Run one step's worth of orchestration under the active step span.
+
+    Pulls all the per-outcome branches into one place so the tree of
+    early-returns lives inside a single tracer-scoped frame.
+    """
+    actor = step["actor"]
+    title = step.get("title", "")
+    step_num = step.get("step", 0)
+    script = state.script
+
+    # Ask the planner what's next (the planner pops; we use its response
+    # for trace richness even though we already know the step locally).
+    _ask_planner_next(state)
+
+    # Spawn worker, dispatch, collect reply.
+    reply, status = _dispatch_worker(state, step)
+
+    outcome: dict[str, Any] = {
+        "step": step_num,
+        "actor": actor,
+        "title": title,
+        "emoji": (step.get("display") or "🛠️").split(" ", 1)[0]
+        if " " in (step.get("display") or "")
+        else "🛠️",
+        "outcome": "unknown",
+        "notes": [],
+    }
+
+    if status == "crashed":
+        outcome["outcome"] = "crashed"
+        outcome["notes"].append(step.get("crash_message", "worker exited 1"))
+        _note_to_planner(
+            state, step_num, f"💥 step {step_num} crashed: {actor}", {"reason": "crashed"}
+        )
+        _emit_acceptance_span(
+            state,
+            step=step,
+            decision="crashed",
+            reason=step.get("crash_message", "worker exited 1"),
+            criterion="worker.crash",
+        )
+        state.outcomes.append(outcome)
+        return
+
+    assert reply is not None
+    if reply.kind == KIND_SUBMIT_BYPASS_ATTEMPT:
+        outcome["outcome"] = "rogue-rejected"
+        outcome["notes"].append(
+            f"Attempted to target {reply.data.get('bypass_target')}; relay rejected: "
+            f"{reply.data.get('rejected', False)}"
+        )
+        _note_to_planner(
+            state,
+            step_num,
+            f"🛑 rogue worker {actor} blocked by relay",
+            {"rejected": reply.data.get("rejected")},
+        )
+        _emit_acceptance_span(
+            state,
+            step=step,
+            decision="rogue-rejected",
+            reason=f"relay rejected bypass to {reply.data.get('bypass_target')}",
+            criterion="relay.star_topology",
+        )
+        state.outcomes.append(outcome)
+        return
+
+    if reply.kind == KIND_SUBMIT_NEEDS_FOLLOWUP:
+        outcome["outcome"] = "needs-followup"
+        outcome["notes"].append(
+            f"reason: {reply.data.get('reason')}; "
+            f"followup task: {reply.data.get('followup_task')} -> "
+            f"{reply.data.get('followup_assignee')}"
+        )
+        # Find the followup step in the script (by task_id) and tell planner.
+        fu_task_id = reply.data.get("followup_task") or ""
+        fu_step = next(
+            (s for s in (script.get("steps") or []) if s.get("task_id") == fu_task_id),
+            None,
+        )
+        if fu_step is not None:
+            _enqueue_followup(state, fu_step)
+        _emit_acceptance_span(
+            state,
+            step=step,
+            decision="needs-followup",
+            reason=str(reply.data.get("reason") or ""),
+            criterion="worker.partial_submission",
+        )
+        state.outcomes.append(outcome)
+        return
+
+    if reply.kind == KIND_SUBMIT_PASS:
+        # Stage the worker's output to disk so the validator can read it.
+        staged = _stage_files(stage_dir, reply.data.get("deliverables") or {})
+        html_pages = [p for p in staged if p.endswith(".html")]
+        if not html_pages:
+            # CSS-only or other non-HTML deliverable; treat as accepted.
+            outcome["outcome"] = "accepted"
+            outcome["notes"].append(f"staged non-html: {staged}")
+            _emit_acceptance_span(
+                state,
+                step=step,
+                decision="accepted",
+                reason=f"non-html deliverable accepted: {staged}",
+                criterion="orchestrator.non_html_passthrough",
             )
+            state.outcomes.append(outcome)
+            return
+
+        # Send to validator.
+        verdict = _send_to_validator(state, step, html_pages)
+        if verdict is None:
+            outcome["outcome"] = "crashed"
+            outcome["notes"].append("validator did not respond")
             _emit_acceptance_span(
                 state,
                 step=step,
                 decision="crashed",
-                reason=step.get("crash_message", "worker exited 1"),
-                criterion="worker.crash",
+                reason="validator did not respond",
+                criterion="validator.no_response",
             )
             state.outcomes.append(outcome)
-            continue
+            return
 
-        assert reply is not None
-        if reply.kind == KIND_SUBMIT_BYPASS_ATTEMPT:
-            outcome["outcome"] = "rogue-rejected"
-            outcome["notes"].append(
-                f"Attempted to target {reply.data.get('bypass_target')}; relay rejected: "
-                f"{reply.data.get('rejected', False)}"
-            )
-            _note_to_planner(
-                state,
-                step_num,
-                f"🛑 rogue worker {actor} blocked by relay",
-                {"rejected": reply.data.get("rejected")},
-            )
+        if verdict.kind == KIND_VALIDATE_PASS:
+            outcome["outcome"] = "accepted"
+            outcome["notes"].extend(f"check: {c}" for c in (verdict.data.get("checks") or [])[:5])
+            first_check = (verdict.data.get("checks") or [""])[0]
             _emit_acceptance_span(
                 state,
                 step=step,
-                decision="rogue-rejected",
-                reason=f"relay rejected bypass to {reply.data.get('bypass_target')}",
-                criterion="relay.star_topology",
+                decision="accepted",
+                reason=str(first_check),
+                criterion="validator.pass",
+                section_text=", ".join(html_pages),
             )
             state.outcomes.append(outcome)
-            continue
+            return
 
-        if reply.kind == KIND_SUBMIT_NEEDS_FOLLOWUP:
-            outcome["outcome"] = "needs-followup"
-            outcome["notes"].append(
-                f"reason: {reply.data.get('reason')}; "
-                f"followup task: {reply.data.get('followup_task')} -> "
-                f"{reply.data.get('followup_assignee')}"
-            )
-            # Find the followup step in the script (by task_id) and tell planner.
-            fu_task_id = reply.data.get("followup_task") or ""
-            fu_step = next(
-                (s for s in (script.get("steps") or []) if s.get("task_id") == fu_task_id),
-                None,
-            )
-            if fu_step is not None:
-                _enqueue_followup(state, fu_step)
-            _emit_acceptance_span(
-                state,
-                step=step,
-                decision="needs-followup",
-                reason=str(reply.data.get("reason") or ""),
-                criterion="worker.partial_submission",
-            )
-            state.outcomes.append(outcome)
-            continue
-
-        if reply.kind == KIND_SUBMIT_PASS:
-            # Stage the worker's output to disk so the validator can read it.
-            staged = _stage_files(stage_dir, reply.data.get("deliverables") or {})
-            html_pages = [p for p in staged if p.endswith(".html")]
-            if not html_pages:
-                # CSS-only or other non-HTML deliverable; treat as accepted.
-                outcome["outcome"] = "accepted"
-                outcome["notes"].append(f"staged non-html: {staged}")
-                _emit_acceptance_span(
-                    state,
-                    step=step,
-                    decision="accepted",
-                    reason=f"non-html deliverable accepted: {staged}",
-                    criterion="orchestrator.non_html_passthrough",
-                )
-                state.outcomes.append(outcome)
-                continue
-
-            # Send to validator.
-            verdict = _send_to_validator(state, step, html_pages)
-            if verdict is None:
-                outcome["outcome"] = "crashed"
-                outcome["notes"].append("validator did not respond")
-                _emit_acceptance_span(
-                    state,
-                    step=step,
-                    decision="crashed",
-                    reason="validator did not respond",
-                    criterion="validator.no_response",
-                )
-                state.outcomes.append(outcome)
-                continue
-
-            if verdict.kind == KIND_VALIDATE_PASS:
-                outcome["outcome"] = "accepted"
-                outcome["notes"].extend(
-                    f"check: {c}" for c in (verdict.data.get("checks") or [])[:5]
-                )
-                first_check = (verdict.data.get("checks") or [""])[0]
-                _emit_acceptance_span(
-                    state,
-                    step=step,
-                    decision="accepted",
-                    reason=str(first_check),
-                    criterion="validator.pass",
-                    section_text=", ".join(html_pages),
-                )
-                state.outcomes.append(outcome)
-                continue
-
-            if verdict.kind == KIND_VALIDATE_FAIL:
-                first_error = (verdict.data.get("errors") or [""])[0]
-                # Retry?
-                if step.get("behavior") == "submit-fail-then-pass":
-                    retry_max = int(step.get("retry_max", 1))
-                    if retry_max >= 1:
-                        outcome["notes"].append(f"first attempt rejected: {first_error}")
-                        _note_to_planner(
-                            state,
-                            step_num,
-                            f"🔁 step {step_num} re-dispatching to {actor}",
-                            {"reason": "validation-fail"},
-                        )
-                        # Re-dispatch with retry fixture.
-                        reply2, status2 = _dispatch_worker(state, step, retry_attempt=1)
-                        if status2 != "ok" or reply2 is None or reply2.kind != KIND_SUBMIT_PASS:
-                            outcome["outcome"] = "crashed"
-                            outcome["notes"].append("retry did not produce a submission")
-                            _emit_acceptance_span(
-                                state,
-                                step=step,
-                                decision="crashed",
-                                reason="retry did not produce a submission",
-                                criterion="worker.retry_failed",
-                            )
-                            state.outcomes.append(outcome)
-                            continue
-                        staged2 = _stage_files(stage_dir, reply2.data.get("deliverables") or {})
-                        verdict2 = _send_to_validator(
-                            state, step, [p for p in staged2 if p.endswith(".html")]
-                        )
-                        if verdict2 is not None and verdict2.kind == KIND_VALIDATE_PASS:
-                            outcome["outcome"] = "accepted"
-                            outcome["notes"].append("retry passed")
-                            _emit_acceptance_span(
-                                state,
-                                step=step,
-                                decision="accepted",
-                                reason="retry passed",
-                                criterion="validator.pass_after_retry",
-                                section_text=", ".join(p for p in staged2 if p.endswith(".html")),
-                            )
-                            state.outcomes.append(outcome)
-                            continue
+        if verdict.kind == KIND_VALIDATE_FAIL:
+            first_error = (verdict.data.get("errors") or [""])[0]
+            # Retry?
+            if step.get("behavior") == "submit-fail-then-pass":
+                retry_max = int(step.get("retry_max", 1))
+                if retry_max >= 1:
+                    outcome["notes"].append(f"first attempt rejected: {first_error}")
+                    _note_to_planner(
+                        state,
+                        step_num,
+                        f"🔁 step {step_num} re-dispatching to {actor}",
+                        {"reason": "validation-fail"},
+                    )
+                    # Re-dispatch with retry fixture.
+                    reply2, status2 = _dispatch_worker(state, step, retry_attempt=1)
+                    if status2 != "ok" or reply2 is None or reply2.kind != KIND_SUBMIT_PASS:
                         outcome["outcome"] = "crashed"
-                        outcome["notes"].append("retry also rejected")
+                        outcome["notes"].append("retry did not produce a submission")
                         _emit_acceptance_span(
                             state,
                             step=step,
                             decision="crashed",
-                            reason="retry also rejected",
-                            criterion="validator.fail_after_retry",
+                            reason="retry did not produce a submission",
+                            criterion="worker.retry_failed",
                         )
                         state.outcomes.append(outcome)
-                        continue
-                outcome["outcome"] = "crashed"
-                outcome["notes"].append(f"validator rejected: {first_error}")
-                _emit_acceptance_span(
-                    state,
-                    step=step,
-                    decision="crashed",
-                    reason=str(first_error),
-                    criterion=f"validator.fail:{str(first_error)[:80]}",
-                )
-                state.outcomes.append(outcome)
-                continue
+                        return
+                    staged2 = _stage_files(stage_dir, reply2.data.get("deliverables") or {})
+                    verdict2 = _send_to_validator(
+                        state, step, [p for p in staged2 if p.endswith(".html")]
+                    )
+                    if verdict2 is not None and verdict2.kind == KIND_VALIDATE_PASS:
+                        outcome["outcome"] = "accepted"
+                        outcome["notes"].append("retry passed")
+                        _emit_acceptance_span(
+                            state,
+                            step=step,
+                            decision="accepted",
+                            reason="retry passed",
+                            criterion="validator.pass_after_retry",
+                            section_text=", ".join(p for p in staged2 if p.endswith(".html")),
+                        )
+                        state.outcomes.append(outcome)
+                        return
+                    outcome["outcome"] = "crashed"
+                    outcome["notes"].append("retry also rejected")
+                    _emit_acceptance_span(
+                        state,
+                        step=step,
+                        decision="crashed",
+                        reason="retry also rejected",
+                        criterion="validator.fail_after_retry",
+                    )
+                    state.outcomes.append(outcome)
+                    return
+            outcome["outcome"] = "crashed"
+            outcome["notes"].append(f"validator rejected: {first_error}")
+            _emit_acceptance_span(
+                state,
+                step=step,
+                decision="crashed",
+                reason=str(first_error),
+                criterion=f"validator.fail:{str(first_error)[:80]}",
+            )
+            state.outcomes.append(outcome)
+            return
 
-        outcome["outcome"] = "unknown"
-        outcome["notes"].append(f"unhandled reply kind: {reply.kind}")
-        _emit_acceptance_span(
-            state,
-            step=step,
-            decision="unknown",
-            reason=f"unhandled reply kind: {reply.kind}",
-            criterion="orchestrator.unknown_reply",
-        )
-        state.outcomes.append(outcome)
-
-    # Final flow-complete envelope (informational, sent to planner so it lands in trace).
-    _note_to_planner(
+    outcome["outcome"] = "unknown"
+    outcome["notes"].append(f"unhandled reply kind: {reply.kind}")
+    _emit_acceptance_span(
         state,
-        step=0,
-        msg=humanize(
-            "🎯",
-            "Director",
-            "all script steps complete - handing off to release",
-            f"accepted={sum(1 for o in state.outcomes if o['outcome'] == 'accepted')}",
-        ),
-        data={"kind": KIND_FLOW_COMPLETE},
+        step=step,
+        decision="unknown",
+        reason=f"unhandled reply kind: {reply.kind}",
+        criterion="orchestrator.unknown_reply",
     )
-
-    # Terminal session span. The `task_outcome_correct` annotation config in
-    # Phoenix attaches here, giving Phoenix one binary score per session.
-    _emit_flow_complete_span(state)
-
-    # Persist trace + outcomes for the deployer.
-    (stage_dir / "_trace.json").write_text(json.dumps(state.trace, indent=2))
-    (stage_dir / "_outcomes.json").write_text(json.dumps(state.outcomes, indent=2))
-
-    return state
+    state.outcomes.append(outcome)
 
 
 def main() -> None:
