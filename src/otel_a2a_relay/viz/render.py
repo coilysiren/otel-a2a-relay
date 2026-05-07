@@ -209,11 +209,14 @@ def _draw_node(
     pulse: float,
     theme: Theme,
 ) -> None:
-    """A node is a filled ring with an optional pulse halo around it.
+    """A node is a solid filled disc with an optional pulse halo around it.
 
     `pulse` in [0,1] makes the outer halo larger and brighter when the
-    node is the source or target of a currently-firing hop.
+    node is the source or target of a currently-firing hop. The `inner`
+    parameter is unused now that nodes are solid; kept for signature
+    stability.
     """
+    del inner  # nodes used to render as two-tone rings; now solid discs.
     x, y = pos
     halo_r = radius + int(radius * 0.7 * pulse)
     if pulse > 0:
@@ -223,12 +226,6 @@ def _draw_node(
         [x - radius, y - radius, x + radius, y + radius],
         fill=color,
         outline=color,
-    )
-    # Inner ring so the node reads as a token rather than a flat dot.
-    inner_r = radius - NODE_RING_W * 2
-    draw.ellipse(
-        [x - inner_r, y - inner_r, x + inner_r, y + inner_r],
-        fill=inner,
     )
 
 
