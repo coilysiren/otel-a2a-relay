@@ -21,7 +21,10 @@ rather than silently using stale recorded input.
 from __future__ import annotations
 
 import hashlib
+import sys
 from pathlib import Path
+
+import pytest
 
 from otel_a2a_relay.viz import render_session
 from otel_a2a_relay.viz.model import reduce_spans, star_layout
@@ -43,6 +46,18 @@ def _sha256(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
+@pytest.mark.skipif(
+    not sys.platform.startswith("linux"),
+    reason=(
+        "Pillow ships its own freetype but the wheel is built per-platform, "
+        "so byte-exact GIF output drifts between macOS and Linux. The Linux "
+        "render is canonical (CI is the regenerator); on other hosts the "
+        "behavioral tests below still cover the renderer's logic. To update "
+        "the baseline locally, run `make gif-fixture-update` inside the same "
+        "Linux container CI uses, or trigger the workflow_dispatch on the "
+        "luca-demo workflow which uploads a fresh baseline as an artifact."
+    ),
+)
 def test_demo_session_gif_byte_exact(tmp_path: Path) -> None:
     """Render the demo fixture and assert bytes match the committed baseline.
 
