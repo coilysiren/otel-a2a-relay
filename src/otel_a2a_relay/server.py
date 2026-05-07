@@ -26,6 +26,7 @@ from typing import Any
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from openinference.instrumentation import using_session, using_user
 from opentelemetry.propagate import extract, inject
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
@@ -33,7 +34,9 @@ from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
 from otel_a2a_relay.store import TaskStore
 from otel_a2a_relay.telemetry import make_provider
 
-PROTOCOL_VERSION = "0.1"
+RELAY_ROLE = "relay"
+
+PROTOCOL_VERSION = "0.3"
 RELAY_AGENT_ID = "relay"
 RELAY_AGENT_NAME = "o2r"
 
@@ -80,6 +83,27 @@ def _synthesize_task(message: dict[str, Any]) -> dict[str, Any]:
         "status": {"state": "completed", "timestamp": _now_iso()},
         "history": [message] if message else [],
     }
+
+
+def _classify_relay_reject(reason: str) -> str:
+    """Coarse `o2r.relay.failure_class` for any relay rejection.
+
+    Phoenix's `relay_failure_class` annotation config (see
+    `scripts/phoenix-bootstrap.py`) consumes this so erroring spans show up
+    grouped by class without a human having to read each reason string.
+    Values - kept stable, machine-readable: `topology_violation`,
+    `peer_disconnect`, `peer_404`, `timeout`, `peer_jsonrpc_error`, `unknown`.
+    """
+    r = reason.lower()
+    if "star-topology" in r:
+        return "topology_violation"
+    if "404" in r:
+        return "peer_404"
+    if "timeout" in r:
+        return "timeout"
+    if "connect" in r or "remoteprotocol" in r or "readerror" in r or "non-json" in r:
+        return "peer_disconnect"
+    return "unknown"
 
 
 def _check_star_topology(
@@ -133,21 +157,30 @@ def handle_message_send(
     if star_enforce:
         violation = _check_star_topology(sender_id, target_id, peer_roles)
         if violation is not None:
-            with tracer.start_as_current_span(
-                "a2a.relay.reject",
-                kind=SpanKind.SERVER,
-                attributes={
-                    "session.id": context_id,
-                    "o2r.task.id": task_id,
-                    "agent.id": RELAY_AGENT_ID,
-                    "openinference.span.kind": "AGENT",
-                    "o2r.relay.mode": "reject",
-                    "o2r.relay.reject_reason": violation,
-                    "o2r.peer.target": target_id or "",
-                    "graph.node.id": RELAY_AGENT_ID,
-                    "graph.node.parent_id": sender_id,
-                },
-            ) as span:
+            with (
+                using_session(context_id),
+                using_user(sender_id),
+                tracer.start_as_current_span(
+                    "a2a.relay.reject",
+                    kind=SpanKind.SERVER,
+                    attributes={
+                        "session.id": context_id,
+                        "user.id": sender_id,
+                        "o2r.task.id": task_id,
+                        "agent.id": RELAY_AGENT_ID,
+                        "agent.role": RELAY_ROLE,
+                        "openinference.span.kind": "AGENT",
+                        "o2r.relay.mode": "reject",
+                        "o2r.relay.reject_reason": violation,
+                        "o2r.relay.failure_class": _classify_relay_reject(violation),
+                        "o2r.peer.target": target_id or "",
+                        "o2r.peer.target_role": peer_roles.get(target_id or "") or "",
+                        "o2r.peer.sender_role": peer_roles.get(sender_id) or "",
+                        "graph.node.id": RELAY_AGENT_ID,
+                        "graph.node.parent_id": sender_id,
+                    },
+                ) as span,
+            ):
                 span.set_status(Status(StatusCode.ERROR, violation))
             return {
                 "jsonrpc": "2.0",
@@ -163,26 +196,34 @@ def handle_message_send(
 
     incoming_ctx = extract(headers or {})
 
-    with tracer.start_as_current_span(
-        "a2a.task",
-        context=incoming_ctx,
-        kind=SpanKind.SERVER,
-        attributes={
-            "session.id": context_id,
-            "o2r.task.id": task_id,
-            "agent.id": RELAY_AGENT_ID,
-            "agent.name": RELAY_AGENT_NAME,
-            "openinference.span.kind": "AGENT",
-            "graph.node.id": RELAY_AGENT_ID,
-            "graph.node.parent_id": sender_id,
-            "o2r.task.state": "working",
-            "o2r.peer.target": target_id or "",
-            "o2r.relay.mode": "forward" if peer_url else "synthesize",
-            "input.value": json.dumps({"role": message.get("role", "user"), "parts": parts}),
-            "input.mime_type": "application/json",
-            "o2r.message.text": input_text,
-        },
-    ) as span:
+    with (
+        using_session(context_id),
+        using_user(sender_id),
+        tracer.start_as_current_span(
+            "a2a.task",
+            context=incoming_ctx,
+            kind=SpanKind.SERVER,
+            attributes={
+                "session.id": context_id,
+                "user.id": sender_id,
+                "o2r.task.id": task_id,
+                "agent.id": RELAY_AGENT_ID,
+                "agent.name": RELAY_AGENT_NAME,
+                "agent.role": RELAY_ROLE,
+                "openinference.span.kind": "AGENT",
+                "graph.node.id": RELAY_AGENT_ID,
+                "graph.node.parent_id": sender_id,
+                "o2r.task.state": "working",
+                "o2r.peer.target": target_id or "",
+                "o2r.peer.target_role": peer_roles.get(target_id or "") or "",
+                "o2r.peer.sender_role": peer_roles.get(sender_id) or "",
+                "o2r.relay.mode": "forward" if peer_url else "synthesize",
+                "input.value": json.dumps({"role": message.get("role", "user"), "parts": parts}),
+                "input.mime_type": "application/json",
+                "o2r.message.text": input_text,
+            },
+        ) as span,
+    ):
         span.add_event(
             "o2r.task.state_change",
             attributes={"from": "submitted", "to": "working"},
@@ -203,8 +244,10 @@ def handle_message_send(
                 kind=SpanKind.CLIENT,
                 attributes={
                     "session.id": context_id,
+                    "user.id": sender_id,
                     "o2r.task.id": task_id,
                     "agent.id": RELAY_AGENT_ID,
+                    "agent.role": RELAY_ROLE,
                     "graph.node.id": RELAY_AGENT_ID,
                     "peer.agent.id": target_id or "",
                     "peer.url": peer_url,
@@ -239,6 +282,7 @@ def handle_message_send(
                 # Peer crashed mid-handle or unreachable. Surface as JSON-RPC error
                 # so the originating caller can record an outcome instead of 500ing.
                 span.set_attribute("o2r.task.state", "failed")
+                span.set_attribute("o2r.relay.failure_class", _classify_relay_reject(forward_error))
                 span.set_status(Status(StatusCode.ERROR, forward_error))
                 span.add_event(
                     "o2r.task.state_change",
@@ -251,6 +295,7 @@ def handle_message_send(
                 }
             if "error" in body:
                 span.set_attribute("o2r.task.state", "failed")
+                span.set_attribute("o2r.relay.failure_class", "peer_jsonrpc_error")
                 span.set_status(Status(StatusCode.ERROR, str(body["error"])))
                 span.add_event(
                     "o2r.task.state_change",
@@ -314,27 +359,35 @@ def handle_message_stream(
         yield f"data: {json.dumps(evt)}\n\n".encode()
 
     def gen() -> Iterator[bytes]:
-        with tracer.start_as_current_span(
-            "a2a.task",
-            context=incoming_ctx,
-            kind=SpanKind.SERVER,
-            attributes={
-                "session.id": context_id,
-                "o2r.task.id": task_id,
-                "agent.id": RELAY_AGENT_ID,
-                "agent.name": RELAY_AGENT_NAME,
-                "openinference.span.kind": "AGENT",
-                "graph.node.id": RELAY_AGENT_ID,
-                "graph.node.parent_id": sender_id,
-                "o2r.task.state": "working",
-                "o2r.peer.target": target_id or "",
-                "o2r.relay.mode": "forward-stream" if peer_url else "synthesize-stream",
-                "o2r.method": "message/stream",
-                "input.value": json.dumps({"role": message.get("role", "user"), "parts": parts}),
-                "input.mime_type": "application/json",
-                "o2r.message.text": input_text,
-            },
-        ) as span:
+        with (
+            using_session(context_id),
+            using_user(sender_id),
+            tracer.start_as_current_span(
+                "a2a.task",
+                context=incoming_ctx,
+                kind=SpanKind.SERVER,
+                attributes={
+                    "session.id": context_id,
+                    "user.id": sender_id,
+                    "o2r.task.id": task_id,
+                    "agent.id": RELAY_AGENT_ID,
+                    "agent.name": RELAY_AGENT_NAME,
+                    "agent.role": RELAY_ROLE,
+                    "openinference.span.kind": "AGENT",
+                    "graph.node.id": RELAY_AGENT_ID,
+                    "graph.node.parent_id": sender_id,
+                    "o2r.task.state": "working",
+                    "o2r.peer.target": target_id or "",
+                    "o2r.relay.mode": "forward-stream" if peer_url else "synthesize-stream",
+                    "o2r.method": "message/stream",
+                    "input.value": json.dumps(
+                        {"role": message.get("role", "user"), "parts": parts}
+                    ),
+                    "input.mime_type": "application/json",
+                    "o2r.message.text": input_text,
+                },
+            ) as span,
+        ):
             span.add_event(
                 "o2r.task.state_change",
                 attributes={"from": "submitted", "to": "working"},
@@ -357,8 +410,10 @@ def handle_message_stream(
                 kind=SpanKind.CLIENT,
                 attributes={
                     "session.id": context_id,
+                    "user.id": sender_id,
                     "o2r.task.id": task_id,
                     "agent.id": RELAY_AGENT_ID,
+                    "agent.role": RELAY_ROLE,
                     "graph.node.id": RELAY_AGENT_ID,
                     "peer.agent.id": target_id or "",
                     "peer.url": peer_url,
@@ -480,17 +535,22 @@ def handle_tasks_cancel(
         }
     prev_state = task.get("status", {}).get("state", "unknown")
     updated = store.update_state(task_id, "canceled") or task
-    with tracer.start_as_current_span(
-        "a2a.task.cancel",
-        kind=SpanKind.SERVER,
-        attributes={
-            "session.id": task.get("contextId", ""),
-            "o2r.task.id": task_id,
-            "agent.id": RELAY_AGENT_ID,
-            "graph.node.id": RELAY_AGENT_ID,
-            "openinference.span.kind": "AGENT",
-        },
-    ) as span:
+    ctx_id = task.get("contextId", "")
+    with (
+        using_session(ctx_id),
+        tracer.start_as_current_span(
+            "a2a.task.cancel",
+            kind=SpanKind.SERVER,
+            attributes={
+                "session.id": ctx_id,
+                "o2r.task.id": task_id,
+                "agent.id": RELAY_AGENT_ID,
+                "agent.role": RELAY_ROLE,
+                "graph.node.id": RELAY_AGENT_ID,
+                "openinference.span.kind": "AGENT",
+            },
+        ) as span,
+    ):
         span.add_event(
             "o2r.task.state_change",
             attributes={"from": prev_state, "to": "canceled"},

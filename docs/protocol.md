@@ -1,10 +1,17 @@
-# Protocol v0.2
+# Protocol v0.3
 
 The relay's job: translate A2A wire traffic between agents into OTel spans, with no protocol changes visible to the agents themselves.
 
 A2A is the agent-facing format. OTel is the persistence substrate. Agents never read raw spans. Drop the relay between two existing A2A agents and they coordinate normally, except every exchange is now a queryable trace.
 
-This document is the v0.2 protocol shape. v0.1 was rewritten after a real Phoenix harness run surfaced two findings: Phoenix drops OTel `Resource` attributes, and Phoenix does not expose span links via its API. v0.2 renames wire-protocol attribute keys from `a2a.*` to `o2r.*` (the protocol describes its own wire mechanics, not any consumer's flow) and adds a caller-configurable `tracing.bootstrap()` entrypoint so any framework can stand up a tracer without the relay knowing who they are. See ["Phoenix-validated"](#phoenix-validated) below for which v0 claims survived and which were rewritten.
+This document is the v0.3 protocol shape. v0.2 was about renaming wire-protocol attributes from `a2a.*` to `o2r.*` and adding the `tracing.bootstrap()` entrypoint. v0.3 layers on data-legibility additions surfaced by real Phoenix sessions (see [otel-a2a-relay#93](https://github.com/coilysiren/otel-a2a-relay/issues/93)):
+
+- **Sessions propagate via OpenInference's `using_session(...)` context manager**, not just hand-set `session.id` attributes. Every relay-emitted span sits inside `using_session(context_id)` so any nested OpenInference-instrumented call inherits the session ID.
+- **Every span carries `agent.role`.** Workers, validators, planners, orchestrators are no longer anonymous in per-role analysis.
+- **Every erroring relay span carries `o2r.relay.failure_class`.** Coarse, machine-readable bucket (`topology_violation`, `peer_disconnect`, `peer_404`, `timeout`, `peer_jsonrpc_error`, `unknown`). Mirrors the Phoenix `relay_failure_class` annotation config that `scripts/phoenix_bootstrap.py` provisions.
+- **`tracing.bootstrap()` no longer auto-emits a `tracing.session.start` smoke span.** It is opt-in via `emit_readme_span=True`. Default flow keeps the project list clean.
+
+See ["Phoenix-validated"](#phoenix-validated) below for which v0 claims survived and which were rewritten.
 
 ## Topology
 
@@ -131,11 +138,15 @@ A's downstream processing of the result lives as children here. Out of scope for
 
 ## Conventions
 
-- **Agent identity = span-level attributes.** Every span the relay emits on agent X's behalf carries `agent.id`, `agent.name`, and the graph attributes redundantly. Phoenix does not surface `Resource` attributes, so they cannot live there. The relay's own `service.name` is fine on the Resource because it never needs to be queryable per-span.
+- **Agent identity = span-level attributes.** Every span the relay emits on agent X's behalf carries `agent.id`, `agent.name`, `agent.role`, and the graph attributes redundantly. Phoenix does not surface `Resource` attributes, so they cannot live there. The relay's own `service.name` is fine on the Resource because it never needs to be queryable per-span.
+- **`agent.role` is the broad role** in the agent topology (`relay`, `orchestrator`, `planner`, `validator`, `worker`, `deployer`). Consumers may add a parallel `agent.specialization` for narrower per-worker analysis (`designer`, `curator`, `science_writer`, ...). The relay never inspects either; consumers query against them.
+- **Sessions ride on `using_session(context_id)`** plus a redundant `session.id` span attribute. The redundant attribute makes Phoenix's Sessions tab work without OpenInference instrumentation in the loop; the context manager propagates the session to anything OpenInference-instrumented that runs inside.
+- **`user.id` rides on `using_user(sender_id)`** plus a redundant `user.id` attribute. Phoenix's per-user filters and the User column in the Sessions tab consume it.
 - **Task = one root span**, lifetime = task lifetime, state in events. Not one trace per task. Multiple tasks in the same session share `session.id`.
 - **Messages = mixed.** Content-bearing initial sends and final completions are spans (LLM kind). Streaming chunks and protocol-level state pings are span events. Rule of thumb: if it would render as a node in the trace tree, it is a span. If it would render as a tick on a timeline, it is an event.
 - **Streaming and sync share span shape.** Sync is the degenerate case where the task span opens, fires one `stream_chunk` event with `final: true`, ends with a child completion span. The relay does not branch on sync vs stream at the span layer.
 - **Topology = `graph.node.*` attributes**, not span links. Span links may be emitted alongside but are not load-bearing.
+- **Failure classification = `o2r.relay.failure_class`** on any erroring relay span. Stable, machine-readable bucket. Pairs with the `relay_failure_class` annotation config in Phoenix.
 
 ## Tracing bootstrap
 
@@ -160,7 +171,7 @@ Returns a configured `Tracer`. Side effects:
 
 - Sets `PHOENIX_PROJECT_NAME` env var (if not already set) to the slugified `<deployment>.<product_area>` (or just `<deployment>` if no product area). The slug rule is: lowercase, `[a-z0-9-]`, collapse separators. Phoenix's exporter reads the env var.
 - Resource attributes record `service.namespace=<namespace>`, `service.name=<role>`, `<namespace>.colony=<deployment>`, `<namespace>.product_area=<product_area>` (if present), plus any optional fields and `extra_resource`. The relay never inspects or special-cases the namespace.
-- Emits one `tracing.session.start` span. Its `readme` attribute is a one-line `namespace=<x> deployment=<y> product_area=<z> role=<r> version=<v>` summary so any agent reading the first span in a session can identify the system without external context.
+- When the caller passes `emit_readme_span=True`, emits one `tracing.session.start` span with a `readme` attribute (`namespace=<x> deployment=<y> product_area=<z> role=<r> version=<v>`). Off by default. The smoke span has zero IO and zero session context, so a real flow's project list stays free of it. Tests and one-off probes opt in.
 
 What's out of scope:
 
@@ -188,7 +199,14 @@ What v0.2 changed:
 - **Wire-protocol attributes are now `o2r.*`, not `a2a.*`.** The renamed keys describe this protocol's mechanics, not the consumer's flow. Specifically: `o2r.task.id`, `o2r.task.state`, `o2r.task.state_change` (event), `o2r.message.text`, `o2r.message.reply_text`, `o2r.peer.target`, `o2r.relay.mode`, `o2r.relay.reject_reason`, `o2r.method`. Span names (`a2a.task`, `a2a.client.send`, `a2a.relay.forward`, ...) keep the `a2a.*` prefix because they label A2A wire events.
 - **`tracing.bootstrap()` entrypoint** added. See ["Tracing bootstrap"](#tracing-bootstrap) above.
 
-If a future Phoenix release changes either of these, the spec backs up again.
+What v0.3 changed:
+
+- **`agent.role` is mandatory on every relay-emitted span.** `relay`, plus the registered role of the sender on `o2r.peer.sender_role` and the target on `o2r.peer.target_role`.
+- **`o2r.relay.failure_class`** rides on every erroring relay span. Stable label set: `topology_violation`, `peer_disconnect`, `peer_404`, `timeout`, `peer_jsonrpc_error`, `unknown`.
+- **Sessions and users propagate via OpenInference's context managers.** Every relay-emitted span sits inside `using_session(context_id)` and `using_user(sender_id)` so OpenInference auto-instrumentation picks them up without each handler restating them. The redundant `session.id` and `user.id` span attributes remain so Phoenix queries against them work without OpenInference in the loop.
+- **`tracing.session.start` smoke span is opt-in.** Default behavior of `bootstrap()` no longer emits it.
+
+If a future Phoenix release changes any of these, the spec backs up again.
 
 ## Operator surface
 

@@ -37,6 +37,7 @@ def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch: pytest.Mon
         git_commit="deadbeef",
         extra_resource={"frob.colony.tier": "gold"},
         extra_processor=SimpleSpanProcessor(exporter),
+        emit_readme_span=True,
     )
 
     # Phoenix project env var is set from slugified <deployment>.<product_area>.
@@ -89,12 +90,30 @@ def test_bootstrap_without_product_area_falls_back_to_deployment(
         deployment="acme",
         role="relay",
         extra_processor=SimpleSpanProcessor(exporter),
+        emit_readme_span=True,
     )
     assert os.environ["PHOENIX_PROJECT_NAME"] == "acme"
     span = exporter.get_finished_spans()[0]
     attrs = dict(span.attributes or {})
     assert "product_area" not in attrs
     assert attrs["phoenix.project.name"] == "acme"
+
+
+def test_bootstrap_does_not_emit_readme_span_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The smoke `tracing.session.start` span is opt-in. Default flow keeps
+    the project list clean: real work spans carry the session context, the
+    readme span doesn't."""
+    monkeypatch.delenv("PHOENIX_PROJECT_NAME", raising=False)
+    exporter = InMemorySpanExporter()
+    bootstrap(
+        namespace="frob",
+        deployment="acme",
+        role="relay",
+        extra_processor=SimpleSpanProcessor(exporter),
+    )
+    assert exporter.get_finished_spans() == ()
 
 
 def test_bootstrap_does_not_clobber_existing_phoenix_project_env(

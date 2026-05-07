@@ -1,4 +1,4 @@
-.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix luca-test luca-snapshots-update relay agent-a agent-b phoenix-fg send stream view gif gif-fixture-update get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix luca-test luca-snapshots-update relay agent-a agent-b phoenix-fg send stream view gif gif-fixture-update get tasks cancel peers harness phoenix-bootstrap phoenix-bootstrap-dry-run test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
 
 BG := scripts/bg.sh
 
@@ -22,6 +22,8 @@ help:
 	@echo '  peers                              List peers + their AgentCards.'
 	@echo '  cancel TASK=t-...                  tasks/cancel for one task id.'
 	@echo '  harness                            Original Phoenix-validation harness.'
+	@echo '  phoenix-bootstrap                  Provision annotation configs + datasets in Phoenix.'
+	@echo '  phoenix-bootstrap-dry-run          Print what phoenix-bootstrap would do, no writes.'
 	@echo '  test / lint                        pytest / ruff + mypy.'
 	@echo '  tail-relay / tail-agent-a / tail-agent-b   tail -f the running log.'
 	@echo '  phoenix-fg                         Run Phoenix in foreground (operator).'
@@ -117,6 +119,14 @@ peers:
 
 harness:
 	uv run o2r-harness
+
+# Idempotent Phoenix-side setup: annotation configs + named datasets the
+# relay's spans expect. Safe to re-run; existing names are no-ops.
+phoenix-bootstrap:
+	uv run python scripts/phoenix_bootstrap.py $(ARGS)
+
+phoenix-bootstrap-dry-run:
+	uv run python scripts/phoenix_bootstrap.py --dry-run $(ARGS)
 
 test:
 	uv run pytest

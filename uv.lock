@@ -2250,6 +2250,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "html5lib" },
+    { name = "openinference-instrumentation" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },
@@ -2280,6 +2281,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "html5lib", specifier = ">=1.1" },
+    { name = "openinference-instrumentation", specifier = ">=0.1.40" },
     { name = "opentelemetry-api", specifier = ">=1.27" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.27" },
     { name = "opentelemetry-sdk", specifier = ">=1.27" },

@@ -19,6 +19,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from openinference.instrumentation import using_session, using_user
 from opentelemetry.propagate import extract, inject
 from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
 
@@ -70,6 +71,7 @@ def create_peer_app(
     base_url: str,
     handler: Handler,
     tracer: Tracer | None = None,
+    specialization: str | None = None,
 ) -> FastAPI:
     """Build a FastAPI app for one LUCA peer.
 
@@ -80,6 +82,13 @@ def create_peer_app(
     supplied, this calls `tracing.bootstrap()` with namespace="luca" and
     deployment from `LUCA_DEPLOYMENT` (default "demo"). Tests pass their
     own tracer to keep emission in-process.
+
+    `specialization` is the worker's narrow role (`designer`, `curator`,
+    `researcher`, ...). It rides on every span this peer emits as
+    `agent.specialization`, alongside the broader `agent.role` (the
+    star-topology role: `orchestrator`/`planner`/`validator`/`worker`/...).
+    Per-role analysis in Phoenix uses `agent.specialization` for granular
+    slicing. Defaults to `role` when not provided.
     """
     if tracer is None:
         tracer = bootstrap(
@@ -88,6 +97,7 @@ def create_peer_app(
             product_area=os.environ.get("LUCA_PRODUCT_AREA") or None,
             role=role,
         )
+    spec = specialization or role
     app = FastAPI(title=f"luca-{agent_id}")
 
     @app.get("/healthz")
@@ -125,30 +135,39 @@ def create_peer_app(
         message = params.get("message") or {}
         ctx = extract(dict(request.headers))
         env = parse_envelope(message)
+        context_id = message.get("contextId", "")
 
-        with tracer.start_as_current_span(
-            "a2a.task",
-            context=ctx,
-            kind=SpanKind.SERVER,
-            attributes={
-                "session.id": message.get("contextId", ""),
-                "o2r.task.id": message.get("taskId", ""),
-                "agent.id": agent_id,
-                "agent.name": f"luca-{agent_id}",
-                "openinference.span.kind": "AGENT",
-                "graph.node.id": agent_id,
-                "graph.node.parent_id": env.sender,
-                "o2r.task.state": "working",
-                "o2r.method": "message/send",
-                "luca.role": role,
-                "luca.kind.in": env.kind,
-                "luca.step": env.step,
-                "luca.task_id": env.task_id,
-                "input.value": json.dumps({"role": "user", "human": env.human}),
-                "input.mime_type": "application/json",
-                "o2r.message.text": env.human,
-            },
-        ) as span:
+        span_attrs = {
+            "session.id": context_id,
+            "user.id": env.sender or agent_id,
+            "o2r.task.id": message.get("taskId", ""),
+            "agent.id": agent_id,
+            "agent.name": f"luca-{agent_id}",
+            "agent.role": role,
+            "agent.specialization": spec,
+            "openinference.span.kind": "AGENT",
+            "graph.node.id": agent_id,
+            "graph.node.parent_id": env.sender,
+            "o2r.task.state": "working",
+            "o2r.method": "message/send",
+            "luca.role": role,
+            "luca.kind.in": env.kind,
+            "luca.step": env.step,
+            "luca.task_id": env.task_id,
+            "input.value": json.dumps({"role": "user", "human": env.human}),
+            "input.mime_type": "application/json",
+            "o2r.message.text": env.human,
+        }
+        with (
+            using_session(context_id),
+            using_user(env.sender or agent_id),
+            tracer.start_as_current_span(
+                "a2a.task",
+                context=ctx,
+                kind=SpanKind.SERVER,
+                attributes=span_attrs,
+            ) as span,
+        ):
             try:
                 reply = handler(env, message)
             except Exception as e:

@@ -12,6 +12,7 @@ dependencies = [
   "opentelemetry-api>=1.27",
   "opentelemetry-sdk>=1.27",
   "opentelemetry-exporter-otlp-proto-http>=1.27",
+  "openinference-instrumentation>=0.1.40",
   "pyyaml>=6.0",
   "html5lib>=1.1",
 ]

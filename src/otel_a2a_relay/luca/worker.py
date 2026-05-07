@@ -231,6 +231,13 @@ def main() -> None:
     p.add_argument("--followup-assignee", default="")
     p.add_argument("--followup-reason", default="")
     p.add_argument("--bypass-target", default="validator")
+    p.add_argument(
+        "--specialization",
+        default="",
+        help="Granular agent specialty for span emission (designer, curator, "
+        "science_writer, ...). Defaults to 'worker' when unset, but the "
+        "topology role registered with the relay is always 'worker'.",
+    )
     args = p.parse_args()
 
     base_url = f"http://{args.host}:{args.port}/"
@@ -241,6 +248,7 @@ def main() -> None:
         role="worker",
         base_url=base_url,
         handler=make_handler(args, boot_state),
+        specialization=args.specialization or None,
     )
     try:
         uvicorn.run(app, host=args.host, port=args.port, log_level="warning", access_log=False)

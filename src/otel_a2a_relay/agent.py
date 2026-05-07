@@ -21,12 +21,15 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from openinference.instrumentation import using_session, using_user
 from opentelemetry.propagate import extract
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, Status, StatusCode
 
 from otel_a2a_relay.store import TaskStore
 from otel_a2a_relay.telemetry import make_provider
+
+DEFAULT_AGENT_ROLE = "echo"
 
 
 def _now_iso() -> str:
@@ -163,27 +166,33 @@ def create_app(
         sender_id = (message.get("metadata") or {}).get("agent.id", "unknown")
         text = _extract_text(message)
 
-        with tracer.start_as_current_span(
-            "a2a.task",
-            context=ctx,
-            kind=SpanKind.SERVER,
-            attributes={
-                "session.id": context_id,
-                "o2r.task.id": task_id,
-                "agent.id": agent_id,
-                "agent.name": name,
-                "openinference.span.kind": "AGENT",
-                "graph.node.id": agent_id,
-                "graph.node.parent_id": sender_id,
-                "o2r.task.state": "working",
-                "o2r.method": "message/send",
-                "input.value": json.dumps(
-                    {"role": message.get("role", "user"), "parts": message.get("parts") or []}
-                ),
-                "input.mime_type": "application/json",
-                "o2r.message.text": text,
-            },
-        ) as span:
+        with (
+            using_session(context_id),
+            using_user(sender_id),
+            tracer.start_as_current_span(
+                "a2a.task",
+                context=ctx,
+                kind=SpanKind.SERVER,
+                attributes={
+                    "session.id": context_id,
+                    "user.id": sender_id,
+                    "o2r.task.id": task_id,
+                    "agent.id": agent_id,
+                    "agent.name": name,
+                    "agent.role": DEFAULT_AGENT_ROLE,
+                    "openinference.span.kind": "AGENT",
+                    "graph.node.id": agent_id,
+                    "graph.node.parent_id": sender_id,
+                    "o2r.task.state": "working",
+                    "o2r.method": "message/send",
+                    "input.value": json.dumps(
+                        {"role": message.get("role", "user"), "parts": message.get("parts") or []}
+                    ),
+                    "input.mime_type": "application/json",
+                    "o2r.message.text": text,
+                },
+            ) as span,
+        ):
             span.add_event(
                 "o2r.task.state_change",
                 attributes={"from": "submitted", "to": "working"},
@@ -228,30 +237,36 @@ def create_app(
 
         def gen() -> Iterator[bytes]:
             ctx = extract(headers_in)
-            with tracer.start_as_current_span(
-                "a2a.task",
-                context=ctx,
-                kind=SpanKind.SERVER,
-                attributes={
-                    "session.id": context_id,
-                    "o2r.task.id": task_id,
-                    "agent.id": agent_id,
-                    "agent.name": name,
-                    "openinference.span.kind": "AGENT",
-                    "graph.node.id": agent_id,
-                    "graph.node.parent_id": sender_id,
-                    "o2r.task.state": "working",
-                    "o2r.method": "message/stream",
-                    "input.value": json.dumps(
-                        {
-                            "role": message.get("role", "user"),
-                            "parts": message.get("parts") or [],
-                        }
-                    ),
-                    "input.mime_type": "application/json",
-                    "o2r.message.text": text,
-                },
-            ) as span:
+            with (
+                using_session(context_id),
+                using_user(sender_id),
+                tracer.start_as_current_span(
+                    "a2a.task",
+                    context=ctx,
+                    kind=SpanKind.SERVER,
+                    attributes={
+                        "session.id": context_id,
+                        "user.id": sender_id,
+                        "o2r.task.id": task_id,
+                        "agent.id": agent_id,
+                        "agent.name": name,
+                        "agent.role": DEFAULT_AGENT_ROLE,
+                        "openinference.span.kind": "AGENT",
+                        "graph.node.id": agent_id,
+                        "graph.node.parent_id": sender_id,
+                        "o2r.task.state": "working",
+                        "o2r.method": "message/stream",
+                        "input.value": json.dumps(
+                            {
+                                "role": message.get("role", "user"),
+                                "parts": message.get("parts") or [],
+                            }
+                        ),
+                        "input.mime_type": "application/json",
+                        "o2r.message.text": text,
+                    },
+                ) as span,
+            ):
                 span.add_event(
                     "o2r.task.state_change",
                     attributes={"from": "submitted", "to": "working"},

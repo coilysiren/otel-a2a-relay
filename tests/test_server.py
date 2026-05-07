@@ -37,7 +37,7 @@ def test_healthz(captured_spans: tuple[TestClient, InMemorySpanExporter]) -> Non
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
-    assert body["protocol"] == "0.1"
+    assert body["protocol"] == "0.3"
     assert body["peers"] == []
     # Star-topology fields default off / empty in this fixture.
     assert body["star_enforce"] is False
@@ -110,6 +110,23 @@ def test_message_send_emits_v0_1_task_span(
     assert attrs["o2r.task.state"] == "completed"
     event_names = [e.name for e in span.events]
     assert event_names == ["o2r.task.state_change", "o2r.task.state_change"]
+
+
+def test_classify_relay_reject_covers_all_buckets() -> None:
+    """`_classify_relay_reject` is consumed by the relay span emitter and the
+    Phoenix `relay_failure_class` annotation config; its label set must stay
+    stable. This pins the mapping so a misclassification surfaces as a test
+    failure rather than silently mislabelling a Phoenix annotation."""
+    from otel_a2a_relay.server import _classify_relay_reject
+
+    assert _classify_relay_reject("star-topology violation: foo bar") == "topology_violation"
+    assert _classify_relay_reject("forward to B failed: HTTP 404") == "peer_404"
+    assert _classify_relay_reject("forward to B failed: ReadTimeout") == "timeout"
+    assert _classify_relay_reject("forward to B failed: ConnectError") == "peer_disconnect"
+    assert (
+        _classify_relay_reject("peer returned non-JSON body (200, 12 bytes)") == "peer_disconnect"
+    )
+    assert _classify_relay_reject("something bizarre") == "unknown"
 
 
 def test_unknown_method_returns_jsonrpc_error(

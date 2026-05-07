@@ -44,6 +44,7 @@ steps:
   - step: 1
     actor: worker-a
     display: "🎨 Designer"
+    specialization: designer
     port: 9201
     title: "Built the AURORA design system and hero page"
     task_id: design-system-and-hero
@@ -58,6 +59,7 @@ steps:
   - step: 2
     actor: worker-b
     display: "🖼️ Curator"
+    specialization: curator
     port: 9202
     title: "Started the NASA aurora gallery"
     task_id: gallery-part-1
@@ -74,6 +76,7 @@ steps:
   - step: 3
     actor: worker-c
     display: "🖼️ Curator"
+    specialization: curator
     port: 9203
     title: "Completed the NASA aurora gallery"
     task_id: gallery-part-2
@@ -86,6 +89,7 @@ steps:
   - step: 4
     actor: worker-d
     display: "🛰️ Researcher"
+    specialization: science_writer
     port: 9204
     title: "Drafted the science explainer"
     task_id: science-page
@@ -95,6 +99,7 @@ steps:
   - step: 5
     actor: worker-e
     display: "🔭 Researcher"
+    specialization: science_writer
     port: 9205
     title: "Rebuilt the science explainer using a different framing"
     task_id: science-page
@@ -109,6 +114,7 @@ steps:
   - step: 6
     actor: worker-f
     display: "🔧 Engineer"
+    specialization: spec_writer
     port: 9206
     title: "Wrote the AURORA spec sheet"
     task_id: product-page
@@ -122,6 +128,7 @@ steps:
   - step: 7
     actor: worker-g
     display: "🦹 Rogue"
+    specialization: rogue
     port: 9207
     title: "Tried to bypass the orchestrator"
     task_id: rogue-bypass-attempt
@@ -133,6 +140,7 @@ steps:
   - step: 8
     actor: worker-h
     display: "✨ Polish"
+    specialization: polish_writer
     port: 9208
     title: "Wrote the mission, about, and preorder pages"
     task_id: polish-pages

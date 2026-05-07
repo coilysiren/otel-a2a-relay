@@ -61,6 +61,7 @@ def bootstrap(
     extra_resource: dict[str, Any] | None = None,
     extra_processor: SpanProcessor | None = None,
     endpoint: str | None = None,
+    emit_readme_span: bool = False,
 ) -> Tracer:
     """Configure OTel for a process consuming the o2r protocol.
 
@@ -80,13 +81,16 @@ def bootstrap(
       extra_resource  - dict of additional resource attributes, merged last.
       extra_processor - additional SpanProcessor for tests.
       endpoint        - override OTLP host (default reads env or localhost).
+      emit_readme_span - emit a self-describing `tracing.session.start` smoke
+                        span at bootstrap time. Off by default - the span has
+                        zero IO and zero session context, so on real flows it
+                        crowds the project list without informing anything.
+                        Tests and one-off probes can opt in.
 
     Side effects:
       Sets `PHOENIX_PROJECT_NAME` env var if not already set, derived from the
       slugified `<deployment>.<product_area>` (or just `<deployment>`). Phoenix
       reads this on the exporter side, not us.
-      Emits one `tracing.session.start` span whose `readme` attribute encodes
-      the caller-supplied identity in human-readable form.
 
     Returns the configured `Tracer`. The caller owns its lifetime; nothing in
     the relay holds a reference.
@@ -123,34 +127,35 @@ def bootstrap(
 
     tracer = provider.get_tracer(f"{namespace}.{role}")
 
-    readme_parts = [
-        f"namespace={namespace}",
-        f"deployment={deployment}",
-    ]
-    if product_area:
-        readme_parts.append(f"product_area={product_area}")
-    readme_parts.append(f"role={role}")
-    if version:
-        readme_parts.append(f"version={version}")
-    readme = " ".join(readme_parts)
+    if emit_readme_span:
+        readme_parts = [
+            f"namespace={namespace}",
+            f"deployment={deployment}",
+        ]
+        if product_area:
+            readme_parts.append(f"product_area={product_area}")
+        readme_parts.append(f"role={role}")
+        if version:
+            readme_parts.append(f"version={version}")
+        readme = " ".join(readme_parts)
 
-    session_attrs: dict[str, Any] = {
-        "readme": readme,
-        "namespace": namespace,
-        "deployment": deployment,
-        "role": role,
-        "phoenix.project.name": proj,
-    }
-    if product_area:
-        session_attrs["product_area"] = product_area
-    if deployment_env:
-        session_attrs["deployment_env"] = deployment_env
-    if version:
-        session_attrs["version"] = version
-    if git_commit:
-        session_attrs["git_commit"] = git_commit
+        session_attrs: dict[str, Any] = {
+            "readme": readme,
+            "namespace": namespace,
+            "deployment": deployment,
+            "role": role,
+            "phoenix.project.name": proj,
+        }
+        if product_area:
+            session_attrs["product_area"] = product_area
+        if deployment_env:
+            session_attrs["deployment_env"] = deployment_env
+        if version:
+            session_attrs["version"] = version
+        if git_commit:
+            session_attrs["git_commit"] = git_commit
 
-    with tracer.start_as_current_span("tracing.session.start", attributes=session_attrs):
-        pass
+        with tracer.start_as_current_span("tracing.session.start", attributes=session_attrs):
+            pass
 
     return tracer
