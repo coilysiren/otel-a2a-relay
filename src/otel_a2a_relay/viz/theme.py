@@ -28,22 +28,26 @@ INK = (0xEA, 0xEC, 0xF2)  # primary text
 MUTE = (0x6A, 0x6F, 0x82)  # secondary text
 HAIR = (0x2A, 0x2D, 0x40)  # frame outlines
 
-HUB = (0xFF, 0x5F, 0xBE)  # charm-pink for the relay
-HUB_INNER = (0xFF, 0xC8, 0xE6)  # softer pink for the inner ring
+# All hues authored in OKLCH (perceptually uniform) and converted to
+# sRGB once at design time, so the palette balances the way it looks
+# rather than the way the RGB numbers happen to round.
+#
+#   relay (hub):  oklch(0.82 0.15 200)  -> cyan
+#   agent a:      oklch(0.78 0.18 350)  -> pink
+#   agent b:      oklch(0.85 0.16  90)  -> amber/yellow
+HUB = (0x00, 0xE0, 0xEA)  # cyan, oklch(0.82 0.15 200)
+HUB_INNER = (0xA6, 0xF9, 0xFD)  # softer cyan, oklch(0.93 0.08 200)
 
 # Agent palette. Assigned by sorted-name index so two runs over the
 # same session id put the same color on the same agent. The first two
-# slots are picked to be maximally distinct hues from each other AND
-# from the hub's hot pink: cyan (cool blue-green), amber (warm orange).
-# The two-leaf dogfood demo lands on cyan + amber against pink, which
-# is the trio of colors that read as three different objects at a
-# glance even on a low-color GIF palette.
+# slots are picked so the cyan/pink/amber trio reads as three clearly
+# distinct hues at a glance, even on a low-color GIF palette.
 AGENTS = (
-    (0x5F, 0xD7, 0xFF),  # cyan
-    (0xFF, 0xB0, 0x5F),  # amber
+    (0xFF, 0x82, 0xC7),  # pink, oklch(0.78 0.18 350)
+    (0xF6, 0xC8, 0x35),  # amber/yellow, oklch(0.85 0.16 90)
     (0x9D, 0xFF, 0x9C),  # mint
     (0xC8, 0xA0, 0xFF),  # violet
-    (0xFF, 0xCC, 0x66),  # gold
+    (0x5F, 0xD7, 0xFF),  # spare cyan (kept out of slot 0/1 to stay clear of the hub)
 )
 
 # Edge state palette. Direction (outbound vs return) is encoded by
