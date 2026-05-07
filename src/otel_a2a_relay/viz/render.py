@@ -159,10 +159,10 @@ def _color_for(
 
     `agent a -> relay` is agent a's color; `relay -> agent b` is the
     relay's color, regardless of who originally produced the message
-    body. Failed hops override to red.
+    body. Status (completed / failed / in-flight) is intentionally
+    not encoded in the hue here - the renderer leans on edge style
+    elsewhere if a status signal is needed.
     """
-    if hop.status == "failed":
-        return theme.failed
     if hop.src == hub:
         return theme.hub
     return agent_color.get(hop.src) or theme.ink
@@ -562,15 +562,10 @@ def _draw_log(
         y = title_y + i * line_h
         # Color = immediate emitter, matching the on-canvas edge/particle.
         # `agent a -> relay` is agent-a colored; `relay -> agent b` is
-        # relay-colored, regardless of who originally produced the
-        # message body.
+        # relay-colored. Status is not encoded in hue.
         emitter_color = theme.hub if hop.src == hub else (agent_color.get(hop.src) or theme.ink)
-        if hop.status == "failed":
-            text_color = theme.failed
-            dot_color = theme.failed
-        else:
-            text_color = emitter_color
-            dot_color = emitter_color
+        text_color = emitter_color
+        dot_color = emitter_color
         cx = sidebar_x + dot_r
         cy = y + 6 * SUPERSAMPLE
         draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=dot_color)
