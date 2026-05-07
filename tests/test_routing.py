@@ -281,6 +281,364 @@ def test_message_stream_synthesizes_when_no_peer() -> None:
     assert attrs["o2r.relay.mode"] == "synthesize-stream"
 
 
+def test_forward_peer_returns_error_envelope() -> None:
+    """Peer returns a JSON-RPC error body; relay surfaces it and marks task failed."""
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+
+    def handler(_req: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, json={"jsonrpc": "2.0", "id": "x", "error": {"code": -1, "message": "no"}}
+        )
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    app = create_app(provider=provider, peers={"B": "http://stub/"}, http_client=http_client)
+    with TestClient(app) as client:
+        r = client.post(
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "method": "message/send",
+                "params": {
+                    "message": {
+                        "messageId": "m-1",
+                        "taskId": "t-fwd-err",
+                        "contextId": "ctx",
+                        "metadata": {"agent.id": "A", "agent.target": "B"},
+                    }
+                },
+            },
+        )
+    http_client.close()
+    body = r.json()
+    assert body["error"]["code"] == -1
+    relay = _spans_by_name(exporter)["a2a.task"]
+    attrs = relay.attributes or {}
+    assert attrs["o2r.task.state"] == "failed"
+
+
+def test_forward_peer_returns_non_json() -> None:
+    """Peer returns 200 with a body that isn't valid JSON; relay returns -32011."""
+    provider = TracerProvider()
+
+    def handler(_req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"not-json", headers={"content-type": "text/plain"})
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    app = create_app(provider=provider, peers={"B": "http://stub/"}, http_client=http_client)
+    with TestClient(app) as client:
+        r = client.post(
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "method": "message/send",
+                "params": {
+                    "message": {
+                        "messageId": "m-1",
+                        "taskId": "t-nonjson",
+                        "contextId": "ctx",
+                        "metadata": {"agent.id": "A", "agent.target": "B"},
+                    }
+                },
+            },
+        )
+    http_client.close()
+    body = r.json()
+    assert body["error"]["code"] == -32011
+    assert "non-JSON" in body["error"]["message"]
+
+
+def test_forward_peer_unreachable() -> None:
+    """httpx raises before any response; relay returns -32011."""
+    provider = TracerProvider()
+
+    def handler(_req: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("refused")
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    app = create_app(provider=provider, peers={"B": "http://stub/"}, http_client=http_client)
+    with TestClient(app) as client:
+        r = client.post(
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "method": "message/send",
+                "params": {
+                    "message": {
+                        "messageId": "m-1",
+                        "taskId": "t-unreachable",
+                        "contextId": "ctx",
+                        "metadata": {"agent.id": "A", "agent.target": "B"},
+                    }
+                },
+            },
+        )
+    http_client.close()
+    body = r.json()
+    assert body["error"]["code"] == -32011
+    assert "forward to B failed" in body["error"]["message"]
+
+
+def test_forward_uses_default_client_when_none_passed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """If create_app gets http_client=None, the relay constructs one and closes it."""
+    provider = TracerProvider()
+    closed: list[bool] = []
+
+    def handler(_req: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "result": {
+                    "id": "t-default-client",
+                    "contextId": "ctx",
+                    "kind": "task",
+                    "status": {"state": "completed"},
+                    "history": [],
+                },
+            },
+        )
+
+    real_client_cls = httpx.Client
+
+    def fake_client_ctor(*args: Any, **kwargs: Any) -> httpx.Client:
+        kwargs["transport"] = httpx.MockTransport(handler)
+        c = real_client_cls(*args, **kwargs)
+        original_close = c.close
+
+        def tracked_close() -> None:
+            closed.append(True)
+            original_close()
+
+        c.close = tracked_close  # type: ignore[method-assign]
+        return c
+
+    monkeypatch.setattr(httpx, "Client", fake_client_ctor)
+    app = create_app(provider=provider, peers={"B": "http://stub/"}, http_client=None)
+    with TestClient(app) as client:
+        r = client.post(
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "method": "message/send",
+                "params": {
+                    "message": {
+                        "messageId": "m-1",
+                        "taskId": "t-default-client",
+                        "contextId": "ctx",
+                        "metadata": {"agent.id": "A", "agent.target": "B"},
+                    }
+                },
+            },
+        )
+    assert r.json()["result"]["id"] == "t-default-client"
+    assert closed, "default httpx client was not closed"
+
+
+def test_message_stream_forwards_to_peer() -> None:
+    """Streaming forward path: peer SSE chunks are passed through and recorded as span events."""
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+
+    sse_body = (
+        b'data: {"result":{"kind":"artifact-update",'
+        b'"artifact":{"parts":[{"kind":"text","text":"hi "}]},"lastChunk":false}}\n\n'
+        b'data: {"result":{"kind":"artifact-update",'
+        b'"artifact":{"parts":[{"kind":"text","text":"there"}]},"lastChunk":true}}\n\n'
+        b'data: {"result":{"kind":"status-update","status":{"state":"completed"},"final":true}}\n\n'
+        b"\n"
+        b"data: not-json\n\n"
+    )
+
+    def handler(_req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=sse_body, headers={"content-type": "text/event-stream"})
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    app = create_app(provider=provider, peers={"B": "http://stub/"}, http_client=http_client)
+    with TestClient(app) as client:
+        with client.stream(
+            "POST",
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "method": "message/stream",
+                "params": {
+                    "message": {
+                        "messageId": "m-1",
+                        "taskId": "t-fwd-stream",
+                        "contextId": "ctx-fs",
+                        "metadata": {"agent.id": "A", "agent.target": "B"},
+                    }
+                },
+            },
+        ) as r:
+            data_lines = [
+                line.decode() if isinstance(line, bytes) else line
+                for line in r.iter_lines()
+                if (line.decode() if isinstance(line, bytes) else line).startswith("data: ")
+            ]
+    http_client.close()
+    assert any("artifact-update" in line for line in data_lines)
+
+    spans = _spans_by_name(exporter)
+    assert spans["a2a.task"].attributes["o2r.relay.mode"] == "forward-stream"  # type: ignore[index]
+    relay_task = spans["a2a.task"]
+    chunk_events = [e for e in relay_task.events if e.name == "a2a.message.stream_chunk"]
+    assert len(chunk_events) == 2
+    # Stored task entry should be persisted via the stream path.
+    listing_app_resp = TestClient(app).get("/tasks").json()
+    assert any(t["id"] == "t-fwd-stream" for t in listing_app_resp["tasks"])
+
+
+def test_message_stream_forward_uses_default_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Streaming forward with http_client=None constructs and closes its own client."""
+    provider = TracerProvider()
+    closed: list[bool] = []
+
+    sse_body = (
+        b'data: {"result":{"kind":"status-update","status":{"state":"completed"},"final":true}}\n\n'
+    )
+
+    def handler(_req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=sse_body, headers={"content-type": "text/event-stream"})
+
+    real_client_cls = httpx.Client
+
+    def fake_client_ctor(*args: Any, **kwargs: Any) -> httpx.Client:
+        kwargs["transport"] = httpx.MockTransport(handler)
+        c = real_client_cls(*args, **kwargs)
+        original_close = c.close
+
+        def tracked_close() -> None:
+            closed.append(True)
+            original_close()
+
+        c.close = tracked_close  # type: ignore[method-assign]
+        return c
+
+    monkeypatch.setattr(httpx, "Client", fake_client_ctor)
+    app = create_app(provider=provider, peers={"B": "http://stub/"}, http_client=None)
+    with TestClient(app) as client:
+        with client.stream(
+            "POST",
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": "x",
+                "method": "message/stream",
+                "params": {
+                    "message": {
+                        "messageId": "m-1",
+                        "taskId": "t-stream-default",
+                        "contextId": "ctx",
+                        "metadata": {"agent.id": "A", "agent.target": "B"},
+                    }
+                },
+            },
+        ) as r:
+            list(r.iter_lines())
+    assert closed, "default streaming client was not closed"
+
+
+def test_tasks_get_missing_id_returns_error() -> None:
+    app = create_app(provider=TracerProvider(), peers={})
+    with TestClient(app) as client:
+        r = client.post("/", json={"jsonrpc": "2.0", "id": 1, "method": "tasks/get", "params": {}})
+    assert r.json()["error"]["code"] == -32602
+
+
+def test_tasks_cancel_missing_id_returns_error() -> None:
+    app = create_app(provider=TracerProvider(), peers={})
+    with TestClient(app) as client:
+        r = client.post(
+            "/", json={"jsonrpc": "2.0", "id": 1, "method": "tasks/cancel", "params": {}}
+        )
+    assert r.json()["error"]["code"] == -32602
+
+
+def test_tasks_cancel_unknown_id_returns_error() -> None:
+    app = create_app(provider=TracerProvider(), peers={})
+    with TestClient(app) as client:
+        r = client.post(
+            "/",
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tasks/cancel",
+                "params": {"id": "not-real"},
+            },
+        )
+    assert r.json()["error"]["code"] == -32001
+
+
+def test_jsonrpc_parse_error_on_invalid_body() -> None:
+    app = create_app(provider=TracerProvider(), peers={})
+    with TestClient(app) as client:
+        r = client.post("/", content=b"{not-json")
+    body = r.json()
+    assert body["error"]["code"] == -32700
+
+
+def test_jsonrpc_invalid_request_missing_method() -> None:
+    app = create_app(provider=TracerProvider(), peers={})
+    with TestClient(app) as client:
+        r = client.post("/", json={"jsonrpc": "2.0", "id": 1})
+    body = r.json()
+    assert body["error"]["code"] == -32600
+
+
+def test_list_peers_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """GET /peers fetches each peer's agent card with httpx.get."""
+
+    class FakeGetResponse:
+        def __init__(self, status_code: int, payload: dict[str, Any] | None = None) -> None:
+            self.status_code = status_code
+            self._payload = payload or {}
+
+        def json(self) -> dict[str, Any]:
+            return self._payload
+
+    def fake_get(url: str, timeout: float = 0) -> FakeGetResponse:
+        if "ok-peer" in url:
+            return FakeGetResponse(200, {"name": "ok-card", "skills": []})
+        if "bad-status" in url:
+            return FakeGetResponse(503)
+        raise httpx.ConnectError("nope")
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    app = create_app(
+        provider=TracerProvider(),
+        peers={
+            "OK": "http://ok-peer/",
+            "BAD": "http://bad-status/",
+            "DOWN": "http://down/",
+        },
+        peer_roles={"OK": "worker"},
+    )
+    with TestClient(app) as client:
+        r = client.get("/peers")
+    by_id = {p["id"]: p for p in r.json()["peers"]}
+    assert by_id["OK"]["card"] == {"name": "ok-card", "skills": []}
+    assert by_id["OK"]["role"] == "worker"
+    assert by_id["BAD"]["card_error"] == "http 503"
+    assert "nope" in by_id["DOWN"]["card_error"]
+
+
+def test_register_peer_invalid_json_returns_400() -> None:
+    app = create_app(provider=TracerProvider(), peers={})
+    with TestClient(app) as client:
+        r = client.post("/peers", content=b"{not-json")
+    assert r.status_code == 400
+
+
 def test_tasks_listing_endpoint() -> None:
     app = create_app(provider=TracerProvider(), peers={})
     with TestClient(app) as client:
