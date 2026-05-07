@@ -12,3 +12,5 @@ examples/luca-flow/dist/*
 !examples/luca-flow/dist/.gitkeep
 examples/luca-flow/.luca-stage/
 tests/luca_flow/snapshots/screenshots/*.actual.png
+# `make gif CTX=...` writes per-session GIFs here; transient, not source of truth.
+assets/sessions/
