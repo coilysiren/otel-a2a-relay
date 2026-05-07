@@ -42,7 +42,7 @@ BOTTOM_STRIP = 64
 # Animation pacing.
 FRAMES_PER_TICK = 5  # how many GIF frames each logical tick spans
 FRAME_MS = 130  # ~7.7fps - readable, not frantic
-PALETTE_COLORS = 64  # smallest palette where vignette + halos still read cleanly
+PALETTE_COLORS = 128  # roomy enough to keep pink/amber/red dots clearly distinct
 MIN_TICKS = 4  # stretch tiny sessions so the GIF feels paced
 MAX_TICKS = 14  # cap big sessions so the GIF stays under ~10s
 
@@ -155,14 +155,17 @@ def _color_for(
     hop: Hop,
     hub: str,
 ) -> tuple[int, int, int]:
-    """Edge color: source agent's color, except for hub-outbound which
-    takes the destination color so the eye associates the line with the
-    leaf it's heading to. Failed hops override to red.
+    """Edge / particle color: the immediate emitter's color.
+
+    `agent a -> relay` is agent a's color; `relay -> agent b` is the
+    relay's color, regardless of who originally produced the message
+    body. Failed hops override to red.
     """
     if hop.status == "failed":
         return theme.failed
-    key = hop.dst if hop.src == hub else hop.src
-    return agent_color.get(key) or theme.ink
+    if hop.src == hub:
+        return theme.hub
+    return agent_color.get(hop.src) or theme.ink
 
 
 def _alpha_blend(
@@ -209,14 +212,11 @@ def _draw_node(
     pulse: float,
     theme: Theme,
 ) -> None:
-    """A node is a solid filled disc with an optional pulse halo around it.
+    """A node is a filled ring with an optional pulse halo around it.
 
     `pulse` in [0,1] makes the outer halo larger and brighter when the
-    node is the source or target of a currently-firing hop. The `inner`
-    parameter is unused now that nodes are solid; kept for signature
-    stability.
+    node is the source or target of a currently-firing hop.
     """
-    del inner  # nodes used to render as two-tone rings; now solid discs.
     x, y = pos
     halo_r = radius + int(radius * 0.7 * pulse)
     if pulse > 0:
@@ -226,6 +226,12 @@ def _draw_node(
         [x - radius, y - radius, x + radius, y + radius],
         fill=color,
         outline=color,
+    )
+    # Inner ring so the node reads as a token rather than a flat dot.
+    inner_r = radius - NODE_RING_W * 2
+    draw.ellipse(
+        [x - inner_r, y - inner_r, x + inner_r, y + inner_r],
+        fill=inner,
     )
 
 
@@ -542,13 +548,6 @@ def _draw_log(
         width=1,
     )
 
-    # Build a `text -> originating actor` map so each message takes the
-    # color of whoever produced it, not of whichever leg of the hop is
-    # currently animating. That way "hi A" stays agent-b colored from
-    # the moment agent b sends it through the relay's onward delivery
-    # to agent a - one color per message, like a chat client.
-    originators = _originators(hop_ticks, hub)
-
     # Append-only ordered list of every fired hop with text, capped at
     # LOG_LINES so a chatty session doesn't run off the canvas.
     visible: list[tuple[Hop, int]] = []
@@ -561,14 +560,19 @@ def _draw_log(
 
     for i, (hop, _t) in enumerate(visible):
         y = title_y + i * line_h
-        producer = originators.get(hop.text) or hop.src
-        producer_color = agent_color.get(producer) or theme.ink
+        # Color = immediate emitter, matching the on-canvas edge/particle.
+        # `agent a -> relay` is agent-a colored; `relay -> agent b` is
+        # relay-colored, regardless of who originally produced the
+        # message body.
+        emitter_color = (
+            theme.hub if hop.src == hub else (agent_color.get(hop.src) or theme.ink)
+        )
         if hop.status == "failed":
             text_color = theme.failed
             dot_color = theme.failed
         else:
-            text_color = producer_color
-            dot_color = producer_color
+            text_color = emitter_color
+            dot_color = emitter_color
         cx = sidebar_x + dot_r
         cy = y + 6 * SUPERSAMPLE
         draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=dot_color)
@@ -577,27 +581,6 @@ def _draw_log(
             text = text[: LOG_TEXT_MAX - 1] + "..."
         prefix = f"{_label_for(hop.src, hub)} -> {_label_for(hop.dst, hub)}: "
         draw.text((cx + dot_gap, y), prefix + text, fill=text_color, font=font)
-
-
-def _originators(hop_ticks: dict[Hop, int], hub: str) -> dict[str, str]:
-    """Map each message text to the agent that produced it.
-
-    Walks hops in tick order; the first non-hub source we see for a
-    given text is the originator. Self-loops (where src == dst) are
-    treated as authoritative producer events because that's where an
-    `a2a.client.send` lands in the reduced model.
-    """
-    out: dict[str, str] = {}
-    for hop, _t in sorted(hop_ticks.items(), key=lambda iv: iv[1]):
-        if not hop.text or hop.text in out:
-            continue
-        if hop.src == hop.dst and hop.src != hub:
-            out[hop.text] = hop.src
-        elif hop.src != hub:
-            out[hop.text] = hop.src
-        elif hop.dst != hub:
-            out[hop.text] = hop.dst
-    return out
 
 
 def _label_for(name: str, hub: str) -> str:
