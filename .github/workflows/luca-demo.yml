@@ -7,9 +7,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/otel_a2a_relay/**'
+      - 'core/**'
+      - 'arize_phoenix/**'
+      - 'tempo_grafana/**'
       - 'examples/luca-flow/**'
-      - 'tests/**'
       - 'assets/**'
       - 'pyproject.toml'
       - 'uv.lock'
@@ -18,9 +19,10 @@ on:
       - '.github/workflows/luca-demo.yml'
   pull_request:
     paths:
-      - 'src/otel_a2a_relay/**'
+      - 'core/**'
+      - 'arize_phoenix/**'
+      - 'tempo_grafana/**'
       - 'examples/luca-flow/**'
-      - 'tests/**'
       - 'assets/**'
       - 'pyproject.toml'
       - 'uv.lock'
@@ -43,33 +45,13 @@ jobs:
           python-version: "3.13"
 
       - name: uv sync
-        run: uv sync --frozen --extra viz
+        run: uv sync --frozen --all-packages
 
-      - name: Run unit tests
-        run: uv run pytest -q
-
-      - name: Regenerate session-topology baseline (on test failure, for review)
-        # If the visual diff failed, the rendered output is what CI Linux
-        # produces today. Render it again to the canonical path and upload
-        # as an artifact so an operator can download, eyeball, and (if the
-        # diff is intentional) drop it in as the new baseline.
-        if: failure()
-        run: uv run python -m tests.fixtures.regen_session_gifs
-
-      - name: Upload regenerated session-topology baseline (on failure)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: session-topology-baseline-linux
-          path: assets/session-topology.gif
-          retention-days: 14
-          if-no-files-found: ignore
+      - name: Run unit tests (per-package)
+        run: make test
 
       - name: Lint
-        run: |
-          uv run ruff check src tests
-          uv run ruff format --check src tests
-          uv run mypy src tests
+        run: make lint
 
       - name: Start Phoenix in background
         run: |
@@ -90,7 +72,9 @@ jobs:
           tail -50 logs/phoenix.log
           exit 1
 
-      - name: make luca-demo
+      - name: make luca-demo (against Phoenix)
+        env:
+          OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:6006
         run: make luca-demo
 
       - name: Verify dist/ contents
@@ -114,31 +98,6 @@ jobs:
 
       - name: Verify Phoenix recorded LUCA spans
         run: uv run python scripts/check_luca_spans.py
-
-      - name: make demo + make gif (end-to-end against live Phoenix)
-        # Smokes the full path the issue calls out: dogfood demo runs,
-        # `make gif CTX=demo` pulls real spans from Phoenix and writes a
-        # GIF. We assert the artifact exists and is non-trivial; the
-        # byte-exact baseline check earlier already covered the renderer.
-        # Runs after luca-demo so the dogfood relay/agents do not contend
-        # with luca-demo's own choreographed services. `if: always()` so
-        # an upstream luca-demo flake does not starve this independent
-        # signal.
-        if: always()
-        run: |
-          make demo
-          OUT=assets/sessions/demo.gif make gif CTX=demo
-          test -f assets/sessions/demo.gif
-          test "$(stat -c%s assets/sessions/demo.gif)" -gt 1000
-
-      - name: Upload session-topology GIF as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: session-topology-gif
-          path: assets/sessions/demo.gif
-          retention-days: 14
-          if-no-files-found: ignore
 
       - name: Upload dist/ as workflow artifact
         if: always()

@@ -17,58 +17,63 @@ Two A2A agents talk to each other through this relay. Every message becomes one 
 - Trace propagation: [W3C `traceparent`](https://www.w3.org/TR/trace-context/) end-to-end. Client → relay → peer is one trace.
 - Default visualizer: [Phoenix](https://github.com/Arize-ai/phoenix). Anything OTLP-native works.
 
-## Quickstart (dogfood loop)
+## Workspace layout
 
-Phoenix is operator-owned, so start it once in its own terminal:
+This repository is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with a backend-agnostic core and per-backend extensions. Each member is its own publishable Python package; cross-package deps are wired through the workspace.
 
-```sh
-uv sync
-make phoenix-fg
-```
+- [`core/`](core/) - `otel-a2a-relay-core`: the relay HTTP server, `tracing.bootstrap()`, the echo A2A peer, the in-memory task store. No backend coupling. Point `OTEL_EXPORTER_OTLP_ENDPOINT` at any OTLP/HTTP collector.
+- [`arize_phoenix/`](arize_phoenix/) - `otel-a2a-relay-arize-phoenix`: Phoenix-side validation harness, REST/GraphQL query helpers, animated topology GIF renderer, annotation+dataset bootstrapper, `make view` CLI.
+- [`tempo_grafana/`](tempo_grafana/) - `otel-a2a-relay-tempo-grafana`: Tempo-side bootstrap helper, harness probe, dockerized Tempo+Grafana stack with provisioned datasource and a LUCA-flow Grafana dashboard.
+- [`examples/luca-flow/`](examples/luca-flow/) - the AURORA microsite multi-agent demo, backend-agnostic.
 
-In another terminal, bring up the relay + two echo agents:
+## Quickstart
 
-```sh
-make up
-```
+Pick a backend (or run both side by side - they coexist on different ports). All paths work identically through `core`'s `tracing.bootstrap()`.
 
-`make up` starts agent A on `:9001`, agent B on `:9002`, the relay on `:8080`, waits for `/healthz` on each, and prints a status line. Logs land in `logs/<service>.log`.
-
-End-to-end smoke:
+### Phoenix backend
 
 ```sh
-make send AS=A TO=B CTX=demo MSG="hello B"
-make send AS=B TO=A CTX=demo MSG="hi A"
-make view CTX=demo
+uv sync --all-packages
+make phoenix-fg                   # in another terminal (operator-owned)
+make phoenix-bootstrap            # one-time annotation configs + datasets
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 make luca-demo
+open http://localhost:6006        # Phoenix Sessions tab
 ```
 
-`view` reduces Phoenix spans for one session into a single readable transcript:
+### Tempo + Grafana backend
 
-```
-[A] a2a.client.send task=t-d2d508 kind=AGENT
-  in: hello B
-[A->relay] a2a.task task=t-d2d508 kind=AGENT state=completed
-[relay] a2a.relay.forward task=t-d2d508 kind=AGENT
-[A->B] a2a.task task=t-d2d508 kind=AGENT state=completed
-  in: hello B
-  out: echo from B: hello B
+```sh
+uv sync --all-packages
+make tempo-up                     # docker compose Tempo + Grafana
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 make luca-demo
+open http://localhost:3000/d/luca-flow/luca-flow
 ```
 
-`make demo` restarts everything and runs both directions in one shot.
+### Other backends
+
+`tracing.bootstrap()` ships standard OTLP/HTTP - point it at Honeycomb, Datadog, or any OTel-native backend by setting `OTEL_EXPORTER_OTLP_ENDPOINT`. The protocol attributes (`session.id`, `agent.role`, `o2r.*`) work everywhere; backend-specific UX (annotation configs in Phoenix, dashboards in Grafana) is added by extension packages.
 
 ## Make targets
 
-- `up` / `down` / `restart` / `status` / `wait` - lifecycle.
-- `send AS=... TO=... CTX=... MSG="..."` - JSON-RPC `message/send` to the relay.
-- `stream AS=... TO=... CTX=... MSG="..."` - JSON-RPC `message/stream` ([SSE](https://html.spec.whatwg.org/multipage/server-sent-events.html) pass-through; chunks print live).
-- `view CTX=...` - GraphQL-query Phoenix for spans tagged with `session.id == $CTX` and reduce.
-- `get TASK=t-...` - `tasks/get`.
-- `tasks` - list tasks the relay has indexed in memory.
-- `cancel TASK=t-...` - `tasks/cancel` (emits an `a2a.task.cancel` span).
-- `peers` - list the relay's configured peers + their AgentCards.
-- `harness` - the original Phoenix protocol-validation harness.
-- `phoenix-fg` / `clean-phoenix-db` - operator-side Phoenix lifecycle.
-- `test` / `lint` / `tail-relay` / `tail-agent-a` / `tail-agent-b`.
+Workspace-level (root `Makefile`):
+
+- `sync` - `uv sync --all-packages`
+- `test` / `lint` / `fmt` - dispatched per-package
+- `luca-demo` - run the AURORA flow against `$OTEL_EXPORTER_OTLP_ENDPOINT`
+- `luca-test` - byte-snapshot diff `dist/` against `examples/luca-flow/tests/snapshots/`
+
+Tempo+Grafana extension:
+
+- `tempo-up` / `tempo-down` / `tempo-clean` - docker compose lifecycle
+- `tempo-logs` / `tempo-status` - tail / inspect
+- `tempo-harness` - post worked-example trace, print Grafana link
+
+Phoenix extension:
+
+- `phoenix-fg` - run Phoenix in foreground
+- `phoenix-harness` - post worked-example trace
+- `phoenix-bootstrap` - provision annotation configs + datasets
+- `phoenix-bootstrap-dry-run` - print plan, no writes
 
 ## Topology
 
@@ -119,23 +124,37 @@ The original v0.1 protocol document at [`docs/protocol.md`](docs/protocol.md) is
 
 ## Layout
 
-- `src/otel_a2a_relay/server.py` - the relay (FastAPI, JSON-RPC, peer routing, span emission).
-- `src/otel_a2a_relay/agent.py` - tiny echo peer agent.
-- `src/otel_a2a_relay/client.py` - dogfood CLI (`send`, `view`, `get`, `tasks`, `cancel`, `peers`).
-- `src/otel_a2a_relay/store.py` - thread-safe in-memory task store.
-- `src/otel_a2a_relay/telemetry.py` - one TracerProvider per process, OTLP/HTTP exporter.
-- `src/otel_a2a_relay/harness.py` - the original Phoenix-validation harness, kept as a fixture.
+- `core/src/otel_a2a_relay_core/server.py` - the relay (FastAPI, JSON-RPC, peer routing, span emission).
+- `core/src/otel_a2a_relay_core/agent.py` - tiny echo peer agent.
+- `core/src/otel_a2a_relay_core/store.py` - thread-safe in-memory task store.
+- `core/src/otel_a2a_relay_core/tracing.py` - `tracing.bootstrap()` consumer-agnostic OTel setup.
+- `core/src/otel_a2a_relay_core/telemetry.py` - one TracerProvider per process, OTLP/HTTP exporter.
+- `arize_phoenix/src/otel_a2a_relay_arize_phoenix/harness.py` - Phoenix-validation harness.
+- `arize_phoenix/src/otel_a2a_relay_arize_phoenix/bootstrap.py` - annotation configs + datasets bootstrapper.
+- `arize_phoenix/src/otel_a2a_relay_arize_phoenix/client.py` - dogfood CLI (`send`, `view`, `get`, `tasks`, `cancel`, `peers`).
+- `arize_phoenix/src/otel_a2a_relay_arize_phoenix/viz/` - GIF rendering of session topologies (Pillow).
+- `tempo_grafana/src/otel_a2a_relay_tempo_grafana/bootstrap.py` - `bootstrap_tempo()` helper.
+- `tempo_grafana/src/otel_a2a_relay_tempo_grafana/harness.py` - Tempo harness probe.
+- `tempo_grafana/docker/` - dockerized Tempo + Grafana stack (datasource + dashboard provisioned).
+- `examples/luca-flow/src/luca/` - AURORA-microsite multi-agent demo, backend-agnostic.
 - `scripts/bg.sh` - pidfile-backed background process manager.
 - `scripts/wait-healthy.sh` - poll `/healthz` until 2xx.
-- `Makefile` - thin wrapper over the above.
+- `Makefile` - workspace-level orchestrator that dispatches to per-package targets.
 
 ## LUCA-flow demo
 
-`examples/luca-flow/` is a real multi-agent choreography that dogfoods the relay end-to-end. Eight worker subprocesses + an orchestrator + a planner + a validator + a deployer build the AURORA microsite (a fictional consumer desk lamp marketed as if it physically channels solar-wind charged particles) from real public-domain NASA imagery committed to the repo. Star topology is enforced by the relay; one worker deliberately crashes, another deliberately tries to bypass the orchestrator and gets a `-32010` from the relay's gate.
+[`examples/luca-flow/`](examples/luca-flow/) is a real multi-agent choreography that dogfoods the relay end-to-end. Eight worker subprocesses + an orchestrator + a planner + a validator + a deployer build the AURORA microsite (a fictional consumer desk lamp marketed as if it physically channels solar-wind charged particles) from real public-domain NASA imagery committed to the repo. Star topology is enforced by the relay; one worker deliberately crashes, another deliberately tries to bypass the orchestrator and gets a `-32010` from the relay's gate.
+
+The demo only depends on `otel-a2a-relay-core`. Pick whichever backend you want to send the spans to:
 
 ```sh
-make phoenix-fg     # operator-owned, in another terminal
-make luca-demo      # ~15 seconds; produces examples/luca-flow/dist/
+# Phoenix
+make phoenix-fg
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 make luca-demo
+
+# Tempo + Grafana
+make tempo-up
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 make luca-demo
 ```
 
 The same flow runs in CI on every push (`.github/workflows/luca-demo.yml`), with Phoenix in CI as a background process. The built `dist/` is uploaded as a workflow artifact. See [`examples/luca-flow/README.md`](examples/luca-flow/README.md) for the choreography and validation rules.
