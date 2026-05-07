@@ -51,12 +51,26 @@ dev = [
   "mypy>=1.20",
   "pre-commit>=4.5",
   "pytest>=8.0",
+  "pytest-cov>=5.0",
   "ruff>=0.15",
   "types-pyyaml>=6.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = [
+  "--cov=src/otel_a2a_relay",
+  "--cov-report=term-missing",
+  "--cov-fail-under=60",
+]
+
+[tool.coverage.run]
+source = ["src/otel_a2a_relay"]
+omit = [
+  "src/otel_a2a_relay/luca/*",
+  "src/otel_a2a_relay/__main__.py",
+  "src/otel_a2a_relay/harness.py",
+]
 
 [tool.pyright]
 venvPath = "."
