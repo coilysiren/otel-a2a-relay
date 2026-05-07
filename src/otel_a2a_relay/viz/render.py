@@ -564,9 +564,7 @@ def _draw_log(
         # `agent a -> relay` is agent-a colored; `relay -> agent b` is
         # relay-colored, regardless of who originally produced the
         # message body.
-        emitter_color = (
-            theme.hub if hop.src == hub else (agent_color.get(hop.src) or theme.ink)
-        )
+        emitter_color = theme.hub if hop.src == hub else (agent_color.get(hop.src) or theme.ink)
         if hop.status == "failed":
             text_color = theme.failed
             dot_color = theme.failed
