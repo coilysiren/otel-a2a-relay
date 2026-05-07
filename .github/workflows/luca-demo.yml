@@ -121,7 +121,10 @@ jobs:
         # GIF. We assert the artifact exists and is non-trivial; the
         # byte-exact baseline check earlier already covered the renderer.
         # Runs after luca-demo so the dogfood relay/agents do not contend
-        # with luca-demo's own choreographed services.
+        # with luca-demo's own choreographed services. `if: always()` so
+        # an upstream luca-demo flake does not starve this independent
+        # signal.
+        if: always()
         run: |
           make demo
           OUT=assets/sessions/demo.gif make gif CTX=demo
