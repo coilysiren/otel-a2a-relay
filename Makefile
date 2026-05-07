@@ -100,7 +100,7 @@ peers:
 	uv run python -m otel_a2a_relay.client peers
 
 harness:
-	uv run otel-a2a-relay-harness
+	uv run o2r-harness
 
 test:
 	uv run pytest

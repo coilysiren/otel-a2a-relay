@@ -86,7 +86,7 @@ def create_app(
     store: TaskStore | None = None,
     base_url: str | None = None,
 ) -> FastAPI:
-    tracer = (provider or make_provider()).get_tracer(f"otel-a2a-relay.agent.{agent_id}")
+    tracer = (provider or make_provider()).get_tracer(f"o2r.agent.{agent_id}")
     name = agent_name or f"{agent_id}-echo-agent"
     task_store = store or TaskStore()
     self_url = base_url or "http://127.0.0.1/"

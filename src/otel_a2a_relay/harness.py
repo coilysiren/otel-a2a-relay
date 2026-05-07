@@ -6,8 +6,8 @@ Sessions, Agent Graph, and Trace Tree views render the protocol correctly
 before writing any relay code.
 
 Usage:
-    uv run otel-a2a-relay-harness
-    OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix.local:6006 uv run otel-a2a-relay-harness
+    uv run o2r-harness
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix.local:6006 uv run o2r-harness
 
 Defaults to http://localhost:6006 (Phoenix's default OTLP HTTP host:port).
 """
@@ -44,7 +44,7 @@ AGENTS = {
 
 def make_provider() -> TracerProvider:
     """One TracerProvider for the whole relay process. Agent identity rides on span attrs."""
-    resource = Resource.create({"service.name": "otel-a2a-relay"})
+    resource = Resource.create({"service.name": "o2r"})
     provider = TracerProvider(resource=resource)
     provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint=TRACES_ENDPOINT)))
     return provider
@@ -61,7 +61,7 @@ def base_attrs(acting_agent: str) -> dict[str, str]:
 
 def emit_trace_1_a_send(provider: TracerProvider) -> None:
     """Trace 1: A sends message/stream to B. CLIENT side."""
-    tracer = provider.get_tracer("otel-a2a-relay-harness")
+    tracer = provider.get_tracer("o2r-harness")
     with tracer.start_as_current_span(
         "a2a.client.send",
         kind=SpanKind.CLIENT,
@@ -95,7 +95,7 @@ def emit_trace_1_a_send(provider: TracerProvider) -> None:
 
 def emit_trace_2_b_task(provider: TracerProvider) -> None:
     """Trace 2: B executes the task. AGENT side, the meat."""
-    tracer = provider.get_tracer("otel-a2a-relay-harness")
+    tracer = provider.get_tracer("o2r-harness")
     with tracer.start_as_current_span(
         "a2a.task",
         kind=SpanKind.SERVER,
@@ -157,7 +157,7 @@ def emit_trace_2_b_task(provider: TracerProvider) -> None:
 
 def emit_trace_3_a_recv(provider: TracerProvider) -> None:
     """Trace 3: A reads the result. CLIENT side."""
-    tracer = provider.get_tracer("otel-a2a-relay-harness")
+    tracer = provider.get_tracer("o2r-harness")
     with tracer.start_as_current_span(
         "a2a.client.recv",
         kind=SpanKind.CLIENT,

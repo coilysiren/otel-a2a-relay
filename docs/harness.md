@@ -9,7 +9,7 @@ Posts the [`protocol.md`](protocol.md) worked example (A streams a task to B, B 
 ```sh
 uv sync
 uv run phoenix serve &              # if no Phoenix is already up
-uv run otel-a2a-relay-harness
+uv run o2r-harness
 ```
 
 Or via tasks:
@@ -24,7 +24,7 @@ Phoenix elsewhere:
 ```sh
 invoke harness --endpoint http://phoenix.local:6006
 # or
-OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix.local:6006 uv run otel-a2a-relay-harness
+OTEL_EXPORTER_OTLP_ENDPOINT=http://phoenix.local:6006 uv run o2r-harness
 ```
 
 ## What to check in Phoenix

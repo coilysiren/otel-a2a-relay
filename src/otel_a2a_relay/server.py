@@ -35,7 +35,7 @@ from otel_a2a_relay.telemetry import make_provider
 
 PROTOCOL_VERSION = "0.1"
 RELAY_AGENT_ID = "relay"
-RELAY_AGENT_NAME = "otel-a2a-relay"
+RELAY_AGENT_NAME = "o2r"
 
 # Star-topology roles. The orchestrator is the only role that may target
 # peers other than itself; everyone else may only target the orchestrator.
@@ -514,7 +514,7 @@ def create_app(
     `star_enforce` toggles the enforcement; defaults to OTEL_A2A_RELAY_STAR_ENFORCE
     env var, off if unset (legacy dogfood behavior).
     """
-    tracer = (provider or make_provider()).get_tracer("otel-a2a-relay")
+    tracer = (provider or make_provider()).get_tracer("o2r")
     if peers is None:
         peers = parse_peers(os.environ.get("OTEL_A2A_RELAY_PEERS"))
     if peer_roles is None:

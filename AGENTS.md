@@ -33,7 +33,7 @@ Local Phoenix:
 ```sh
 uv sync
 uv run phoenix serve &
-uv run otel-a2a-relay-harness
+uv run o2r-harness
 ```
 
 Or via pyinvoke: `invoke phoenix` and `invoke harness`. The full task list is in `tasks.py`.

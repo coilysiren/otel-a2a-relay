@@ -70,7 +70,7 @@ def cmd_send() -> int:
     }
 
     provider = make_provider()
-    tracer = provider.get_tracer(f"otel-a2a-relay.client.{agent_id}")
+    tracer = provider.get_tracer(f"o2r.client.{agent_id}")
     body: dict[str, Any] = {}
     try:
         with tracer.start_as_current_span(
@@ -266,7 +266,7 @@ def cmd_stream() -> int:
     }
 
     provider = make_provider()
-    tracer = provider.get_tracer(f"otel-a2a-relay.client.{agent_id}")
+    tracer = provider.get_tracer(f"o2r.client.{agent_id}")
     arrow = f"-> {target} " if target else ""
     print(f"[{agent_id}] streaming {arrow}task={task_id}")
     try:

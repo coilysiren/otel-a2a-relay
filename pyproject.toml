@@ -19,6 +19,8 @@ dependencies = [
 [project.scripts]
 otel-a2a-relay = "otel_a2a_relay.__main__:main"
 otel-a2a-relay-harness = "otel_a2a_relay.harness:main"
+o2r = "otel_a2a_relay.__main__:main"
+o2r-harness = "otel_a2a_relay.harness:main"
 
 [tool.uv]
 managed = true

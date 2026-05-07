@@ -23,7 +23,7 @@ def traces_endpoint(host: str | None = None) -> str:
 
 
 def make_provider(extra_processor: SpanProcessor | None = None) -> TracerProvider:
-    resource = Resource.create({"service.name": "otel-a2a-relay"})
+    resource = Resource.create({"service.name": "o2r"})
     provider = TracerProvider(resource=resource)
     provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint=traces_endpoint())))
     if extra_processor is not None:

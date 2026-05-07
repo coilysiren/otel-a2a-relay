@@ -1,6 +1,8 @@
-# otel-a2a-relay
+# otel-a2a-relay (o2r)
 
 A2A coordination as OTel spans. Drop-in relay between A2A agents that turns wire traffic into traces any OTel-native observability tool can render.
+
+`otel-a2a-relay` is the canonical name (repo, package, protocol doc). `o2r` is the dictation-friendly shortname used in CLI entrypoints (`o2r`, `o2r-harness`), span identifiers (`service.name=o2r`, the relay's `agent.name`), and prose below.
 
 ## Pitch
 
