@@ -51,6 +51,11 @@ def test_lru_eviction_at_cap() -> None:
     assert ids == ["t2", "t3", "t4"]
 
 
+def test_update_state_returns_none_when_missing() -> None:
+    s = TaskStore()
+    assert s.update_state("nope", "completed") is None
+
+
 def test_reput_refreshes_lru_order() -> None:
     s = TaskStore(max_tasks=3)
     s.put({"id": "a"})

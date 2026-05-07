@@ -61,7 +61,7 @@ testpaths = ["tests"]
 addopts = [
   "--cov=src/otel_a2a_relay",
   "--cov-report=term-missing",
-  "--cov-fail-under=60",
+  "--cov-fail-under=64",
 ]
 
 [tool.coverage.run]
@@ -70,6 +70,11 @@ omit = [
   "src/otel_a2a_relay/luca/*",
   "src/otel_a2a_relay/__main__.py",
   "src/otel_a2a_relay/harness.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  "if __name__ == .__main__.:",
 ]
 
 [tool.pyright]

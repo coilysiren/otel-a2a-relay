@@ -136,6 +136,114 @@ def test_message_stream_returns_sse_chunks(
     assert artifacts[-1]["result"]["lastChunk"] is True  # type: ignore[index]
 
 
+def test_healthz(agent_b: tuple[TestClient, InMemorySpanExporter]) -> None:
+    client, _ = agent_b
+    r = client.get("/healthz")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok", "agent.id": "B"}
+
+
+def test_list_tasks_endpoint_starts_empty(
+    agent_b: tuple[TestClient, InMemorySpanExporter],
+) -> None:
+    client, _ = agent_b
+    assert client.get("/tasks").json() == {"tasks": []}
+
+
+def test_parse_error_on_invalid_json(
+    agent_b: tuple[TestClient, InMemorySpanExporter],
+) -> None:
+    client, _ = agent_b
+    r = client.post("/", content=b"{not-json")
+    body = r.json()
+    assert body["error"]["code"] == -32700
+    assert body["id"] is None
+
+
+def test_invalid_request_missing_method(
+    agent_b: tuple[TestClient, InMemorySpanExporter],
+) -> None:
+    client, _ = agent_b
+    r = client.post("/", json={"jsonrpc": "2.0", "id": "x"})
+    body = r.json()
+    assert body["error"]["code"] == -32600
+    assert body["id"] == "x"
+
+
+def test_method_not_found(agent_b: tuple[TestClient, InMemorySpanExporter]) -> None:
+    client, _ = agent_b
+    r = client.post("/", json={"jsonrpc": "2.0", "id": "x", "method": "tasks/unknown"})
+    assert r.json()["error"]["code"] == -32601
+
+
+def test_tasks_get_missing_id(agent_b: tuple[TestClient, InMemorySpanExporter]) -> None:
+    client, _ = agent_b
+    r = client.post("/", json={"jsonrpc": "2.0", "id": "x", "method": "tasks/get"})
+    body = r.json()
+    assert body["error"]["code"] == -32602
+
+
+def test_tasks_get_unknown_id(agent_b: tuple[TestClient, InMemorySpanExporter]) -> None:
+    client, _ = agent_b
+    r = client.post(
+        "/",
+        json={
+            "jsonrpc": "2.0",
+            "id": "x",
+            "method": "tasks/get",
+            "params": {"id": "does-not-exist"},
+        },
+    )
+    body = r.json()
+    assert body["error"]["code"] == -32001
+
+
+def test_message_send_with_no_text_part_returns_ack(
+    agent_b: tuple[TestClient, InMemorySpanExporter],
+) -> None:
+    client, _ = agent_b
+    r = client.post(
+        "/",
+        json={
+            "jsonrpc": "2.0",
+            "id": "x",
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "messageId": "m-1",
+                    "taskId": "t-noparts",
+                    "contextId": "ctx",
+                    "parts": [{"kind": "image", "url": "http://x"}],
+                    "metadata": {"agent.id": "A"},
+                }
+            },
+        },
+    )
+    history = r.json()["result"]["history"]
+    assert history[-1]["parts"][0]["text"] == "ack from B"
+
+
+def test_main_invokes_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sys
+
+    from otel_a2a_relay import agent as agent_mod
+
+    captured: dict[str, object] = {}
+
+    def fake_run(app: object, host: str, port: int) -> None:
+        captured["app"] = app
+        captured["host"] = host
+        captured["port"] = port
+
+    import uvicorn
+
+    monkeypatch.setattr(uvicorn, "run", fake_run)
+    monkeypatch.setattr(sys, "argv", ["agent", "--id", "Z", "--port", "9999"])
+    agent_mod.main()
+    assert captured["host"] == "127.0.0.1"
+    assert captured["port"] == 9999
+
+
 def test_tasks_get_after_message_send(
     agent_b: tuple[TestClient, InMemorySpanExporter],
 ) -> None:
