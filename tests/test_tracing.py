@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+import pytest
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -23,7 +24,7 @@ def test_project_name_with_and_without_product_area() -> None:
     assert project_name("Acme Corp", "K8s Plane") == "acme-corp.k8s-plane"
 
 
-def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch) -> None:
+def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PHOENIX_PROJECT_NAME", raising=False)
     exporter = InMemorySpanExporter()
     tracer = bootstrap(
@@ -78,7 +79,9 @@ def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch) -> None:
     assert any(s.name == "downstream" for s in exporter.get_finished_spans())
 
 
-def test_bootstrap_without_product_area_falls_back_to_deployment(monkeypatch) -> None:
+def test_bootstrap_without_product_area_falls_back_to_deployment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("PHOENIX_PROJECT_NAME", raising=False)
     exporter = InMemorySpanExporter()
     bootstrap(
@@ -94,7 +97,9 @@ def test_bootstrap_without_product_area_falls_back_to_deployment(monkeypatch) ->
     assert attrs["phoenix.project.name"] == "acme"
 
 
-def test_bootstrap_does_not_clobber_existing_phoenix_project_env(monkeypatch) -> None:
+def test_bootstrap_does_not_clobber_existing_phoenix_project_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("PHOENIX_PROJECT_NAME", "preset-project")
     exporter = InMemorySpanExporter()
     bootstrap(
