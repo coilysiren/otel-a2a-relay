@@ -16,19 +16,16 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from otel_a2a_relay.luca._clock import now_iso as _utc_now
+
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text())
-
-
-def _utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def render_changelog(outcomes: list[dict[str, Any]], project: dict[str, Any]) -> str:

@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 from opentelemetry.propagate import extract, inject
 from opentelemetry.trace import SpanKind, Status, StatusCode, Tracer
 
+from otel_a2a_relay.luca import _clock
 from otel_a2a_relay.luca.messages import LucaEnvelope, parse_envelope
 from otel_a2a_relay.tracing import bootstrap
 
@@ -233,7 +234,7 @@ def send_via_relay(
     msg = envelope.to_message(context_id=context_id, a2a_task_id=a2a_task_id)
     payload = {
         "jsonrpc": "2.0",
-        "id": f"r-{uuid.uuid4().hex[:8]}",
+        "id": f"r-{_clock.hex8()}",
         "method": "message/send",
         "params": {"message": msg},
     }

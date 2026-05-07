@@ -49,9 +49,11 @@ dev = [
   "arize-phoenix>=15.0",
   "httpx>=0.28",
   "mypy>=1.20",
+  "pillow>=12.2.0",
   "pre-commit>=4.5",
   "pytest>=8.0",
   "pytest-cov>=5.0",
+  "pytest-playwright>=0.7.2",
   "ruff>=0.15",
   "types-pyyaml>=6.0",
 ]
@@ -62,6 +64,12 @@ addopts = [
   "--cov=src/otel_a2a_relay",
   "--cov-report=term-missing",
   "--cov-fail-under=100",
+  "-m",
+  "not luca_flow",
+  "--ignore=tests/luca_flow",
+]
+markers = [
+  "luca_flow: end-to-end LUCA-flow demo snapshot suite (slow, needs playwright browsers)",
 ]
 
 [tool.coverage.run]

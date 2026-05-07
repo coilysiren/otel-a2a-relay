@@ -1,4 +1,4 @@
-.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix relay agent-a agent-b phoenix-fg send stream view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix luca-test luca-snapshots-update relay agent-a agent-b phoenix-fg send stream view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
 
 BG := scripts/bg.sh
 
@@ -104,6 +104,17 @@ harness:
 
 test:
 	uv run pytest
+
+# End-to-end LUCA-flow snapshot suite. Runs the demo with frozen time and
+# diffs every dist artifact + per-page screenshot against tests/luca_flow/snapshots/.
+# First run on a fresh checkout: `uv run playwright install chromium`.
+luca-test:
+	uv run pytest tests/luca_flow -m luca_flow --no-cov -p no:cacheprovider
+
+# Regenerate the LUCA-flow snapshots in place (after an intentional change).
+# Review the diff before committing.
+luca-snapshots-update:
+	UPDATE_LUCA_SNAPSHOTS=1 uv run pytest tests/luca_flow -m luca_flow --no-cov -p no:cacheprovider
 
 ruff:
 	uv run ruff check src tests

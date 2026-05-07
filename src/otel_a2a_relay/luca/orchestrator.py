@@ -26,6 +26,8 @@ from typing import Any
 import httpx
 import yaml
 
+from otel_a2a_relay.luca._clock import now_iso as _utc_now_iso
+from otel_a2a_relay.luca._clock import now_unix as _trace_unix
 from otel_a2a_relay.luca.messages import (
     KIND_DISPATCH,
     KIND_FLOW_COMPLETE,
@@ -43,10 +45,6 @@ from otel_a2a_relay.luca.messages import (
     parse_envelope,
 )
 from otel_a2a_relay.luca.peer import register_with_relay, send_via_relay
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _deterministic_context_id(prefix: str) -> str:
@@ -72,7 +70,7 @@ def _record(state: FlowState, env: LucaEnvelope, direction: str) -> None:
     state.trace.append(
         {
             "ts_human": _utc_now_iso(),
-            "ts_unix": time.time(),
+            "ts_unix": _trace_unix(),
             "direction": direction,  # "out" or "in"
             "sender": env.sender,
             "target": env.target,

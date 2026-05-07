@@ -65,3 +65,20 @@ The validator runs against every submitted page:
 - No external `<script>` or runtime CDN reference
 
 These are real checks against real HTML, not scripted-pass theater. Worker-f's first submission deterministically violates the `<h1>` rule; worker-b's partial gallery violates the image-count rule (which is why it returns `needs-followup` rather than submitting).
+
+## Locking the outputs
+
+Every dist artifact is byte-snapshotted under `tests/luca_flow/snapshots/`:
+
+- `CHANGELOG.md`, `delivery-report.{md,json}`, every `*.html` page - byte diff
+- Per-page full-page screenshot via Playwright headless chromium - pixel diff with a small tolerance for font hinting
+
+The `LUCA_FREEZE_TIME=2026-01-01T00:00:00Z` env var pins every timestamp and JSON-RPC id that lands in the dist (see `src/otel_a2a_relay/luca/_clock.py`), so two runs produce byte-identical output.
+
+```sh
+make luca-test                          # diff against snapshots
+make luca-snapshots-update              # regenerate after an intentional change
+uv run playwright install chromium      # one-time setup on a fresh checkout
+```
+
+The suite is gated behind the `luca_flow` pytest marker, so `make test` skips it.

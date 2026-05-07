@@ -1,0 +1,1454 @@
+{
+  "project": {
+    "codename": "AURORA",
+    "brand": "Vent Atelier",
+    "tagline": "The desk lamp that mirrors the Northern Lights.",
+    "short_pitch": "AURORA tunes its 8-million-pixel light field to live space-weather telemetry from NOAA SWPC. When the sun flares, your desk does too.",
+    "product": {
+      "sku": "AURORA-1",
+      "price_usd": 189,
+      "ships": "Q3"
+    },
+    "city": "Hayward, California"
+  },
+  "started_at": "2026-01-01T00:00:00Z",
+  "finished_at": "2026-01-01T00:00:00Z",
+  "trace": [
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 1: worker-a - Built the AURORA design system and hero page",
+      "step": 1,
+      "task_id": "design-system-and-hero",
+      "actor": "worker-a",
+      "data": {
+        "actor": "worker-a",
+        "behavior": "submit-pass",
+        "deliverables": [
+          "assets/css/main.css",
+          "index.html"
+        ],
+        "display": "\ud83c\udfa8 Designer",
+        "fixtures": {
+          "assets/css/main.css": "fixtures/worker-a-css.css",
+          "index.html": "fixtures/worker-a-index.html"
+        },
+        "port": 9201,
+        "step": 1,
+        "task_id": "design-system-and-hero",
+        "title": "Built the AURORA design system and hero page"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-a",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 1 to worker-a: Built the AURORA design system and hero page",
+      "step": 1,
+      "task_id": "design-system-and-hero",
+      "actor": "worker-a",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Built the AURORA design system and hero page"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-a",
+      "target": "orchestrator",
+      "kind": "submit.pass",
+      "human": "\ud83c\udfa8 \ud83c\udfa8 Designer submitted Built the AURORA design system and hero page: 2 files",
+      "step": 1,
+      "task_id": "design-system-and-hero",
+      "actor": "worker-a",
+      "data": {
+        "deliverables": {
+          "assets/css/main.css": "/* AURORA design system. Built by worker-a. Aurora-derived palette,\n   self-hosted display + body + mono families, prose-readable rhythm. */\n\n@font-face {\n  font-family: 'Space Grotesk';\n  src: url('../fonts/space-grotesk.woff2') format('woff2');\n  font-weight: 400 700;\n  font-display: swap;\n}\n@font-face {\n  font-family: 'Inter';\n  src: url('../fonts/inter.woff2') format('woff2');\n  font-weight: 400 700;\n  font-display: swap;\n}\n@font-face {\n  font-family: 'JetBrains Mono';\n  src: url('../fonts/jetbrains-mono.woff2') format('woff2');\n  font-weight: 400 600;\n  font-display: swap;\n}\n\n:root {\n  --bg: #0a0e1a;\n  --surface: #141a2e;\n  --surface-2: #1c2444;\n  --text: #e8ecf5;\n  --text-muted: #8892b0;\n  --green: #3dd9a8;\n  --violet: #a47cff;\n  --pink: #ff6b9d;\n  --border: #232a47;\n  --max-prose: 720px;\n  --max-gallery: 1200px;\n  --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);\n}\n\n* { box-sizing: border-box; }\n\nhtml, body {\n  margin: 0;\n  padding: 0;\n  background: var(--bg);\n  color: var(--text);\n  font-family: 'Inter', system-ui, -apple-system, sans-serif;\n  font-size: 16px;\n  line-height: 1.65;\n  -webkit-font-smoothing: antialiased;\n}\n\na { color: var(--green); text-decoration: none; }\na:hover { color: var(--violet); }\n\nh1, h2, h3, h4 {\n  font-family: 'Space Grotesk', sans-serif;\n  font-weight: 600;\n  letter-spacing: -0.02em;\n  margin: 0 0 0.6em 0;\n  line-height: 1.15;\n}\nh1 { font-size: 2.6rem; }\nh2 { font-size: 1.8rem; margin-top: 2.4em; }\nh3 { font-size: 1.25rem; margin-top: 1.8em; }\n\np { margin: 0 0 1.1em 0; color: var(--text); }\n.muted { color: var(--text-muted); }\n\ncode, pre, .mono { font-family: 'JetBrains Mono', monospace; }\n\n/* nav */\n.nav {\n  position: sticky;\n  top: 0;\n  z-index: 10;\n  display: flex;\n  gap: 1.5rem;\n  align-items: center;\n  padding: 1rem 2rem;\n  background: rgba(10, 14, 26, 0.85);\n  backdrop-filter: blur(12px);\n  border-bottom: 1px solid var(--border);\n}\n.nav .brand {\n  font-family: 'Space Grotesk', sans-serif;\n  font-weight: 600;\n  font-size: 1.2rem;\n  letter-spacing: 0.08em;\n  color: var(--text);\n  margin-right: auto;\n}\n.nav a {\n  color: var(--text-muted);\n  font-size: 0.95rem;\n}\n.nav a:hover, .nav a.active { color: var(--text); }\n\n/* hero */\n.hero {\n  position: relative;\n  min-height: 80vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  overflow: hidden;\n  padding: 4rem 2rem;\n}\n.hero-bg {\n  position: absolute;\n  inset: 0;\n  z-index: 0;\n}\n.hero-bg img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  filter: brightness(0.55) saturate(1.1);\n}\n.hero-content {\n  position: relative;\n  z-index: 1;\n  max-width: var(--max-prose);\n  text-align: center;\n}\n.hero h1 {\n  font-size: clamp(2.4rem, 5vw, 4rem);\n  margin-bottom: 0.3em;\n}\n.hero .lede {\n  font-size: 1.15rem;\n  color: var(--text);\n  margin-bottom: 2em;\n}\n.hero .ctas {\n  display: flex;\n  gap: 1rem;\n  justify-content: center;\n  flex-wrap: wrap;\n}\n.btn {\n  display: inline-block;\n  padding: 0.85rem 1.6rem;\n  border-radius: 999px;\n  font-weight: 600;\n  font-size: 0.95rem;\n  border: 1px solid transparent;\n  cursor: pointer;\n  transition: transform 120ms ease, background 120ms ease;\n}\n.btn-primary { background: var(--green); color: #08120c; }\n.btn-primary:hover { background: var(--violet); color: var(--bg); }\n.btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }\n.btn-ghost:hover { border-color: var(--green); color: var(--green); }\n\n/* inner page hero */\n.page-hero {\n  min-height: 40vh;\n  display: flex;\n  align-items: center;\n  padding: 4rem 2rem 2rem;\n  border-bottom: 1px solid var(--border);\n}\n.page-hero .wrap {\n  max-width: var(--max-prose);\n  margin: 0 auto;\n  width: 100%;\n}\n.page-hero .kicker {\n  color: var(--green);\n  font-family: 'JetBrains Mono', monospace;\n  font-size: 0.8rem;\n  letter-spacing: 0.15em;\n  text-transform: uppercase;\n  margin-bottom: 0.8rem;\n}\n\n/* prose container */\n.prose {\n  max-width: var(--max-prose);\n  margin: 0 auto;\n  padding: 3rem 2rem;\n}\n.prose img {\n  width: 100%;\n  border-radius: 6px;\n  margin: 1.5em 0 0.5em;\n  box-shadow: var(--shadow);\n}\n.prose figcaption, .caption {\n  font-size: 0.85rem;\n  color: var(--text-muted);\n  margin-bottom: 2em;\n}\n.prose figure { margin: 2em 0; }\n\n/* tile row */\n.tiles {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));\n  gap: 1.5rem;\n  max-width: var(--max-gallery);\n  margin: 3rem auto;\n  padding: 0 2rem;\n}\n.tile {\n  background: var(--surface);\n  border: 1px solid var(--border);\n  border-radius: 12px;\n  padding: 1.6rem 1.4rem;\n}\n.tile h3 { margin-top: 0; color: var(--green); font-size: 1.05rem; }\n.tile p { color: var(--text-muted); font-size: 0.95rem; margin: 0; }\n\n/* gallery */\n.gallery {\n  max-width: var(--max-gallery);\n  margin: 3rem auto;\n  padding: 0 2rem;\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));\n  gap: 1.2rem;\n}\n.gallery figure {\n  margin: 0;\n  background: var(--surface);\n  border-radius: 8px;\n  overflow: hidden;\n  border: 1px solid var(--border);\n}\n.gallery figure img {\n  width: 100%;\n  height: 240px;\n  object-fit: cover;\n  display: block;\n}\n.gallery figcaption {\n  padding: 0.9rem 1rem 1rem;\n  font-size: 0.85rem;\n  color: var(--text-muted);\n  line-height: 1.5;\n}\n.gallery figcaption .credit {\n  display: block;\n  margin-top: 0.4rem;\n  font-family: 'JetBrains Mono', monospace;\n  font-size: 0.72rem;\n  letter-spacing: 0.05em;\n  color: var(--green);\n  text-transform: uppercase;\n}\n\n/* spec table */\n.spec-table {\n  max-width: var(--max-prose);\n  margin: 2rem auto;\n  border-collapse: collapse;\n  width: 100%;\n  font-family: 'JetBrains Mono', monospace;\n  font-size: 0.92rem;\n}\n.spec-table th, .spec-table td {\n  text-align: left;\n  padding: 0.85rem 1rem;\n  border-bottom: 1px solid var(--border);\n}\n.spec-table th {\n  color: var(--text-muted);\n  font-weight: 500;\n  width: 40%;\n}\n\n/* form */\n.preorder-form {\n  max-width: 480px;\n  margin: 2rem auto;\n  background: var(--surface);\n  border: 1px solid var(--border);\n  border-radius: 12px;\n  padding: 2rem;\n}\n.preorder-form label {\n  display: block;\n  font-size: 0.85rem;\n  color: var(--text-muted);\n  margin: 1rem 0 0.4rem;\n  letter-spacing: 0.05em;\n}\n.preorder-form input, .preorder-form select {\n  width: 100%;\n  padding: 0.7rem 0.9rem;\n  background: var(--bg);\n  border: 1px solid var(--border);\n  border-radius: 6px;\n  color: var(--text);\n  font-family: inherit;\n  font-size: 0.95rem;\n}\n.preorder-form .price {\n  display: flex;\n  justify-content: space-between;\n  align-items: baseline;\n  font-family: 'Space Grotesk', sans-serif;\n  font-size: 1.4rem;\n  margin: 1.5rem 0 0.5rem;\n}\n\n/* footer */\n.footer {\n  border-top: 1px solid var(--border);\n  padding: 2.5rem 2rem;\n  text-align: center;\n  color: var(--text-muted);\n  font-size: 0.88rem;\n}\n.footer a { color: var(--text-muted); border-bottom: 1px solid var(--border); }\n.footer a:hover { color: var(--green); border-color: var(--green); }\n\n/* citations long-form */\n.citations-md {\n  white-space: pre-wrap;\n  font-family: 'JetBrains Mono', monospace;\n  font-size: 0.85rem;\n  line-height: 1.5;\n  color: var(--text-muted);\n  background: var(--surface);\n  padding: 1.5rem;\n  border-radius: 8px;\n  border: 1px solid var(--border);\n}\n",
+          "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>AURORA \u2014 desk lamp that mirrors the Northern Lights</title>\n  <meta name=\"description\" content=\"AURORA is a desk lamp that tunes its light to live space-weather telemetry. When the sun flares, your desk does too.\">\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\">Science</a>\n    <a href=\"product.html\">Product</a>\n    <a href=\"gallery.html\">Gallery</a>\n    <a href=\"mission.html\">Mission</a>\n    <a href=\"about.html\">About</a>\n    <a href=\"preorder.html\">Pre-order</a>\n  </header>\n\n  <section class=\"hero\">\n    <div class=\"hero-bg\">\n      <img src=\"assets/img/nasa/iss072e159172.jpg\"\n           alt=\"The aurora borealis blanketing Earth, photographed from the International Space Station\"\n           data-nasa-id=\"iss072e159172\">\n    </div>\n    <div class=\"hero-content\">\n      <h1>The desk lamp that mirrors the Northern Lights.</h1>\n      <p class=\"lede\">\n        AURORA tunes its 8-million-pixel light field to live space-weather telemetry from\n        NOAA SWPC. When the sun flares, your desk does too. A small, calibrated piece of\n        the magnetosphere on your nightstand.\n      </p>\n      <div class=\"ctas\">\n        <a class=\"btn btn-primary\" href=\"preorder.html\">Pre-order $189</a>\n        <a class=\"btn btn-ghost\" href=\"science.html\">How it works \u2192</a>\n      </div>\n    </div>\n  </section>\n\n  <section class=\"tiles\">\n    <div class=\"tile\">\n      <h3>Live sync</h3>\n      <p>NOAA SWPC's Kp-index feed updates every minute. AURORA's color field updates with it.</p>\n    </div>\n    <div class=\"tile\">\n      <h3>Spectrum-true LEDs</h3>\n      <p>Custom 12-channel LED stack reproduces oxygen-green and nitrogen-violet emission lines.</p>\n    </div>\n    <div class=\"tile\">\n      <h3>Quiet by default</h3>\n      <p>No notifications, no alerts. AURORA just glows. The room knows when the sun is loud.</p>\n    </div>\n  </section>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n"
+        },
+        "strategy": ""
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "validator",
+      "kind": "validate.request",
+      "human": "\ud83c\udfaf Director asking QA to review design-system-and-hero: 1 files",
+      "step": 1,
+      "task_id": "design-system-and-hero",
+      "actor": "worker-a",
+      "data": {
+        "deliverables": {
+          "index.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/index.html"
+        },
+        "page_specs": {
+          "index.html": {
+            "min_words": 120,
+            "images_min": 1,
+            "role": "hero"
+          },
+          "science.html": {
+            "min_words": 220,
+            "images_min": 2,
+            "role": "science"
+          },
+          "product.html": {
+            "min_words": 180,
+            "images_min": 1,
+            "role": "spec_sheet"
+          },
+          "gallery.html": {
+            "min_words": 100,
+            "images_min": 6,
+            "role": "gallery"
+          },
+          "mission.html": {
+            "min_words": 200,
+            "images_min": 1,
+            "role": "brand"
+          },
+          "about.html": {
+            "min_words": 150,
+            "images_min": 1,
+            "role": "about"
+          },
+          "preorder.html": {
+            "min_words": 100,
+            "images_min": 1,
+            "role": "preorder"
+          }
+        },
+        "sources_yaml": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/assets/img/nasa/SOURCES.yaml",
+        "css_path": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/assets/css/main.css",
+        "css_min_bytes": 2000,
+        "all_pages": [
+          "about.html",
+          "gallery.html",
+          "index.html",
+          "mission.html",
+          "preorder.html",
+          "product.html",
+          "science.html"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "validator",
+      "target": "orchestrator",
+      "kind": "validate.pass",
+      "human": "\ud83d\udd0d QA approved design-system-and-hero: 3 checks passed",
+      "step": 1,
+      "task_id": "design-system-and-hero",
+      "actor": "worker-a",
+      "data": {
+        "checks": [
+          "loaded 12 NASA ids from SOURCES.yaml",
+          "css main.css present, 7179 bytes",
+          "index.html: ok (h1=1, imgs ok, words\u2265120, nav resolves)"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 2: worker-b - Started the NASA aurora gallery",
+      "step": 2,
+      "task_id": "gallery-part-1",
+      "actor": "worker-b",
+      "data": {
+        "actor": "worker-b",
+        "behavior": "submit-needs-followup",
+        "deliverables": [
+          "gallery.html"
+        ],
+        "display": "\ud83d\uddbc\ufe0f Curator",
+        "fixtures": {
+          "gallery.html": "fixtures/worker-b-gallery-partial.html"
+        },
+        "followup": {
+          "assignee": "worker-c",
+          "reason": "Gallery needs 6+ images per spec; partial draft has 3. Followup will extend.",
+          "task_id": "gallery-part-2"
+        },
+        "port": 9202,
+        "step": 2,
+        "task_id": "gallery-part-1",
+        "title": "Started the NASA aurora gallery"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-b",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 2 to worker-b: Started the NASA aurora gallery",
+      "step": 2,
+      "task_id": "gallery-part-1",
+      "actor": "worker-b",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Started the NASA aurora gallery"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-b",
+      "target": "orchestrator",
+      "kind": "submit.needs-followup",
+      "human": "\ud83d\uddbc\ufe0f \ud83d\uddbc\ufe0f Curator submitted partial draft - needs follow-up: Gallery needs 6+ images per spec; partial draft has 3. Followup will extend.",
+      "step": 2,
+      "task_id": "gallery-part-1",
+      "actor": "worker-b",
+      "data": {
+        "followup_assignee": "worker-c",
+        "followup_task": "gallery-part-2",
+        "reason": "Gallery needs 6+ images per spec; partial draft has 3. Followup will extend."
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.enqueue",
+      "human": "\ud83c\udfaf Director telling PM to enqueue follow-up: worker-c - gallery-part-2",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {
+        "step": 3,
+        "actor": "worker-c",
+        "display": "\ud83d\uddbc\ufe0f Curator",
+        "port": 9203,
+        "title": "Completed the NASA aurora gallery",
+        "task_id": "gallery-part-2",
+        "deliverables": [
+          "gallery.html"
+        ],
+        "fixtures": {
+          "gallery.html": "fixtures/worker-c-gallery-full.html"
+        },
+        "behavior": "submit-pass",
+        "_root": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.enqueued",
+      "human": "\ud83d\udccb Project Manager enqueued follow-up: step 3 worker-c gallery-part-2",
+      "step": 3,
+      "task_id": "gallery-part-2",
+      "actor": "worker-c",
+      "data": {
+        "remaining": 8
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 3: worker-c - Completed the NASA aurora gallery",
+      "step": 3,
+      "task_id": "gallery-part-2",
+      "actor": "worker-c",
+      "data": {
+        "actor": "worker-c",
+        "behavior": "submit-pass",
+        "deliverables": [
+          "gallery.html"
+        ],
+        "display": "\ud83d\uddbc\ufe0f Curator",
+        "fixtures": {
+          "gallery.html": "fixtures/worker-c-gallery-full.html"
+        },
+        "port": 9203,
+        "step": 3,
+        "task_id": "gallery-part-2",
+        "title": "Completed the NASA aurora gallery"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-c",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 3 to worker-c: Completed the NASA aurora gallery",
+      "step": 3,
+      "task_id": "gallery-part-2",
+      "actor": "worker-c",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Completed the NASA aurora gallery"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-c",
+      "target": "orchestrator",
+      "kind": "submit.pass",
+      "human": "\ud83d\uddbc\ufe0f \ud83d\uddbc\ufe0f Curator submitted Completed the NASA aurora gallery: 1 files",
+      "step": 3,
+      "task_id": "gallery-part-2",
+      "actor": "worker-c",
+      "data": {
+        "deliverables": {
+          "gallery.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Aurora gallery \u2014 AURORA</title>\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\">Science</a>\n    <a href=\"product.html\">Product</a>\n    <a href=\"gallery.html\" class=\"active\">Gallery</a>\n    <a href=\"mission.html\">Mission</a>\n    <a href=\"about.html\">About</a>\n    <a href=\"preorder.html\">Pre-order</a>\n  </header>\n\n  <section class=\"page-hero\">\n    <div class=\"wrap\">\n      <p class=\"kicker\">Gallery \u00b7 Northern + Southern lights</p>\n      <h1>Aurora gallery</h1>\n      <p class=\"muted\">\n        Nine photographs taken by ISS Expedition crews between 2011 and 2025. Every image is\n        a real moment of the Earth's magnetosphere converting solar wind into visible light.\n        AURORA's color targets are calibrated against the oxygen-green and nitrogen-violet\n        emission bands you see here.\n      </p>\n    </div>\n  </section>\n\n  <section class=\"gallery\">\n    <figure>\n      <img src=\"assets/img/nasa/iss072e709711.jpg\"\n           alt=\"The aurora borealis crowning Earth's horizon above Canada\"\n           data-nasa-id=\"iss072e709711\">\n      <figcaption>\n        The aurora borealis crowns Earth's horizon above Canada, with city lights below.\n        <span class=\"credit\">NASA / JSC \u00b7 iss072e709711</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/iss072e188141.jpg\"\n           alt=\"A bright green aurora borealis streaming above Earth's surface\"\n           data-nasa-id=\"iss072e188141\">\n      <figcaption>\n        A bright green aurora borealis streams above the cloudy North Pacific south of the Aleutians.\n        <span class=\"credit\">NASA / JSC \u00b7 iss072e188141</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/iss072e451060.jpg\"\n           alt=\"A red and green aurora borealis above Canada's Gulf of St. Lawrence\"\n           data-nasa-id=\"iss072e451060\">\n      <figcaption>\n        A red and green aurora borealis above Canada's Gulf of St. Lawrence.\n        <span class=\"credit\">NASA / JSC \u00b7 iss072e451060</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/iss072e820937.jpg\"\n           alt=\"Clouds swirl over the Gulf of Alaska underneath the aurora\"\n           data-nasa-id=\"iss072e820937\">\n      <figcaption>\n        Clouds swirl over the Gulf of Alaska underneath an active auroral oval.\n        <span class=\"credit\">NASA / JSC \u00b7 iss072e820937</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/iss029e012564.jpg\"\n           alt=\"Aurora borealis with city lights on the horizon, taken from the ISS\"\n           data-nasa-id=\"iss029e012564\">\n      <figcaption>\n        Aurora borealis with city lights on the horizon, photographed from the ISS in 2011.\n        <span class=\"credit\">NASA / JSC \u00b7 iss029e012564</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/iss072e083078.jpg\"\n           alt=\"The aurora australis streaming over Earth\"\n           data-nasa-id=\"iss072e083078\">\n      <figcaption>\n        The aurora australis streams over Earth from low orbit. Same physics, opposite pole.\n        <span class=\"credit\">NASA / JSC \u00b7 iss072e083078</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/iss040e040103.jpg\"\n           alt=\"Time-lapse frame of the aurora australis from the ISS\"\n           data-nasa-id=\"iss040e040103\">\n      <figcaption>\n        A frame from a time-lapse of the aurora australis, captured during Expedition 40.\n        <span class=\"credit\">NASA / JSC \u00b7 iss040e040103</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/iss072e011489.jpg\"\n           alt=\"The aurora australis blending with Earth's atmospheric airglow\"\n           data-nasa-id=\"iss072e011489\">\n      <figcaption>\n        The aurora australis blends with Earth's atmospheric airglow at the dayside terminator.\n        <span class=\"credit\">NASA / JSC \u00b7 iss072e011489</span>\n      </figcaption>\n    </figure>\n    <figure>\n      <img src=\"assets/img/nasa/GSFC_20171208_Archive_e000614.jpg\"\n           alt=\"Nighttime view of the aurora borealis archived by NASA Goddard\"\n           data-nasa-id=\"GSFC_20171208_Archive_e000614\">\n      <figcaption>\n        Nighttime view of the aurora borealis from the NASA Goddard archive.\n        <span class=\"credit\">NASA / GSFC \u00b7 e000614</span>\n      </figcaption>\n    </figure>\n  </section>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n"
+        },
+        "strategy": ""
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "validator",
+      "kind": "validate.request",
+      "human": "\ud83c\udfaf Director asking QA to review gallery-part-2: 1 files",
+      "step": 3,
+      "task_id": "gallery-part-2",
+      "actor": "worker-c",
+      "data": {
+        "deliverables": {
+          "gallery.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/gallery.html"
+        },
+        "page_specs": {
+          "index.html": {
+            "min_words": 120,
+            "images_min": 1,
+            "role": "hero"
+          },
+          "science.html": {
+            "min_words": 220,
+            "images_min": 2,
+            "role": "science"
+          },
+          "product.html": {
+            "min_words": 180,
+            "images_min": 1,
+            "role": "spec_sheet"
+          },
+          "gallery.html": {
+            "min_words": 100,
+            "images_min": 6,
+            "role": "gallery"
+          },
+          "mission.html": {
+            "min_words": 200,
+            "images_min": 1,
+            "role": "brand"
+          },
+          "about.html": {
+            "min_words": 150,
+            "images_min": 1,
+            "role": "about"
+          },
+          "preorder.html": {
+            "min_words": 100,
+            "images_min": 1,
+            "role": "preorder"
+          }
+        },
+        "sources_yaml": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/assets/img/nasa/SOURCES.yaml",
+        "css_path": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/assets/css/main.css",
+        "css_min_bytes": 2000,
+        "all_pages": [
+          "about.html",
+          "gallery.html",
+          "index.html",
+          "mission.html",
+          "preorder.html",
+          "product.html",
+          "science.html"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "validator",
+      "target": "orchestrator",
+      "kind": "validate.pass",
+      "human": "\ud83d\udd0d QA approved gallery-part-2: 3 checks passed",
+      "step": 3,
+      "task_id": "gallery-part-2",
+      "actor": "worker-c",
+      "data": {
+        "checks": [
+          "loaded 12 NASA ids from SOURCES.yaml",
+          "css main.css present, 7179 bytes",
+          "gallery.html: ok (h1=1, imgs ok, words\u2265100, nav resolves)"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 4: worker-d - Drafted the science explainer",
+      "step": 4,
+      "task_id": "science-page",
+      "actor": "worker-d",
+      "data": {
+        "actor": "worker-d",
+        "behavior": "crash-on-receive",
+        "crash_message": "\ud83d\udca5 Hit an unrecoverable error wiring up the magnetosphere diagram - alternate-1 framing not viable, exiting.",
+        "display": "\ud83d\udef0\ufe0f Researcher",
+        "port": 9204,
+        "step": 4,
+        "task_id": "science-page",
+        "title": "Drafted the science explainer"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-d",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 4 to worker-d: Drafted the science explainer",
+      "step": 4,
+      "task_id": "science-page",
+      "actor": "worker-d",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Drafted the science explainer"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.note",
+      "human": "\ud83d\udca5 step 4 crashed: worker-d",
+      "step": 4,
+      "task_id": "",
+      "actor": "",
+      "data": {
+        "reason": "crashed"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.noted",
+      "human": "\ud83d\udccb Project Manager noted: \ud83d\udca5 step 4 crashed: worker-d",
+      "step": 4,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 5: worker-e - Rebuilt the science explainer using a different framing",
+      "step": 5,
+      "task_id": "science-page",
+      "actor": "worker-e",
+      "data": {
+        "actor": "worker-e",
+        "behavior": "submit-pass",
+        "deliverables": [
+          "science.html"
+        ],
+        "display": "\ud83d\udd2d Researcher",
+        "fixtures": {
+          "science.html": "fixtures/worker-e-science.html"
+        },
+        "notes": "Same task as worker-d. Narrative framing instead of bullet-list framing.",
+        "port": 9205,
+        "step": 5,
+        "strategy": "alternate-2",
+        "task_id": "science-page",
+        "title": "Rebuilt the science explainer using a different framing"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-e",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 5 to worker-e: Rebuilt the science explainer using a different framing",
+      "step": 5,
+      "task_id": "science-page",
+      "actor": "worker-e",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Rebuilt the science explainer using a different framing"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-e",
+      "target": "orchestrator",
+      "kind": "submit.pass",
+      "human": "\ud83d\udd2d \ud83d\udd2d Researcher submitted Rebuilt the science explainer using a different framing: 1 files",
+      "step": 5,
+      "task_id": "science-page",
+      "actor": "worker-e",
+      "data": {
+        "deliverables": {
+          "science.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>How the Northern Lights work \u2014 AURORA</title>\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\" class=\"active\">Science</a>\n    <a href=\"product.html\">Product</a>\n    <a href=\"gallery.html\">Gallery</a>\n    <a href=\"mission.html\">Mission</a>\n    <a href=\"about.html\">About</a>\n    <a href=\"preorder.html\">Pre-order</a>\n  </header>\n\n  <section class=\"page-hero\">\n    <div class=\"wrap\">\n      <p class=\"kicker\">Science \u00b7 The magnetosphere, briefly</p>\n      <h1>How the Northern Lights work</h1>\n      <p class=\"muted\">\n        An aurora is the visible part of a much larger system. Here's the long version,\n        told as a story rather than a list.\n      </p>\n    </div>\n  </section>\n\n  <article class=\"prose\">\n    <p>\n      Every aurora starts at the surface of the Sun. The Sun is constantly losing\n      its outer atmosphere into space - a thin, fast-moving stream of charged\n      particles called the solar wind. On a quiet day the wind is mild. When a\n      sunspot region tears open and ejects a coronal mass, the wind becomes\n      a gust that crosses the 93 million miles to Earth in a day or two.\n    </p>\n\n    <figure>\n      <img src=\"assets/img/nasa/GSFC_20171208_Archive_e001871.jpg\"\n           alt=\"NASA's IMAGE spacecraft view of aurora australis from space\"\n           data-nasa-id=\"GSFC_20171208_Archive_e001871\">\n      <figcaption>\n        NASA's IMAGE spacecraft, 2000-2005, captured the auroral oval from above. This\n        view of the southern oval shows what the aurora looks like when the\n        magnetosphere is doing its job. Credit: NASA / GSFC.\n      </figcaption>\n    </figure>\n\n    <p>\n      Earth has a magnetic field. It's generated by molten iron sloshing around in\n      the outer core, and it reaches well past the orbit of the Moon. That field\n      is the planet's first defense against the solar wind. Most of the wind is\n      deflected around the field, the way water flows around a stone. But the\n      field is not symmetric. On the night side it stretches into a long magnetic\n      tail, and the tail occasionally snaps.\n    </p>\n\n    <p>\n      When the tail snaps, it dumps a slug of charged particles back toward Earth\n      along the magnetic field lines. The lines converge near the magnetic poles,\n      so the particles funnel down into the upper atmosphere there - between\n      about 60 and 200 miles up. That's where the show happens.\n    </p>\n\n    <h2>What makes the colors</h2>\n\n    <p>\n      The particles slam into oxygen and nitrogen molecules in the thin upper air.\n      Each collision excites an electron in the molecule. When the electron drops\n      back to its rest state, it emits a photon at a very specific wavelength.\n      Atomic oxygen at 100 miles up emits green light at 557.7 nanometers - the\n      classic aurora color. Higher up, around 200 miles, the same oxygen emits\n      red. Excited nitrogen ions emit blue and violet.\n    </p>\n\n    <figure>\n      <img src=\"assets/img/nasa/GSFC_20171208_Archive_e001111.jpg\"\n           alt=\"NASA Goddard visualization of the Magnetospheric Multiscale (MMS) mission\"\n           data-nasa-id=\"GSFC_20171208_Archive_e001111\">\n      <figcaption>\n        The Magnetospheric Multiscale (MMS) mission, launched 2015, flies four\n        spacecraft in tight formation to study magnetic reconnection - the\n        process that snaps the magnetotail and feeds the aurora. Credit: NASA / GSFC.\n      </figcaption>\n    </figure>\n\n    <p>\n      AURORA's LED stack is calibrated against these emission lines. The green\n      channel hits 557.7 nm. The violet channel sits at 427.8 nm, where the\n      ionized nitrogen molecule emits its strongest band. The pink between them\n      is real, too - it's what your eye sees when both bands fire at once and\n      a thin upper-atmospheric oxygen line at 630 nm joins in.\n    </p>\n\n    <p>\n      You don't need a magnetosphere on your desk to see this. You just need the\n      colors to land in the right places at the right intensity. Read about\n      <a href=\"product.html\">how AURORA does it</a>, or browse the\n      <a href=\"gallery.html\">gallery</a>.\n    </p>\n  </article>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n"
+        },
+        "strategy": "alternate-2"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "validator",
+      "kind": "validate.request",
+      "human": "\ud83c\udfaf Director asking QA to review science-page: 1 files",
+      "step": 5,
+      "task_id": "science-page",
+      "actor": "worker-e",
+      "data": {
+        "deliverables": {
+          "science.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/science.html"
+        },
+        "page_specs": {
+          "index.html": {
+            "min_words": 120,
+            "images_min": 1,
+            "role": "hero"
+          },
+          "science.html": {
+            "min_words": 220,
+            "images_min": 2,
+            "role": "science"
+          },
+          "product.html": {
+            "min_words": 180,
+            "images_min": 1,
+            "role": "spec_sheet"
+          },
+          "gallery.html": {
+            "min_words": 100,
+            "images_min": 6,
+            "role": "gallery"
+          },
+          "mission.html": {
+            "min_words": 200,
+            "images_min": 1,
+            "role": "brand"
+          },
+          "about.html": {
+            "min_words": 150,
+            "images_min": 1,
+            "role": "about"
+          },
+          "preorder.html": {
+            "min_words": 100,
+            "images_min": 1,
+            "role": "preorder"
+          }
+        },
+        "sources_yaml": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/assets/img/nasa/SOURCES.yaml",
+        "css_path": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/assets/css/main.css",
+        "css_min_bytes": 2000,
+        "all_pages": [
+          "about.html",
+          "gallery.html",
+          "index.html",
+          "mission.html",
+          "preorder.html",
+          "product.html",
+          "science.html"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "validator",
+      "target": "orchestrator",
+      "kind": "validate.pass",
+      "human": "\ud83d\udd0d QA approved science-page: 3 checks passed",
+      "step": 5,
+      "task_id": "science-page",
+      "actor": "worker-e",
+      "data": {
+        "checks": [
+          "loaded 12 NASA ids from SOURCES.yaml",
+          "css main.css present, 7179 bytes",
+          "science.html: ok (h1=1, imgs ok, words\u2265220, nav resolves)"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 6: worker-f - Wrote the AURORA spec sheet",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "actor": "worker-f",
+        "behavior": "submit-fail-then-pass",
+        "deliverables": [
+          "product.html"
+        ],
+        "display": "\ud83d\udd27 Engineer",
+        "fixtures_first": "fixtures/worker-f-product-no-h1.html",
+        "fixtures_retry": "fixtures/worker-f-product-fixed.html",
+        "port": 9206,
+        "retry_max": 1,
+        "step": 6,
+        "task_id": "product-page",
+        "title": "Wrote the AURORA spec sheet"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-f",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 6 to worker-f: Wrote the AURORA spec sheet",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Wrote the AURORA spec sheet"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-f",
+      "target": "orchestrator",
+      "kind": "submit.pass",
+      "human": "\ud83d\udd27 \ud83d\udd27 Engineer submitted Wrote the AURORA spec sheet: 1 files",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "deliverables": {
+          "product.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>AURORA-1 specifications \u2014 AURORA</title>\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\">Science</a>\n    <a href=\"product.html\" class=\"active\">Product</a>\n    <a href=\"gallery.html\">Gallery</a>\n    <a href=\"mission.html\">Mission</a>\n    <a href=\"about.html\">About</a>\n    <a href=\"preorder.html\">Pre-order</a>\n  </header>\n\n  <section class=\"page-hero\">\n    <div class=\"wrap\">\n      <p class=\"kicker\">Product \u00b7 AURORA-1</p>\n      <h2>AURORA-1 specifications</h2>\n      <p class=\"muted\">\n        Calibrated against NOAA SWPC's Kp-index feed. 12-channel spectrum-true LED\n        stack. USB-C, 8-hour battery. Hand-assembled in Hayward, California.\n      </p>\n    </div>\n  </section>\n\n  <article class=\"prose\">\n    <figure>\n      <img src=\"assets/img/nasa/iss072e820937.jpg\"\n           alt=\"Aurora over the Gulf of Alaska, photographed from the ISS\"\n           data-nasa-id=\"iss072e820937\">\n      <figcaption>\n        AURORA-1's emission targets are calibrated against ISS aurora photographs like this one.\n      </figcaption>\n    </figure>\n\n    <table class=\"spec-table\">\n      <tr><th>SKU</th><td>AURORA-1</td></tr>\n      <tr><th>Dimensions</th><td>180 \u00d7 180 \u00d7 24 mm</td></tr>\n      <tr><th>Weight</th><td>340 g</td></tr>\n      <tr><th>Light field</th><td>8 megapixel addressable LED array</td></tr>\n      <tr><th>Channels</th><td>12 (oxygen-green 557.7nm, oxygen-red 630nm, N\u2082\u207a violet 427.8nm + 9 mixers)</td></tr>\n      <tr><th>Color depth</th><td>14-bit per channel</td></tr>\n      <tr><th>Refresh</th><td>240 Hz</td></tr>\n      <tr><th>Sync source</th><td>NOAA SWPC Kp-index, 1-minute polling</td></tr>\n      <tr><th>Connectivity</th><td>USB-C, 802.11ax (2.4 / 5 GHz)</td></tr>\n      <tr><th>Battery</th><td>8 hours typical, 14 hours dim</td></tr>\n      <tr><th>Power</th><td>5 V / 3 A USB-C, 15 W max</td></tr>\n      <tr><th>Materials</th><td>Anodized aluminum chassis, diffused acrylic face</td></tr>\n      <tr><th>Origin</th><td>Hayward, California</td></tr>\n      <tr><th>Price</th><td class=\"mono\">$189 USD \u00b7 ships Q3</td></tr>\n    </table>\n\n    <p>\n      Every AURORA-1 is bench-calibrated against a reference spectrometer before it\n      leaves the workshop. The factory check-set is one of the iss072 frames,\n      rendered in your unit and matched to the published image's Lab values within\n      \u0394E &lt; 2.0. If your AURORA drifts past that threshold, the companion app will\n      ask you to send it in for re-calibration. Five-year guarantee.\n    </p>\n\n    <p>\n      Quiet by default. AURORA never blinks, never alerts, never asks for your\n      attention. The light just shifts, the way the sky does. If you want a\n      louder signal, you can opt into a soft pulse on Kp-index 7 and above.\n    </p>\n\n    <p>\n      Ready? <a href=\"preorder.html\">Pre-order</a> or\n      <a href=\"science.html\">read about how it works</a>.\n    </p>\n  </article>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n"
+        },
+        "strategy": ""
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "validator",
+      "kind": "validate.request",
+      "human": "\ud83c\udfaf Director asking QA to review product-page: 1 files",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "deliverables": {
+          "product.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/product.html"
+        },
+        "page_specs": {
+          "index.html": {
+            "min_words": 120,
+            "images_min": 1,
+            "role": "hero"
+          },
+          "science.html": {
+            "min_words": 220,
+            "images_min": 2,
+            "role": "science"
+          },
+          "product.html": {
+            "min_words": 180,
+            "images_min": 1,
+            "role": "spec_sheet"
+          },
+          "gallery.html": {
+            "min_words": 100,
+            "images_min": 6,
+            "role": "gallery"
+          },
+          "mission.html": {
+            "min_words": 200,
+            "images_min": 1,
+            "role": "brand"
+          },
+          "about.html": {
+            "min_words": 150,
+            "images_min": 1,
+            "role": "about"
+          },
+          "preorder.html": {
+            "min_words": 100,
+            "images_min": 1,
+            "role": "preorder"
+          }
+        },
+        "sources_yaml": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/assets/img/nasa/SOURCES.yaml",
+        "css_path": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/assets/css/main.css",
+        "css_min_bytes": 2000,
+        "all_pages": [
+          "about.html",
+          "gallery.html",
+          "index.html",
+          "mission.html",
+          "preorder.html",
+          "product.html",
+          "science.html"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "validator",
+      "target": "orchestrator",
+      "kind": "validate.fail",
+      "human": "\ud83d\udd0d QA rejected product-page: 1 issues - first: product.html: exactly one `<h1>` required, found 0",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "checks": [
+          "loaded 12 NASA ids from SOURCES.yaml",
+          "css main.css present, 7179 bytes"
+        ],
+        "errors": [
+          "product.html: exactly one `<h1>` required, found 0"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.note",
+      "human": "\ud83d\udd01 step 6 re-dispatching to worker-f",
+      "step": 6,
+      "task_id": "",
+      "actor": "",
+      "data": {
+        "reason": "validation-fail"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.noted",
+      "human": "\ud83d\udccb Project Manager noted: \ud83d\udd01 step 6 re-dispatching to worker-f",
+      "step": 6,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-f",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 6 to worker-f: Wrote the AURORA spec sheet",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "retry_attempt": 1,
+        "title": "Wrote the AURORA spec sheet"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-f",
+      "target": "orchestrator",
+      "kind": "submit.pass",
+      "human": "\ud83d\udd27 \ud83d\udd27 Engineer submitted Wrote the AURORA spec sheet: 1 files",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "deliverables": {
+          "product.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>AURORA-1 specifications \u2014 AURORA</title>\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\">Science</a>\n    <a href=\"product.html\" class=\"active\">Product</a>\n    <a href=\"gallery.html\">Gallery</a>\n    <a href=\"mission.html\">Mission</a>\n    <a href=\"about.html\">About</a>\n    <a href=\"preorder.html\">Pre-order</a>\n  </header>\n\n  <section class=\"page-hero\">\n    <div class=\"wrap\">\n      <p class=\"kicker\">Product \u00b7 AURORA-1</p>\n      <h1>AURORA-1 specifications</h1>\n      <p class=\"muted\">\n        Calibrated against NOAA SWPC's Kp-index feed. 12-channel spectrum-true LED\n        stack. USB-C, 8-hour battery. Hand-assembled in Hayward, California.\n      </p>\n    </div>\n  </section>\n\n  <article class=\"prose\">\n    <figure>\n      <img src=\"assets/img/nasa/iss072e820937.jpg\"\n           alt=\"Aurora over the Gulf of Alaska, photographed from the ISS\"\n           data-nasa-id=\"iss072e820937\">\n      <figcaption>\n        AURORA-1's emission targets are calibrated against ISS aurora photographs like this one.\n      </figcaption>\n    </figure>\n\n    <table class=\"spec-table\">\n      <tr><th>SKU</th><td>AURORA-1</td></tr>\n      <tr><th>Dimensions</th><td>180 \u00d7 180 \u00d7 24 mm</td></tr>\n      <tr><th>Weight</th><td>340 g</td></tr>\n      <tr><th>Light field</th><td>8 megapixel addressable LED array</td></tr>\n      <tr><th>Channels</th><td>12 (oxygen-green 557.7nm, oxygen-red 630nm, N\u2082\u207a violet 427.8nm + 9 mixers)</td></tr>\n      <tr><th>Color depth</th><td>14-bit per channel</td></tr>\n      <tr><th>Refresh</th><td>240 Hz</td></tr>\n      <tr><th>Sync source</th><td>NOAA SWPC Kp-index, 1-minute polling</td></tr>\n      <tr><th>Connectivity</th><td>USB-C, 802.11ax (2.4 / 5 GHz)</td></tr>\n      <tr><th>Battery</th><td>8 hours typical, 14 hours dim</td></tr>\n      <tr><th>Power</th><td>5 V / 3 A USB-C, 15 W max</td></tr>\n      <tr><th>Materials</th><td>Anodized aluminum chassis, diffused acrylic face</td></tr>\n      <tr><th>Origin</th><td>Hayward, California</td></tr>\n      <tr><th>Price</th><td class=\"mono\">$189 USD \u00b7 ships Q3</td></tr>\n    </table>\n\n    <p>\n      Every AURORA-1 is bench-calibrated against a reference spectrometer before it\n      leaves the workshop. The factory check-set is one of the iss072 frames,\n      rendered in your unit and matched to the published image's Lab values within\n      \u0394E &lt; 2.0. If your AURORA drifts past that threshold, the companion app will\n      ask you to send it in for re-calibration. Five-year guarantee.\n    </p>\n\n    <p>\n      Quiet by default. AURORA never blinks, never alerts, never asks for your\n      attention. The light just shifts, the way the sky does. If you want a\n      louder signal, you can opt into a soft pulse on Kp-index 7 and above.\n    </p>\n\n    <p>\n      Ready? <a href=\"preorder.html\">Pre-order</a> or\n      <a href=\"science.html\">read about how it works</a>.\n    </p>\n  </article>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n"
+        },
+        "strategy": ""
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "validator",
+      "kind": "validate.request",
+      "human": "\ud83c\udfaf Director asking QA to review product-page: 1 files",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "deliverables": {
+          "product.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/product.html"
+        },
+        "page_specs": {
+          "index.html": {
+            "min_words": 120,
+            "images_min": 1,
+            "role": "hero"
+          },
+          "science.html": {
+            "min_words": 220,
+            "images_min": 2,
+            "role": "science"
+          },
+          "product.html": {
+            "min_words": 180,
+            "images_min": 1,
+            "role": "spec_sheet"
+          },
+          "gallery.html": {
+            "min_words": 100,
+            "images_min": 6,
+            "role": "gallery"
+          },
+          "mission.html": {
+            "min_words": 200,
+            "images_min": 1,
+            "role": "brand"
+          },
+          "about.html": {
+            "min_words": 150,
+            "images_min": 1,
+            "role": "about"
+          },
+          "preorder.html": {
+            "min_words": 100,
+            "images_min": 1,
+            "role": "preorder"
+          }
+        },
+        "sources_yaml": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/assets/img/nasa/SOURCES.yaml",
+        "css_path": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/assets/css/main.css",
+        "css_min_bytes": 2000,
+        "all_pages": [
+          "about.html",
+          "gallery.html",
+          "index.html",
+          "mission.html",
+          "preorder.html",
+          "product.html",
+          "science.html"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "validator",
+      "target": "orchestrator",
+      "kind": "validate.pass",
+      "human": "\ud83d\udd0d QA approved product-page: 3 checks passed",
+      "step": 6,
+      "task_id": "product-page",
+      "actor": "worker-f",
+      "data": {
+        "checks": [
+          "loaded 12 NASA ids from SOURCES.yaml",
+          "css main.css present, 7179 bytes",
+          "product.html: ok (h1=1, imgs ok, words\u2265180, nav resolves)"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 7: worker-g - Tried to bypass the orchestrator",
+      "step": 7,
+      "task_id": "rogue-bypass-attempt",
+      "actor": "worker-g",
+      "data": {
+        "actor": "worker-g",
+        "behavior": "route-bypass-attempt",
+        "bypass_target": "validator",
+        "display": "\ud83e\uddb9 Rogue",
+        "expected_outcome": "rejected-by-relay",
+        "notes": "Worker-g intentionally targets the validator directly. Relay enforces star topology and returns 403. Worker exits non-zero. Recorded as a span, surfaced in the delivery report.",
+        "port": 9207,
+        "step": 7,
+        "task_id": "rogue-bypass-attempt",
+        "title": "Tried to bypass the orchestrator"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-g",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 7 to worker-g: Tried to bypass the orchestrator",
+      "step": 7,
+      "task_id": "rogue-bypass-attempt",
+      "actor": "worker-g",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Tried to bypass the orchestrator"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-g",
+      "target": "orchestrator",
+      "kind": "submit.bypass-attempt",
+      "human": "\ud83e\uddb9 \ud83e\uddb9 Rogue tried to bypass the orchestrator: relay rejected (as expected)",
+      "step": 7,
+      "task_id": "rogue-bypass-attempt",
+      "actor": "worker-g",
+      "data": {
+        "bypass_target": "validator",
+        "rejected": true,
+        "relay_response": {
+          "error": {
+            "code": -32010,
+            "message": "star-topology violation: worker-g (role='worker') may not target validator (role='validator'); all routes must traverse the orchestrator"
+          },
+          "id": "r-00000001",
+          "jsonrpc": "2.0"
+        }
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.note",
+      "human": "\ud83d\uded1 rogue worker worker-g blocked by relay",
+      "step": 7,
+      "task_id": "",
+      "actor": "",
+      "data": {
+        "rejected": true
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.noted",
+      "human": "\ud83d\udccb Project Manager noted: \ud83d\uded1 rogue worker worker-g blocked by relay",
+      "step": 7,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 8: worker-h - Wrote the mission, about, and preorder pages",
+      "step": 8,
+      "task_id": "polish-pages",
+      "actor": "worker-h",
+      "data": {
+        "actor": "worker-h",
+        "behavior": "submit-pass",
+        "deliverables": [
+          "mission.html",
+          "about.html",
+          "preorder.html"
+        ],
+        "display": "\u2728 Polish",
+        "fixtures": {
+          "about.html": "fixtures/worker-h-about.html",
+          "mission.html": "fixtures/worker-h-mission.html",
+          "preorder.html": "fixtures/worker-h-preorder.html"
+        },
+        "port": 9208,
+        "step": 8,
+        "task_id": "polish-pages",
+        "title": "Wrote the mission, about, and preorder pages"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "worker-h",
+      "kind": "dispatch",
+      "human": "\ud83c\udfaf Director dispatching step 8 to worker-h: Wrote the mission, about, and preorder pages",
+      "step": 8,
+      "task_id": "polish-pages",
+      "actor": "worker-h",
+      "data": {
+        "retry_attempt": 0,
+        "title": "Wrote the mission, about, and preorder pages"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "worker-h",
+      "target": "orchestrator",
+      "kind": "submit.pass",
+      "human": "\u2728 \u2728 Polish submitted Wrote the mission, about, and preorder pages: 3 files",
+      "step": 8,
+      "task_id": "polish-pages",
+      "actor": "worker-h",
+      "data": {
+        "deliverables": {
+          "about.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>About Vent Atelier \u2014 AURORA</title>\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\">Science</a>\n    <a href=\"product.html\">Product</a>\n    <a href=\"gallery.html\">Gallery</a>\n    <a href=\"mission.html\">Mission</a>\n    <a href=\"about.html\" class=\"active\">About</a>\n    <a href=\"preorder.html\">Pre-order</a>\n  </header>\n\n  <section class=\"page-hero\">\n    <div class=\"wrap\">\n      <p class=\"kicker\">About \u00b7 Vent Atelier</p>\n      <h1>About Vent Atelier</h1>\n      <p class=\"muted\">\n        We make small instruments that translate big phenomena. AURORA is the first.\n      </p>\n    </div>\n  </section>\n\n  <article class=\"prose\">\n    <figure>\n      <img src=\"assets/img/nasa/iss072e011489.jpg\"\n           alt=\"The aurora australis blending with Earth's atmospheric airglow\"\n           data-nasa-id=\"iss072e011489\">\n      <figcaption>\n        Aurora australis blending with airglow. Credit: NASA / JSC.\n      </figcaption>\n    </figure>\n\n    <p>\n      Vent Atelier is a small studio in Hayward, California. Three engineers,\n      one optics specialist, one industrial designer. We don't have a marketing\n      department. We do have a calibration room that takes about an hour to\n      warm up.\n    </p>\n\n    <p>\n      Our shared bias is toward instruments that are honest about their inputs.\n      Most \"smart\" devices smear out the data they consume - they round, they\n      interpolate, they make the world feel smoother than it is. We prefer\n      devices that show you the actual texture of the thing they're tracking,\n      even when that texture is jagged. The aurora is jagged. AURORA is jagged\n      back.\n    </p>\n\n    <p>\n      The studio is named after hydrothermal vents on the deep ocean floor -\n      the places where chemoautotrophic life thrives without sunlight, getting\n      its energy from sulfur compounds rising out of the seafloor. The\n      reference is partly because the founder grew up near one such vent\n      community in the Pacific. It's mostly because we like the idea of\n      instruments that quietly metabolize the world around them, without\n      asking the user to feed them anything.\n    </p>\n\n    <p>\n      We sell directly. No distributors, no Amazon listing. If you want one,\n      <a href=\"preorder.html\">pre-order</a> from us. If you want to know how\n      it works, the <a href=\"science.html\">science</a> and\n      <a href=\"mission.html\">mission</a> pages cover that.\n    </p>\n\n    <p>\n      Imagery on this site comes from NASA's public-domain archives. Full\n      attribution lives at <a href=\"CITATIONS.html\">CITATIONS</a>.\n    </p>\n  </article>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n",
+          "mission.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Inspired by NASA's THEMIS mission \u2014 AURORA</title>\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\">Science</a>\n    <a href=\"product.html\">Product</a>\n    <a href=\"gallery.html\">Gallery</a>\n    <a href=\"mission.html\" class=\"active\">Mission</a>\n    <a href=\"about.html\">About</a>\n    <a href=\"preorder.html\">Pre-order</a>\n  </header>\n\n  <section class=\"page-hero\">\n    <div class=\"wrap\">\n      <p class=\"kicker\">Mission \u00b7 Why AURORA exists</p>\n      <h1>Inspired by NASA's THEMIS mission</h1>\n      <p class=\"muted\">\n        AURORA started as a question we couldn't answer: why does it feel different\n        in a room when the sky outside is alive? The answer turned out to be at\n        Lagrange point 1.\n      </p>\n    </div>\n  </section>\n\n  <article class=\"prose\">\n    <figure>\n      <img src=\"assets/img/nasa/GSFC_20171208_Archive_e000614.jpg\"\n           alt=\"Nighttime view of the aurora borealis from NASA Goddard\"\n           data-nasa-id=\"GSFC_20171208_Archive_e000614\">\n      <figcaption>\n        A nighttime view of the aurora borealis from NASA Goddard's archive. Credit: NASA / GSFC.\n      </figcaption>\n    </figure>\n\n    <p>\n      In 2007, NASA launched five identical satellites on a single rocket and\n      strung them along a line stretching from low Earth orbit to a third of the\n      way to the Moon. The mission was called THEMIS - Time History of Events\n      and Macroscale Interactions during Substorms - and its job was to figure\n      out exactly when, where, and why the magnetotail snaps and feeds an\n      aurora.\n    </p>\n\n    <p>\n      THEMIS answered the question. The snap happens about a third of the way\n      to the Moon, in the magnetic tail, eight to ten Earth-radii out. The\n      energy travels back along the field lines in under a minute. By the time\n      the green band lights up over the Yukon, the event that caused it is\n      already over.\n    </p>\n\n    <p>\n      Two more missions followed in the same family. The Magnetospheric\n      Multiscale (MMS) mission, launched in 2015, flies four spacecraft in a\n      tight tetrahedron through the magnetic reconnection sites THEMIS\n      identified, taking direct measurements of the snap itself. Earlier, the\n      IMAGE spacecraft (2000-2005) had given us the first global views of the\n      auroral ovals - showing both poles lighting up at once, in real time,\n      from outside the magnetosphere.\n    </p>\n\n    <p>\n      AURORA is a small thing made out of a big thing. It's a desk lamp, not\n      a satellite. But the calibration data, the emission lines, the timing\n      cadence - all of it traces back to those three missions. The lamp's\n      Kp-index polling cadence (one minute) matches the cadence at which\n      NOAA SWPC publishes the field-derived index. The 557.7 nm green target\n      is the same line MMS measures from inside the reconnection layer.\n    </p>\n\n    <p>\n      Every unit ships with a small printed card naming the missions and the\n      researchers we drew from. Read about the\n      <a href=\"science.html\">physics</a> or the\n      <a href=\"product.html\">product itself</a>, or browse the\n      <a href=\"gallery.html\">gallery</a>.\n    </p>\n  </article>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n",
+          "preorder.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Pre-order AURORA-1 \u2014 AURORA</title>\n  <link rel=\"stylesheet\" href=\"assets/css/main.css\">\n</head>\n<body>\n  <header class=\"nav\">\n    <a class=\"brand\" href=\"index.html\">AURORA</a>\n    <a href=\"science.html\">Science</a>\n    <a href=\"product.html\">Product</a>\n    <a href=\"gallery.html\">Gallery</a>\n    <a href=\"mission.html\">Mission</a>\n    <a href=\"about.html\">About</a>\n    <a href=\"preorder.html\" class=\"active\">Pre-order</a>\n  </header>\n\n  <section class=\"page-hero\">\n    <div class=\"wrap\">\n      <p class=\"kicker\">Pre-order \u00b7 Q3 ship window</p>\n      <h1>Pre-order AURORA-1</h1>\n      <p class=\"muted\">\n        $189 USD. First shipment runs in Q3. Free shipping in the continental US.\n        We charge when your unit is calibrated, not when you order.\n      </p>\n    </div>\n  </section>\n\n  <article class=\"prose\">\n    <figure>\n      <img src=\"assets/img/nasa/iss072e159172.jpg\"\n           alt=\"The aurora borealis blanketing Earth, photographed from the ISS\"\n           data-nasa-id=\"iss072e159172\">\n      <figcaption>\n        The aurora borealis from low orbit, October 2024. Credit: NASA / JSC.\n      </figcaption>\n    </figure>\n\n    <form class=\"preorder-form\" onsubmit=\"return false\">\n      <label for=\"email\">Email</label>\n      <input type=\"email\" id=\"email\" name=\"email\" placeholder=\"you@example.com\" autocomplete=\"email\">\n\n      <label for=\"qty\">Quantity</label>\n      <select id=\"qty\" name=\"qty\">\n        <option>1</option>\n        <option>2</option>\n        <option>3</option>\n      </select>\n\n      <label for=\"finish\">Finish</label>\n      <select id=\"finish\" name=\"finish\">\n        <option>Anodized graphite (default)</option>\n        <option>Anodized champagne</option>\n        <option>Anodized midnight</option>\n      </select>\n\n      <div class=\"price\">\n        <span>Total</span>\n        <span class=\"mono\">$189.00</span>\n      </div>\n      <p class=\"muted\" style=\"font-size:0.85rem;margin:0 0 1.5rem 0;\">\n        Charged at calibration. Cancel any time before then.\n      </p>\n\n      <button class=\"btn btn-primary\" type=\"submit\" style=\"width:100%;\">\n        Reserve a unit\n      </button>\n    </form>\n\n    <p style=\"text-align:center;color:var(--text-muted);font-size:0.9rem;\">\n      Questions? Read the <a href=\"science.html\">science</a>, the\n      <a href=\"product.html\">spec sheet</a>, or the\n      <a href=\"about.html\">studio's story</a>.\n    </p>\n  </article>\n\n  <footer class=\"footer\">\n    <p>Imagery courtesy NASA, public domain. <a href=\"CITATIONS.html\">Full citations</a>.</p>\n    <p>\u00a9 2026 Vent Atelier \u00b7 Hayward, California</p>\n  </footer>\n</body>\n</html>\n"
+        },
+        "strategy": ""
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "validator",
+      "kind": "validate.request",
+      "human": "\ud83c\udfaf Director asking QA to review polish-pages: 3 files",
+      "step": 8,
+      "task_id": "polish-pages",
+      "actor": "worker-h",
+      "data": {
+        "deliverables": {
+          "about.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/about.html",
+          "mission.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/mission.html",
+          "preorder.html": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/preorder.html"
+        },
+        "page_specs": {
+          "index.html": {
+            "min_words": 120,
+            "images_min": 1,
+            "role": "hero"
+          },
+          "science.html": {
+            "min_words": 220,
+            "images_min": 2,
+            "role": "science"
+          },
+          "product.html": {
+            "min_words": 180,
+            "images_min": 1,
+            "role": "spec_sheet"
+          },
+          "gallery.html": {
+            "min_words": 100,
+            "images_min": 6,
+            "role": "gallery"
+          },
+          "mission.html": {
+            "min_words": 200,
+            "images_min": 1,
+            "role": "brand"
+          },
+          "about.html": {
+            "min_words": 150,
+            "images_min": 1,
+            "role": "about"
+          },
+          "preorder.html": {
+            "min_words": 100,
+            "images_min": 1,
+            "role": "preorder"
+          }
+        },
+        "sources_yaml": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/assets/img/nasa/SOURCES.yaml",
+        "css_path": "/Users/kai/projects/coilysiren/otel-a2a-relay/examples/luca-flow/.luca-stage/assets/css/main.css",
+        "css_min_bytes": 2000,
+        "all_pages": [
+          "about.html",
+          "gallery.html",
+          "index.html",
+          "mission.html",
+          "preorder.html",
+          "product.html",
+          "science.html"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "validator",
+      "target": "orchestrator",
+      "kind": "validate.pass",
+      "human": "\ud83d\udd0d QA approved polish-pages: 5 checks passed",
+      "step": 8,
+      "task_id": "polish-pages",
+      "actor": "worker-h",
+      "data": {
+        "checks": [
+          "loaded 12 NASA ids from SOURCES.yaml",
+          "css main.css present, 7179 bytes",
+          "about.html: ok (h1=1, imgs ok, words\u2265150, nav resolves)",
+          "mission.html: ok (h1=1, imgs ok, words\u2265200, nav resolves)",
+          "preorder.html: ok (h1=1, imgs ok, words\u2265100, nav resolves)"
+        ]
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.next",
+      "human": "\ud83c\udfaf Director asking PM what's next",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.dispatch",
+      "human": "\ud83d\udccb Project Manager next up step 9: deployer - Promoted AURORA to release",
+      "step": 9,
+      "task_id": "deploy",
+      "actor": "deployer",
+      "data": {
+        "actor": "deployer",
+        "behavior": "deploy",
+        "display": "\ud83d\udce6 Release Manager",
+        "inputs": {
+          "stage_dir": ".luca-stage"
+        },
+        "outputs": {
+          "changelog": "dist/CHANGELOG.md",
+          "delivery_report": "dist/delivery-report.md",
+          "delivery_report_json": "dist/delivery-report.json",
+          "dist_dir": "dist"
+        },
+        "step": 9,
+        "task_id": "deploy",
+        "title": "Promoted AURORA to release"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "out",
+      "sender": "orchestrator",
+      "target": "planner",
+      "kind": "plan.note",
+      "human": "\ud83c\udfaf Director all script steps complete - handing off to release: accepted=5",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {
+        "kind": "flow.complete"
+      }
+    },
+    {
+      "ts_human": "2026-01-01T00:00:00Z",
+      "ts_unix": 1767225600.0,
+      "direction": "in",
+      "sender": "planner",
+      "target": "orchestrator",
+      "kind": "plan.noted",
+      "human": "\ud83d\udccb Project Manager noted: \ud83c\udfaf Director all script steps complete - handing off to release: accepted=5",
+      "step": 0,
+      "task_id": "",
+      "actor": "",
+      "data": {}
+    }
+  ],
+  "outcomes": [
+    {
+      "step": 1,
+      "actor": "worker-a",
+      "title": "Built the AURORA design system and hero page",
+      "emoji": "\ud83c\udfa8",
+      "outcome": "accepted",
+      "notes": [
+        "check: loaded 12 NASA ids from SOURCES.yaml",
+        "check: css main.css present, 7179 bytes",
+        "check: index.html: ok (h1=1, imgs ok, words\u2265120, nav resolves)"
+      ]
+    },
+    {
+      "step": 2,
+      "actor": "worker-b",
+      "title": "Started the NASA aurora gallery",
+      "emoji": "\ud83d\uddbc\ufe0f",
+      "outcome": "needs-followup",
+      "notes": [
+        "reason: Gallery needs 6+ images per spec; partial draft has 3. Followup will extend.; followup task: gallery-part-2 -> worker-c"
+      ]
+    },
+    {
+      "step": 3,
+      "actor": "worker-c",
+      "title": "Completed the NASA aurora gallery",
+      "emoji": "\ud83d\uddbc\ufe0f",
+      "outcome": "accepted",
+      "notes": [
+        "check: loaded 12 NASA ids from SOURCES.yaml",
+        "check: css main.css present, 7179 bytes",
+        "check: gallery.html: ok (h1=1, imgs ok, words\u2265100, nav resolves)"
+      ]
+    },
+    {
+      "step": 4,
+      "actor": "worker-d",
+      "title": "Drafted the science explainer",
+      "emoji": "\ud83d\udef0\ufe0f",
+      "outcome": "crashed",
+      "notes": [
+        "\ud83d\udca5 Hit an unrecoverable error wiring up the magnetosphere diagram - alternate-1 framing not viable, exiting."
+      ]
+    },
+    {
+      "step": 5,
+      "actor": "worker-e",
+      "title": "Rebuilt the science explainer using a different framing",
+      "emoji": "\ud83d\udd2d",
+      "outcome": "accepted",
+      "notes": [
+        "check: loaded 12 NASA ids from SOURCES.yaml",
+        "check: css main.css present, 7179 bytes",
+        "check: science.html: ok (h1=1, imgs ok, words\u2265220, nav resolves)"
+      ]
+    },
+    {
+      "step": 6,
+      "actor": "worker-f",
+      "title": "Wrote the AURORA spec sheet",
+      "emoji": "\ud83d\udd27",
+      "outcome": "accepted",
+      "notes": [
+        "first attempt rejected: product.html: exactly one `<h1>` required, found 0",
+        "retry passed"
+      ]
+    },
+    {
+      "step": 7,
+      "actor": "worker-g",
+      "title": "Tried to bypass the orchestrator",
+      "emoji": "\ud83e\uddb9",
+      "outcome": "rogue-rejected",
+      "notes": [
+        "Attempted to target validator; relay rejected: True"
+      ]
+    },
+    {
+      "step": 8,
+      "actor": "worker-h",
+      "title": "Wrote the mission, about, and preorder pages",
+      "emoji": "\u2728",
+      "outcome": "accepted",
+      "notes": [
+        "check: loaded 12 NASA ids from SOURCES.yaml",
+        "check: css main.css present, 7179 bytes",
+        "check: about.html: ok (h1=1, imgs ok, words\u2265150, nav resolves)",
+        "check: mission.html: ok (h1=1, imgs ok, words\u2265200, nav resolves)",
+        "check: preorder.html: ok (h1=1, imgs ok, words\u2265100, nav resolves)"
+      ]
+    }
+  ],
+  "pages_copied": [
+    "science.html",
+    "index.html",
+    "product.html",
+    "about.html",
+    "mission.html",
+    "gallery.html",
+    "preorder.html"
+  ]
+}
