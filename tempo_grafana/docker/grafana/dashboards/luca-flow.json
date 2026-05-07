@@ -1,81 +1,233 @@
 {
   "annotations": {"list": []},
-  "description": "LUCA-flow trace view: per-step latency, per-role span counts, and a TraceQL panel that lands on the latest orchestrator.flow trace tree.",
+  "description": "LUCA-flow detail: per-session waterfall, per-step latency, per-acceptance-decision tally, planned vs actual, drill-down by session.id.",
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "links": [],
-  "liveNow": false,
+  "graphTooltip": 1,
+  "links": [
+    {"title": "o2r overview", "url": "/d/o2r-overview/o2r-overview", "type": "link", "icon": "external link", "tags": [], "targetBlank": false},
+    {"title": "Tempo Explore", "url": "/explore?left=%7B%22datasource%22:%22tempo%22%7D", "type": "link", "icon": "external link", "targetBlank": false}
+  ],
   "panels": [
     {
-      "datasource": {"type": "tempo", "uid": "tempo"},
-      "description": "Live waterfall of the most recent orchestrator.flow trace. Click a bar to drill into the span.",
-      "fieldConfig": {"defaults": {"custom": {}}, "overrides": []},
-      "gridPos": {"h": 16, "w": 24, "x": 0, "y": 0},
+      "type": "text",
+      "id": 100,
+      "title": "What's here",
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "options": {
+        "mode": "markdown",
+        "content": "**LUCA-flow detail.** The session dropdown above pins every panel to one luca-aurora run. The first panel is the orchestrator.flow waterfall; below it, per-step latency + per-decision counts come from per-span TraceQL queries against the same session."
+      }
+    },
+    {
+      "type": "traces",
       "id": 1,
-      "options": {},
+      "title": "orchestrator.flow waterfall ($session_id)",
+      "description": "Click any bar to expand the trace tree. The flow span is the root; orchestrator.step.<n> spans are children, each with their own dispatch + validate + accept subtree.",
+      "gridPos": {"h": 18, "w": 24, "x": 0, "y": 4},
+      "datasource": {"type": "tempo", "uid": "tempo"},
       "targets": [
         {
           "datasource": {"type": "tempo", "uid": "tempo"},
           "queryType": "traceql",
-          "query": "{name=\"orchestrator.flow\"}",
+          "query": "{ name = \"orchestrator.flow\" && span.session.id = \"$session_id\" }",
           "limit": 1,
           "refId": "A"
         }
-      ],
-      "title": "Most recent orchestrator.flow trace",
-      "type": "traces"
+      ]
     },
     {
-      "datasource": {"type": "tempo", "uid": "tempo"},
-      "description": "Per-step latency. One bar per orchestrator.step.<n> span; height = duration. Drill into the slowest step from here.",
-      "fieldConfig": {"defaults": {"unit": "ns"}, "overrides": []},
-      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 16},
+      "type": "table",
       "id": 2,
+      "title": "Per-step latency",
+      "description": "One row per `orchestrator.step.<n>` span in the active session. Sort by Duration to find the slowest step.",
+      "gridPos": {"h": 12, "w": 12, "x": 0, "y": 22},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "duration"}, "properties": [{"id": "unit", "value": "ns"}, {"id": "displayName", "value": "Duration"}]},
+          {"matcher": {"id": "byName", "options": "name"}, "properties": [{"id": "displayName", "value": "Span"}]}
+        ]
+      },
+      "options": {"sortBy": [{"displayName": "Duration", "desc": true}]},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ span.session.id = \"$session_id\" && name =~ \"orchestrator.step.[0-9]+\" } | select(name, duration, span.o2r.step.actor, span.o2r.step.specialization)",
+          "tableType": "spans",
+          "limit": 20,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 3,
+      "title": "Per-step acceptance decisions",
+      "description": "One row per `orchestrator.acceptance` span. Pivots on `decision` (accepted | needs-followup | crashed | rogue-rejected | unknown) and `criterion` (the rule that fired).",
+      "gridPos": {"h": 12, "w": 12, "x": 12, "y": 22},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "span.o2r.step.acceptance.decision"}, "properties": [{"id": "displayName", "value": "Decision"}, {"id": "custom.cellOptions", "value": {"type": "color-text"}}]},
+          {"matcher": {"id": "byName", "options": "span.o2r.step.acceptance.criterion"}, "properties": [{"id": "displayName", "value": "Criterion"}]},
+          {"matcher": {"id": "byName", "options": "span.o2r.step.actor"}, "properties": [{"id": "displayName", "value": "Actor"}]},
+          {"matcher": {"id": "byName", "options": "span.o2r.step.specialization"}, "properties": [{"id": "displayName", "value": "Spec"}]}
+        ]
+      },
       "options": {},
       "targets": [
         {
           "datasource": {"type": "tempo", "uid": "tempo"},
           "queryType": "traceql",
-          "query": "{name =~ \"orchestrator.step\\\\.[0-9]+\"} | select(name, duration)",
+          "query": "{ name = \"orchestrator.acceptance\" && span.session.id = \"$session_id\" } | select(span.o2r.step.acceptance.decision, span.o2r.step.acceptance.criterion, span.o2r.step.actor, span.o2r.step.specialization)",
           "tableType": "spans",
           "limit": 50,
           "refId": "A"
         }
-      ],
-      "title": "Step latency",
-      "type": "table"
+      ]
     },
     {
+      "type": "stat",
+      "id": 4,
+      "title": "Steps accepted",
+      "description": "Count of `orchestrator.acceptance` spans where `decision = accepted` in the active session. The luca-aurora flow expects 5.",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 34},
       "datasource": {"type": "tempo", "uid": "tempo"},
-      "description": "Per-acceptance-decision count and latency. One row per orchestrator.acceptance span; pivots on o2r.step.acceptance.decision.",
-      "fieldConfig": {"defaults": {}, "overrides": []},
-      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 16},
-      "id": 3,
-      "options": {},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 1}, {"color": "green", "value": 5}]}
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"},
       "targets": [
         {
           "datasource": {"type": "tempo", "uid": "tempo"},
           "queryType": "traceql",
-          "query": "{name=\"orchestrator.acceptance\"} | select(name, span.o2r.step.acceptance.decision, span.o2r.step.actor, span.o2r.step.specialization)",
-          "tableType": "spans",
-          "limit": 100,
+          "query": "{ name = \"orchestrator.acceptance\" && span.session.id = \"$session_id\" && span.o2r.step.acceptance.decision = \"accepted\" } | count_over_time()",
           "refId": "A"
         }
-      ],
-      "title": "Per-step acceptance decisions",
-      "type": "table"
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "Steps crashed",
+      "description": "luca-aurora expects exactly 1 crash (worker-d).",
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 34},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 2}]}
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background", "graphMode": "none"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ name = \"orchestrator.acceptance\" && span.session.id = \"$session_id\" && span.o2r.step.acceptance.decision = \"crashed\" } | count_over_time()",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Rogue rejections",
+      "description": "luca-aurora expects exactly 1 rogue rejection (worker-g blocked by relay).",
+      "gridPos": {"h": 6, "w": 6, "x": 12, "y": 34},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 2}]}
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background", "graphMode": "none"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ name = \"orchestrator.acceptance\" && span.session.id = \"$session_id\" && span.o2r.step.acceptance.decision = \"rogue-rejected\" } | count_over_time()",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 7,
+      "title": "Needs follow-up",
+      "description": "luca-aurora expects exactly 1 follow-up (worker-b's partial gallery).",
+      "gridPos": {"h": 6, "w": 6, "x": 18, "y": 34},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 2}]}
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background", "graphMode": "none"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ name = \"orchestrator.acceptance\" && span.session.id = \"$session_id\" && span.o2r.step.acceptance.decision = \"needs-followup\" } | count_over_time()",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "traces",
+      "id": 8,
+      "title": "Recent luca-flow runs",
+      "description": "Top-of-trace `orchestrator.flow` spans across all sessions. Click any to switch the session_id variable above (or just open the trace inline).",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 40},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ name = \"orchestrator.flow\" }",
+          "limit": 30,
+          "refId": "A"
+        }
+      ]
     }
   ],
   "refresh": "10s",
   "schemaVersion": 39,
   "tags": ["o2r", "luca-flow"],
-  "templating": {"list": []},
-  "time": {"from": "now-30m", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "session_id",
+        "label": "Session",
+        "type": "query",
+        "description": "Pick one luca-aurora run. Variable feeds every TraceQL panel below. The query lists the most-recent N session.id values seen on `orchestrator.flow` spans.",
+        "datasource": {"type": "tempo", "uid": "tempo"},
+        "query": {
+          "type": 1,
+          "query": "{ name = \"orchestrator.flow\" } | by(span.session.id)"
+        },
+        "current": {"selected": false, "text": "", "value": ""},
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 0
+      }
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
   "timepicker": {},
   "timezone": "",
   "title": "LUCA-flow",
   "uid": "luca-flow",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

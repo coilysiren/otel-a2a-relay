@@ -17,7 +17,10 @@ ingester:
 
 compactor:
   compaction:
-    block_retention: 24h
+    block_retention: 168h            # 7 days; long enough that yesterday's
+                                     # luca-flow run is still queryable while
+                                     # debugging.
+    compacted_block_retention: 1h
 
 storage:
   trace:
@@ -28,18 +31,63 @@ storage:
       path: /var/tempo/blocks
 
 # Generators populate the metrics-summary feature in Grafana's Tempo UI so
-# the trace list shows latency/error rate rollups per span name. Off by default
-# in vanilla Tempo.
+# the trace list shows latency/error rate rollups per span name. Off by
+# default in vanilla Tempo. Three processors run together:
+#   - service_graphs:  produces the agent-topology graph
+#   - span_metrics:    produces per-span rate/latency/error metrics
+#   - local_blocks:    flushes processed traces back into block storage so
+#                      TraceQL `| rate()` / `| quantile_over_time()` queries
+#                      and Grafana's metrics-summary tab can find them.
 metrics_generator:
   registry:
     external_labels:
       source: tempo
+      cluster: o2r-local
   storage:
     path: /var/tempo/generator/wal
+    # Where the generator ships its derived metrics. Without this, service
+    # graph + span metrics are computed but dropped; the dashboards depend
+    # on this remote_write being reachable.
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
   traces_storage:
     path: /var/tempo/generator/traces
+  processor:
+    service_graphs:
+      # Add o2r-flavored dimensions to the service-graph edges. `agent.role`
+      # turns the graph into a per-role topology rather than per-service.
+      dimensions:
+        - agent.role
+        - session.id
+      enable_client_server_prefix: true
+      # The processor pairs CLIENT spans to their SERVER counterpart within
+      # `wait`. Default is 10s, but a luca-flow run can be 15-20s long; if
+      # the orchestrator's relay call lands at t=0 and the worker's response
+      # span lands at t=12, the default would drop the pairing as expired.
+      # 60s gives enough headroom for the entire choreography. The
+      # processor still flushes early when both sides arrive, so this
+      # doesn't hurt latency.
+      wait: 60s
+      # Bump the max to match - default 1000 in-flight edges is enough but
+      # we may want headroom on busy days.
+      max_items: 10000
+    span_metrics:
+      # Same dimensions as service_graphs so panels can pivot on either
+      # metric without label-mismatch headaches. `enable_target_info` adds
+      # `target_info{...}` so Grafana's metrics-summary view can join.
+      dimensions:
+        - agent.role
+        - session.id
+        - a2a.method
+      enable_target_info: true
+    local_blocks:
+      # Required for TraceQL metrics queries (the `| rate()` family) and
+      # Grafana's metrics-summary tab to see processed traces, not just
+      # the most recent block. `flush_to_storage: true` is the unlock.
+      flush_to_storage: true
 
 overrides:
   defaults:
     metrics_generator:
-      processors: [service-graphs, span-metrics]
+      processors: [service-graphs, span-metrics, local-blocks]

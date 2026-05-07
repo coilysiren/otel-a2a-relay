@@ -1,0 +1,94 @@
+apiVersion: 1
+# Datasources for the o2r local dev stack.
+#
+# Two sources, wired for cross-correlation:
+#   - Prometheus receives Tempo's metrics_generator output (service-graph +
+#     span-metrics) and serves it back to Grafana's panels.
+#   - Tempo serves traces and uses Prometheus as the backing store for the
+#     Service Graph tab + tracesToMetricsV2 drill-downs.
+#
+# `tracesToLogsV2` and `tracesToProfilesV2` are deliberately omitted - they
+# require Loki / Pyroscope which the o2r stack doesn't bundle. Add stubs
+# only when those backends land.
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: true
+    jsonData:
+      timeInterval: 15s
+      # Exemplars from span-metrics carry `traceID`. Wiring this lets the
+      # operator click an exemplar dot on a latency graph and land on the
+      # waterfall for that exact trace. Hard requirement for the
+      # "drill-down from latency spike to root cause" UX.
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: tempo
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: true
+    editable: true
+    jsonData:
+      # Trace -> Metrics correlations. The V2 form supports the field-based
+      # query templating in Grafana 11.x; old `tracesToMetrics` is dead.
+      # Each entry shows up as a button on a span's detail panel.
+      tracesToMetricsV2:
+        datasourceUid: prometheus
+        spanStartTimeShift: '-2m'
+        spanEndTimeShift: '2m'
+        tags:
+          - { key: 'service.name', value: 'service' }
+          - { key: 'agent.role', value: 'agent_role' }
+        queries:
+          - name: 'Span call rate'
+            query: 'sum by (span_name) (rate(traces_spanmetrics_calls_total{$$__tags}[1m]))'
+          - name: 'p95 span latency'
+            query: 'histogram_quantile(0.95, sum by (le, span_name) (rate(traces_spanmetrics_latency_bucket{$$__tags}[5m])))'
+          - name: 'Service graph error rate'
+            query: 'sum(rate(traces_service_graph_request_failed_total{$$__tags}[5m]))'
+
+      # Service Graph tab in Tempo Explore. Without `serviceMap.datasourceUid`
+      # the tab renders an empty pane; this is the most common "why is the
+      # service graph blank?" gotcha.
+      serviceMap:
+        datasourceUid: prometheus
+
+      # Renders span-link / parent-child edges as a node graph in the Trace
+      # tab. Already on by default but we pin it explicitly.
+      nodeGraph:
+        enabled: true
+
+      # Show Tempo's search UI in Grafana 11.x; off-by-default surface for
+      # the `traceqlSearch` feature toggle.
+      search:
+        hide: false
+
+      # Trace timeline knobs. The shift values give the panel a window to
+      # search within when navigating from a span to "neighbors".
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+
+      # The colored bar next to each span row in the trace tree. Tagging
+      # by `agent.role` paints the LUCA-flow trace tree into role-stripes
+      # (orchestrator/relay/worker) so the topology is legible at a glance.
+      spanBar:
+        type: Tag
+        tag: agent.role
+
+      # Streaming partial results into Grafana's TraceQL editor + the
+      # metrics-summary panel as Tempo computes them, instead of all-or-
+      # nothing. Requires the `traceQLStreaming` feature toggle (set in the
+      # docker-compose env block).
+      streamingEnabled:
+        search: true
+        metrics: true

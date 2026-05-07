@@ -1,0 +1,29 @@
+# Prometheus config for the o2r local dev stack.
+#
+# This Prometheus exists for one purpose: receive span-metrics + service-graph
+# samples that Tempo's `metrics_generator` produces, so Grafana's Service
+# Graph tab and the rate/latency/error panels in the LUCA-flow dashboard
+# have something to query. We don't scrape app-side targets here - app
+# metrics aren't part of the o2r protocol surface; the relay is observed
+# via traces, not metrics.
+#
+# Tempo POSTs to `/api/v1/write`; remote-write is enabled on the Prometheus
+# command line via `--web.enable-remote-write-receiver`.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    source: prometheus
+    cluster: o2r-local
+
+# Scrape Prometheus itself for self-observability + scrape Tempo's `/metrics`
+# so Grafana can show "is the metrics_generator processor falling behind?"
+# on the o2r-overview dashboard.
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]
+  - job_name: tempo
+    static_configs:
+      - targets: [tempo:3200]

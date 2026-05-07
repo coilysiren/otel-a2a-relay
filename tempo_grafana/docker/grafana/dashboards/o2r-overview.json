@@ -1,0 +1,204 @@
+{
+  "annotations": {"list": []},
+  "description": "o2r overview: service graph (agent topology), live span rate / p95 latency / error rate, recent traces, and a TraceQL cheatsheet. Default home dashboard.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "title": "LUCA-flow detail",
+      "url": "/d/luca-flow/luca-flow",
+      "type": "link",
+      "icon": "external link",
+      "tags": [],
+      "targetBlank": false
+    },
+    {
+      "title": "Tempo Explore",
+      "url": "/explore?left=%7B%22datasource%22:%22tempo%22%7D",
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "id": 100,
+      "title": "What's here",
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "options": {
+        "mode": "markdown",
+        "content": "**o2r-overview** is the dashboard the operator lands on. Top: live agent topology + flow-rate. Middle: per-span latency and error rate, sourced from Tempo's span-metrics generator. Bottom: TraceQL cheatsheet for opening a trace by session ID. For the per-step LUCA-flow breakdown, [open the LUCA-flow dashboard](/d/luca-flow/luca-flow)."
+      }
+    },
+    {
+      "type": "nodeGraph",
+      "id": 1,
+      "title": "Agent topology (service graph)",
+      "description": "Edges = relay forwards. Heat = request rate. Sourced from Tempo's `traces_service_graph_request_total` metric, which is populated by the metrics-generator on every relay span.",
+      "gridPos": {"h": 12, "w": 16, "x": 0, "y": 4},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "serviceMap",
+          "refId": "A"
+        }
+      ],
+      "options": {}
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Span rate (last 5m)",
+      "description": "Total spans per second across the whole stack. Useful for spotting whether a luca-demo run is actually emitting.",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {"mode": "palette-classic"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "transparent", "value": null},
+              {"color": "green", "value": 0.1}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(traces_spanmetrics_calls_total[5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Error rate (last 5m)",
+      "description": "Fraction of spans with `status=error` over total. Lower is better. The luca-flow demo deliberately produces ~12.5% errors (worker-d crash + worker-g topology violation), so green here = we are catching the failure modes.",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 10},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.05},
+              {"color": "red", "value": 0.2}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\"}[5m])) / clamp_min(sum(rate(traces_spanmetrics_calls_total[5m])), 0.001)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 4,
+      "title": "p95 span latency by name",
+      "description": "Histogram quantile of span durations from `traces_spanmetrics_latency_bucket`. Click an exemplar dot (orange diamonds) to drill into the trace that produced it.",
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {"drawStyle": "line", "fillOpacity": 10, "showPoints": "auto"}
+        }
+      },
+      "options": {"legend": {"showLegend": true, "placement": "bottom"}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "histogram_quantile(0.95, sum by (le, span_name) (rate(traces_spanmetrics_latency_bucket[5m])))",
+          "legendFormat": "{{span_name}}",
+          "refId": "A",
+          "exemplar": true
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 5,
+      "title": "Span call rate by agent role",
+      "description": "Per-role span throughput. `relay` and `orchestrator` should always dominate; spikes in `worker` correlate with luca-flow runs.",
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {"drawStyle": "bars", "fillOpacity": 50, "lineWidth": 0}
+        }
+      },
+      "options": {"legend": {"showLegend": true, "placement": "bottom"}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum by (agent_role) (rate(traces_spanmetrics_calls_total[1m]))",
+          "legendFormat": "{{agent_role}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "traces",
+      "id": 6,
+      "title": "Recent error traces",
+      "description": "Live TraceQL search for any erroring trace. Click a row to open the full waterfall + tree.",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 26},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ status = error }",
+          "limit": 20,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": 7,
+      "title": "TraceQL cheatsheet",
+      "gridPos": {"h": 14, "w": 24, "x": 0, "y": 36},
+      "options": {
+        "mode": "markdown",
+        "content": "Open Tempo Explore -> paste any of these. Detailed grammar at the [TraceQL docs](https://grafana.com/docs/tempo/latest/traceql/).\n\n```traceql\n{ trace:duration > 2s }                                    # slow traces\n{ status = error }                                          # error traces\n{ resource.service.name = \"luca-relay\" && status = error }  # relay errors\n{ span.session.id = \"luca-aurora-XXXX\" }                    # one session\n{ span.a2a.method = \"message/send\" }                        # A2A sends\n{ span.agent.role = \"worker\" } >> { span.agent.role = \"validator\" }   # worker -> validator\n{ name = \"orchestrator.acceptance\" && span.o2r.step.acceptance.decision = \"crashed\" }\n```\n\n### TraceQL metrics (requires `local-blocks` flush, on by default in this stack)\n\n```traceql\n{ resource.service.name = \"luca-relay\" } | rate() by (span.agent.role)\n{ } | quantile_over_time(span:duration, .95) by (resource.service.name)\n```\n\n### From a span attribute, on Tempo Explore -> Service Graph tab\n\n- Group by `agent_role` to see relay vs worker hot paths.\n- Group by `session_id` to see one luca-flow run as a graph.\n- Group by `a2a_method` to see message/send vs message/stream usage."
+      }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["o2r", "overview"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "o2r overview",
+  "uid": "o2r-overview",
+  "version": 1,
+  "weekStart": ""
+}

@@ -6,6 +6,11 @@ providers:
     type: file
     disableDeletion: false
     editable: true
+    # Hot-reload: edit a JSON in `grafana/dashboards/` and Grafana picks it
+    # up within 10 seconds. Useful when iterating on panel queries against
+    # a live luca-flow run.
     updateIntervalSeconds: 10
+    allowUiUpdates: true
     options:
       path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
