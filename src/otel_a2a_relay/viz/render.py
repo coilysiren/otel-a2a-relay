@@ -27,16 +27,24 @@ from otel_a2a_relay.viz.model import Hop, Session, reduce_spans, star_layout
 from otel_a2a_relay.viz.theme import DEFAULT, Theme
 
 # Canvas geometry, in output pixels. Doubled internally for AA.
-WIDTH = 560
-HEIGHT = 360
+WIDTH = 720
+HEIGHT = 340
 SUPERSAMPLE = 2
+
+# Region budget: title strip up top, message log on the right, footer
+# strip at the bottom, star fills the remainder. Tuned by eye so the
+# star sits visually centered in the area between the title and the
+# scrubber.
+SIDEBAR_W = 220
+TOP_STRIP = 56
+BOTTOM_STRIP = 64
 
 # Animation pacing.
 FRAMES_PER_TICK = 5  # how many GIF frames each logical tick spans
-FRAME_MS = 80  # 12.5fps
+FRAME_MS = 130  # ~7.7fps - readable, not frantic
 PALETTE_COLORS = 64  # smallest palette where vignette + halos still read cleanly
 MIN_TICKS = 4  # stretch tiny sessions so the GIF feels paced
-MAX_TICKS = 16  # cap big sessions so the GIF stays under ~10s
+MAX_TICKS = 14  # cap big sessions so the GIF stays under ~10s
 
 # Visual constants. All in 1x (output) coordinates; the supersampler
 # multiplies them.
@@ -47,6 +55,8 @@ EDGE_W = 3
 PARTICLE_R = 8
 LABEL_GAP = 14  # gap between node edge and label, in 1x output pixels
 TRAIL_FADE_TICKS = 3  # how many ticks an edge keeps a trail after firing
+LOG_LINES = 5  # how many recent messages the right-hand log shows
+LOG_TEXT_MAX = 22  # truncation for long message bodies
 
 
 def _quantize_ticks(hops: tuple[Hop, ...]) -> dict[Hop, int]:
@@ -286,6 +296,7 @@ def _render_frame(
     theme: Theme,
     font_node: ImageFont.FreeTypeFont,
     font_footer: ImageFont.FreeTypeFont,
+    font_log: ImageFont.FreeTypeFont,
 ) -> Image.Image:
     """Composite one frame at 2x and return the supersampled image.
 
@@ -402,6 +413,7 @@ def _render_frame(
             above=cy < HEIGHT * scale / 2,
         )
 
+    _draw_log(draw, w, h, hop_ticks, agent_color, session.hub, tick, theme, font_log)
     _draw_footer(draw, w, h, session, tick, n_ticks, theme, font_footer)
     return img
 
@@ -440,24 +452,47 @@ def _draw_footer(
     theme: Theme,
     font: ImageFont.FreeTypeFont,
 ) -> None:
-    """Footer: session id, span count, wall-clock duration, tick scrubber."""
-    pad = 24 * SUPERSAMPLE
-    y = h - pad - 14 * SUPERSAMPLE
-    # Left side: factual line.
+    """Title strip up top, factual footer line, scrubber as a thin
+    full-width track at the very bottom edge.
+
+    The scrubber lives in its own row below the footer text instead of
+    sharing the row, so the bar can never visually collide with the
+    duration text on the right side.
+    """
+    pad = 20 * SUPERSAMPLE
+
+    # Title (top-left).
+    draw.text(
+        (pad, pad),
+        "session topology",
+        fill=theme.ink,
+        font=font,
+    )
+    draw.text(
+        (pad, pad + 16 * SUPERSAMPLE),
+        "real OTel spans, animated by start time",
+        fill=theme.mute,
+        font=font,
+    )
+
+    # Footer text: factual line at the lower edge of the canvas.
+    text_h = 12 * SUPERSAMPLE
+    track_h = 3 * SUPERSAMPLE
+    track_y = h - track_h - 6 * SUPERSAMPLE
+    text_y = track_y - text_h - 8 * SUPERSAMPLE
     line = (
         f"session={session.session_id}  spans={session.span_count}  "
         f"duration={session.duration_s:.2f}s"
     )
-    draw.text((pad, y), line, fill=theme.mute, font=font)
+    draw.text((pad, text_y), line, fill=theme.mute, font=font)
 
-    # Right side: progress scrubber, drawn as a hairline track with a
-    # filled inset.
-    track_w = 240 * SUPERSAMPLE
-    track_h = 4 * SUPERSAMPLE
-    track_x = w - pad - track_w
-    track_y = y + 12 * SUPERSAMPLE
+    # Scrubber: thin full-width track at the bottom edge, no overlap
+    # with the footer text above.
+    track_x_lo = pad
+    track_x_hi = w - pad
+    track_w = track_x_hi - track_x_lo
     draw.rounded_rectangle(
-        [track_x, track_y, track_x + track_w, track_y + track_h],
+        [track_x_lo, track_y, track_x_hi, track_y + track_h],
         radius=track_h // 2,
         fill=theme.hair,
     )
@@ -465,25 +500,101 @@ def _draw_footer(
     fill_w = int(track_w * progress)
     if fill_w > 0:
         draw.rounded_rectangle(
-            [track_x, track_y, track_x + fill_w, track_y + track_h],
+            [track_x_lo, track_y, track_x_lo + fill_w, track_y + track_h],
             radius=track_h // 2,
             fill=theme.hub,
         )
 
-    # Title in the top-left.
-    title_y = pad
-    draw.text(
-        (pad, title_y),
-        "session topology",
-        fill=theme.ink,
-        font=font,
+
+def _draw_log(
+    draw: ImageDraw.ImageDraw,
+    w: int,
+    h: int,
+    hop_ticks: dict[Hop, int],
+    agent_color: dict[str, tuple[int, int, int]],
+    hub: str,
+    tick: int,
+    theme: Theme,
+    font: ImageFont.FreeTypeFont,
+) -> None:
+    """Right-side message log: the most recent hops with non-empty text.
+
+    Surfaces the actual A2A message bodies that drove the spans, so the
+    GIF reads as more than just dots-on-a-graph. Newest at top, source
+    agent's color as the leading dot, light fade for older entries.
+    Truncated to `LOG_TEXT_MAX` chars.
+    """
+    pad = 14 * SUPERSAMPLE
+    sidebar_x = (WIDTH - SIDEBAR_W) * SUPERSAMPLE + pad
+    title_y = TOP_STRIP * SUPERSAMPLE
+    line_h = 22 * SUPERSAMPLE
+    dot_r = 4 * SUPERSAMPLE
+    dot_gap = 12 * SUPERSAMPLE
+
+    draw.text((sidebar_x, title_y - 18 * SUPERSAMPLE), "messages", fill=theme.ink, font=font)
+    # Hairline divider under the title to anchor the log visually.
+    draw.line(
+        [
+            (sidebar_x, title_y - 4 * SUPERSAMPLE),
+            (w - pad, title_y - 4 * SUPERSAMPLE),
+        ],
+        fill=theme.hair,
+        width=1,
     )
-    draw.text(
-        (pad, title_y + 18 * SUPERSAMPLE),
-        "real OTel spans, animated by start time",
-        fill=theme.mute,
-        font=font,
-    )
+
+    # Pick the LOG_LINES most-recent hops with a text body that have
+    # already fired by the current tick. De-dupe by text so the same
+    # message isn't repeated by every server-and-forward span pair.
+    seen: set[str] = set()
+    visible: list[tuple[Hop, int]] = []
+
+    # Sort by tick desc, then prefer non-self-loop, then prefer hub-outbound
+    # (the "delivery" hop) so the log entry per message points at where the
+    # message is currently going, not where it originated.
+    def _rank(item: tuple[Hop, int]) -> tuple[int, int, int]:
+        hop_, t_ = item
+        return (
+            -t_,  # newest tick first
+            0 if hop_.src != hop_.dst else 1,  # non-self-loop first
+            0 if hop_.src == hub else 1,  # hub-outbound first within tick
+        )
+
+    for hop, t in sorted(hop_ticks.items(), key=_rank):
+        if t > tick or not hop.text:
+            continue
+        if hop.src == hop.dst:
+            continue  # self-loops duplicate the onward hop's text
+        if hop.text in seen:
+            continue
+        seen.add(hop.text)
+        visible.append((hop, t))
+        if len(visible) >= LOG_LINES:
+            break
+
+    for i, (hop, t) in enumerate(visible):
+        y = title_y + i * line_h
+        # Older entries fade to mute. Newest sits at full ink.
+        age = max(0, tick - t)
+        if hop.status == "failed":
+            text_color = theme.failed
+        elif age == 0:
+            text_color = theme.ink
+        else:
+            text_color = _alpha_blend(theme.bg, theme.mute, max(0.4, 1.0 - age * 0.18))
+        # Source-color dot.
+        src_key = hop.dst if hop.src == hub else hop.src
+        dot_color = agent_color.get(src_key) or theme.ink
+        if hop.status == "failed":
+            dot_color = theme.failed
+        cx = sidebar_x + dot_r
+        cy = y + 6 * SUPERSAMPLE
+        draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=dot_color)
+        # Truncated message text.
+        text = hop.text
+        if len(text) > LOG_TEXT_MAX:
+            text = text[: LOG_TEXT_MAX - 1] + "..."
+        prefix = f"{hop.src} -> {hop.dst}: "
+        draw.text((cx + dot_gap, y), prefix + text, fill=text_color, font=font)
 
 
 def _assign_agent_colors(leaves: tuple[str, ...], theme: Theme) -> dict[str, tuple[int, int, int]]:
@@ -499,14 +610,24 @@ def _build_frames(
     session: Session,
     theme: Theme,
 ) -> list[Image.Image]:
-    """Render every frame for the session, downsampled to output size."""
-    layout = star_layout(session.hub, session.leaves, WIDTH, HEIGHT)
+    """Render every frame for the session, downsampled to output size.
+
+    Star area is the canvas minus the title strip (top), the message log
+    (right), and the footer strip (bottom). The hub centers in that
+    area, not in the full canvas - that's what fixes the off-center
+    look when the log + title + footer are added.
+    """
+    star_w = WIDTH - SIDEBAR_W
+    star_h = HEIGHT - TOP_STRIP - BOTTOM_STRIP
+    raw_layout = star_layout(session.hub, session.leaves, star_w, star_h)
+    layout = {k: (x, y + TOP_STRIP) for k, (x, y) in raw_layout.items()}
     agent_color = _assign_agent_colors(session.leaves, theme)
     hop_ticks = _quantize_ticks(session.hops)
     n_ticks = max(MIN_TICKS, max(hop_ticks.values(), default=0) + 1) if hop_ticks else MIN_TICKS
 
     font_node = ImageFont.truetype(str(theme.font_path), 18 * SUPERSAMPLE)
     font_footer = ImageFont.truetype(str(theme.font_path), 12 * SUPERSAMPLE)
+    font_log = ImageFont.truetype(str(theme.font_path), 11 * SUPERSAMPLE)
 
     total_frames = n_ticks * FRAMES_PER_TICK
     frames: list[Image.Image] = []
@@ -521,6 +642,7 @@ def _build_frames(
             theme,
             font_node,
             font_footer,
+            font_log,
         )
         frames.append(big.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS))
     return frames

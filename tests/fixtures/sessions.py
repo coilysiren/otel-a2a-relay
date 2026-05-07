@@ -41,12 +41,13 @@ def _span(
     parent_id: str | None = None,
     state: str | None = None,
     span_kind: str = "SERVER",
+    text: str | None = None,
 ) -> dict[str, Any]:
     """Build one Phoenix-shaped span dict.
 
     The reducer reads `attributes.session.id`, `attributes.agent.id`,
-    `attributes.graph.node.parent_id`, and `attributes.o2r.task.state`,
-    so we populate exactly those.
+    `attributes.graph.node.parent_id`, `attributes.o2r.task.state`,
+    and `attributes.o2r.message.text`, so we populate exactly those.
     """
     attrs: dict[str, Any] = {
         "session": {"id": DEMO_SESSION_ID},
@@ -56,6 +57,8 @@ def _span(
         attrs.setdefault("graph", {}).setdefault("node", {})["parent_id"] = parent_id
     if state is not None:
         attrs.setdefault("o2r", {}).setdefault("task", {})["state"] = state
+    if text is not None:
+        attrs.setdefault("o2r", {}).setdefault("message", {})["text"] = text
     return {
         "name": name,
         "spanKind": span_kind,
@@ -83,6 +86,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "2026-05-07T10:00:00.05Z",
             "A",
             span_kind="CLIENT",
+            text="hello B",
         ),
         _span(
             "a2a.task",
@@ -91,6 +95,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "relay",
             parent_id="A",
             state="completed",
+            text="hello B",
         ),
         _span(
             "a2a.relay.forward",
@@ -99,6 +104,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "relay",
             parent_id="A",
             state="completed",
+            text="hello B",
         ),
         _span(
             "a2a.task",
@@ -107,6 +113,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "B",
             parent_id="relay",
             state="completed",
+            text="hello B",
         ),
         _span(
             "a2a.client.send",
@@ -114,6 +121,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "2026-05-07T10:00:00.8Z",
             "B",
             span_kind="CLIENT",
+            text="hi A",
         ),
         _span(
             "a2a.task",
@@ -122,6 +130,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "relay",
             parent_id="B",
             state="completed",
+            text="hi A",
         ),
         _span(
             "a2a.relay.forward",
@@ -130,6 +139,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "relay",
             parent_id="B",
             state="completed",
+            text="hi A",
         ),
         _span(
             "a2a.task",
@@ -138,6 +148,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "A",
             parent_id="relay",
             state="completed",
+            text="hi A",
         ),
         _span(
             "a2a.relay.forward",
@@ -146,6 +157,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "relay",
             parent_id="A",
             state="failed",
+            text="ping?",
         ),
         _span(
             "a2a.task",
@@ -154,6 +166,7 @@ def demo_session_spans() -> list[dict[str, Any]]:
             "B",
             parent_id="relay",
             state="failed",
+            text="ping?",
         ),
     ]
     spans.sort(key=lambda s: (s.get("startTime") or "", s.get("name") or ""))

@@ -35,6 +35,7 @@ class Hop:
     duration: float  # seconds, for footer wall-clock math
     status: str  # 'completed' | 'failed' | 'in-flight'
     label: str  # span name, for hover/debug; not currently rendered
+    text: str  # `o2r.message.text` if present, else "" - rendered in the right log
 
 
 @dataclass(frozen=True)
@@ -141,6 +142,7 @@ def reduce_spans(
                     duration=max(0.0, ends[spans.index(s)] - st),
                     status=_status_for(s),
                     label=str(s.get("name") or ""),
+                    text=str(a.get("o2r.message.text") or ""),
                 )
             )
             continue
@@ -156,6 +158,7 @@ def reduce_spans(
                 duration=max(0.0, ends[spans.index(s)] - st),
                 status=_status_for(s),
                 label=str(s.get("name") or ""),
+                text=str(a.get("o2r.message.text") or ""),
             )
         )
 
@@ -176,7 +179,7 @@ def star_layout(
     leaves: tuple[str, ...],
     width: int,
     height: int,
-    margin: int = 80,
+    margin: int = 36,
 ) -> dict[str, tuple[float, float]]:
     """Place the hub at the canvas center and arrange leaves on a circle.
 
