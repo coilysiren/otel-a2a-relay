@@ -90,26 +90,6 @@ jobs:
           tail -50 logs/phoenix.log
           exit 1
 
-      - name: make demo + make gif (end-to-end against live Phoenix)
-        # Smokes the full path the issue calls out: dogfood demo runs,
-        # `make gif CTX=demo` pulls real spans from Phoenix and writes a
-        # GIF. We assert the artifact exists and is non-trivial; the
-        # byte-exact baseline check above already covered the renderer.
-        run: |
-          make demo
-          OUT=assets/sessions/demo.gif make gif CTX=demo
-          test -f assets/sessions/demo.gif
-          test "$(stat -c%s assets/sessions/demo.gif)" -gt 1000
-
-      - name: Upload session-topology GIF as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: session-topology-gif
-          path: assets/sessions/demo.gif
-          retention-days: 14
-          if-no-files-found: ignore
-
       - name: make luca-demo
         run: make luca-demo
 
@@ -134,6 +114,28 @@ jobs:
 
       - name: Verify Phoenix recorded LUCA spans
         run: uv run python scripts/check_luca_spans.py
+
+      - name: make demo + make gif (end-to-end against live Phoenix)
+        # Smokes the full path the issue calls out: dogfood demo runs,
+        # `make gif CTX=demo` pulls real spans from Phoenix and writes a
+        # GIF. We assert the artifact exists and is non-trivial; the
+        # byte-exact baseline check earlier already covered the renderer.
+        # Runs after luca-demo so the dogfood relay/agents do not contend
+        # with luca-demo's own choreographed services.
+        run: |
+          make demo
+          OUT=assets/sessions/demo.gif make gif CTX=demo
+          test -f assets/sessions/demo.gif
+          test "$(stat -c%s assets/sessions/demo.gif)" -gt 1000
+
+      - name: Upload session-topology GIF as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-topology-gif
+          path: assets/sessions/demo.gif
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload dist/ as workflow artifact
         if: always()
