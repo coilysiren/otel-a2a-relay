@@ -1,0 +1,41 @@
+[project]
+name = "otel-a2a-relay-tempo-grafana"
+version = "0.3.0"
+description = "Tempo + Grafana backend extension for otel-a2a-relay: bootstrap helper, harness probe, dockerized Tempo+Grafana stack with provisioned datasource and a LUCA-flow dashboard. Sibling of otel-a2a-relay-arize-phoenix; both implement the same shape against different observability backends."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Kai Siren" }]
+dependencies = [
+  "otel-a2a-relay-core",
+  "httpx>=0.28",
+]
+
+[project.scripts]
+o2r-tempo-harness = "otel_a2a_relay_tempo_grafana.harness:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/otel_a2a_relay_tempo_grafana"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+  "--cov=src/otel_a2a_relay_tempo_grafana",
+  "--cov-report=term-missing",
+  "--cov-fail-under=100",
+]
+
+[tool.coverage.run]
+source = ["src/otel_a2a_relay_tempo_grafana"]
+omit = [
+  "src/otel_a2a_relay_tempo_grafana/harness.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  "if __name__ == .__main__.:",
+]

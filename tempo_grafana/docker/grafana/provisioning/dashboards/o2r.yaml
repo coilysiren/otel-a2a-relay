@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: o2r
+    orgId: 1
+    folder: o2r
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards

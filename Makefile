@@ -1,179 +1,131 @@
-.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix luca-test luca-snapshots-update relay agent-a agent-b phoenix-fg send stream view gif gif-fixture-update get tasks cancel peers harness phoenix-bootstrap phoenix-bootstrap-dry-run test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: help \
+  sync test test-core test-arize-phoenix test-tempo-grafana test-luca \
+  lint ruff mypy fmt \
+  tempo-up tempo-down tempo-logs tempo-status tempo-harness tempo-clean \
+  phoenix-fg phoenix-bootstrap phoenix-bootstrap-dry-run phoenix-harness \
+  luca-demo luca-test luca-snapshots-update \
+  status
 
-BG := scripts/bg.sh
+# ----------------------------------------------------------------------
+# Sync
+# ----------------------------------------------------------------------
+sync:
+	uv sync --all-packages
 
-# Peer registry the relay reads on startup. Override on the make line if needed.
-RELAY_PEERS ?= A=http://127.0.0.1:9001,B=http://127.0.0.1:9002
+# ----------------------------------------------------------------------
+# Tests
+# ----------------------------------------------------------------------
+test: test-core test-arize-phoenix test-tempo-grafana
 
-help:
-	@echo 'Targets:'
-	@echo '  up           Bring up agent-a, agent-b, relay (Phoenix is operator-owned).'
-	@echo '  down         Stop all relay/agent processes.'
-	@echo '  restart      down + up + wait + status.'
-	@echo '  status       Print health of phoenix + relay + agents.'
-	@echo '  wait         Block until phoenix + relay + agents respond on /healthz.'
-	@echo '  demo         Restart and run a two-agent smoke flow.'
-	@echo '  send AS=A TO=B CTX=demo MSG="hi"   Post a message via the relay.'
-	@echo '  view CTX=demo                      Reduce Phoenix spans for one session.'
-	@echo '  gif CTX=demo [OUT=path.gif]        Animated session topology GIF from real spans.'
-	@echo '  gif-fixture-update                 Refresh tests/fixtures/sessions/*.gif baselines.'
-	@echo '  get TASK=t-...                     tasks/get for one task id.'
-	@echo '  tasks                              List tasks the relay has indexed.'
-	@echo '  peers                              List peers + their AgentCards.'
-	@echo '  cancel TASK=t-...                  tasks/cancel for one task id.'
-	@echo '  harness                            Original Phoenix-validation harness.'
-	@echo '  phoenix-bootstrap                  Provision annotation configs + datasets in Phoenix.'
-	@echo '  phoenix-bootstrap-dry-run          Print what phoenix-bootstrap would do, no writes.'
-	@echo '  test / lint                        pytest / ruff + mypy.'
-	@echo '  tail-relay / tail-agent-a / tail-agent-b   tail -f the running log.'
-	@echo '  phoenix-fg                         Run Phoenix in foreground (operator).'
-	@echo '  clean-phoenix-db                   Wipe the Phoenix sqlite (operator).'
-	@echo '  luca-demo                          Run the AURORA / LUCA-flow demo (Phoenix required).'
-	@echo '  luca-demo-no-phoenix               Same, without the Phoenix healthz gate.'
+test-core:
+	cd core && uv run pytest
 
-up: agent-a agent-b relay wait status
+test-arize-phoenix:
+	cd arize_phoenix && uv run pytest
 
-restart: down up
+test-tempo-grafana:
+	cd tempo_grafana && uv run pytest
 
-down:
-	-$(BG) stop relay
-	-$(BG) stop agent-a
-	-$(BG) stop agent-b
+# Slow end-to-end LUCA-flow snapshot suite. Runs the demo as a subprocess.
+luca-test:
+	cd examples/luca-flow && uv run pytest -m luca_flow
 
-status:
-	@printf 'phoenix:  '
-	@curl -sf http://localhost:6006/healthz >/dev/null && echo "up (operator-owned)" || echo "down (operator starts: make phoenix-fg)"
-	@$(BG) status relay
-	@$(BG) status agent-a
-	@$(BG) status agent-b
+luca-snapshots-update:
+	cd examples/luca-flow && UPDATE_LUCA_SNAPSHOTS=1 uv run pytest -m luca_flow
 
-wait:
-	@scripts/wait-healthy.sh \
-	  http://127.0.0.1:8080/healthz \
-	  http://127.0.0.1:9001/healthz \
-	  http://127.0.0.1:9002/healthz
+# ----------------------------------------------------------------------
+# Lint
+# ----------------------------------------------------------------------
+lint: ruff mypy
 
-demo: restart
+ruff:
+	uv run ruff check core arize_phoenix tempo_grafana examples
+	uv run ruff format --check core arize_phoenix tempo_grafana examples
+
+fmt:
+	uv run ruff check --fix core arize_phoenix tempo_grafana examples
+	uv run ruff format core arize_phoenix tempo_grafana examples
+
+mypy:
+	@# Per-package so multiple `tests/` namespaces don't collide.
+	cd core && uv run mypy src tests
+	cd arize_phoenix && uv run mypy src tests
+	cd tempo_grafana && uv run mypy src tests
+	cd examples/luca-flow && uv run mypy src tests
+
+# ----------------------------------------------------------------------
+# Tempo + Grafana stack (otel-a2a-relay-tempo-grafana extension)
+# ----------------------------------------------------------------------
+tempo-up:
+	docker compose -f tempo_grafana/docker/docker-compose.yml up -d
 	@echo
-	@echo "===> A -> B  (message/send)"
-	@$(MAKE) -s send AS=A TO=B CTX=demo MSG="hello B"
-	@echo "===> B -> A  (message/send)"
-	@$(MAKE) -s send AS=B TO=A CTX=demo MSG="hi A"
-	@echo
-	@echo "===> A -> B  (message/stream)"
-	@$(MAKE) -s stream AS=A TO=B CTX=demo MSG="streaming hello"
-	@sleep 1
-	@echo
-	@$(MAKE) -s view CTX=demo
-	@echo
-	@$(MAKE) -s tasks
-	@echo
-	@$(MAKE) -s peers
+	@echo "  Grafana:           http://localhost:3000"
+	@echo "  LUCA-flow board:   http://localhost:3000/d/luca-flow/luca-flow"
+	@echo "  Tempo OTLP/HTTP:   http://localhost:4318"
+	@echo "  Tempo query API:   http://localhost:3200"
 
-relay:
-	OTEL_A2A_RELAY_PEERS='$(RELAY_PEERS)' $(BG) start relay -- uv run uvicorn otel_a2a_relay.server:create_app --factory --reload --host 127.0.0.1 --port 8080
+tempo-down:
+	docker compose -f tempo_grafana/docker/docker-compose.yml down
 
-agent-a:
-	$(BG) start agent-a -- uv run python -m otel_a2a_relay.agent --id A --port 9001
+tempo-clean:
+	docker compose -f tempo_grafana/docker/docker-compose.yml down -v
 
-agent-b:
-	$(BG) start agent-b -- uv run python -m otel_a2a_relay.agent --id B --port 9002
+tempo-logs:
+	docker compose -f tempo_grafana/docker/docker-compose.yml logs -f --tail=100
 
+tempo-status:
+	docker compose -f tempo_grafana/docker/docker-compose.yml ps
+
+tempo-harness:
+	uv run o2r-tempo-harness
+
+# ----------------------------------------------------------------------
+# Arize Phoenix (otel-a2a-relay-arize-phoenix extension)
+# ----------------------------------------------------------------------
 phoenix-fg:
 	uv run phoenix serve
 
-send:
-	AS='$(AS)' TO='$(TO)' CTX='$(CTX)' MSG='$(MSG)' uv run python -m otel_a2a_relay.client send
-
-stream:
-	AS='$(AS)' TO='$(TO)' CTX='$(CTX)' MSG='$(MSG)' uv run python -m otel_a2a_relay.client stream
-
-view:
-	CTX='$(CTX)' uv run python -m otel_a2a_relay.client view
-
-# Animated topology GIF for one session. Pulls real OTel spans from
-# Phoenix, lays the hub + leaves on a star, animates each hop in start-
-# time order. The viz extra is small (Pillow only) and gets installed
-# transparently.
-gif:
-	@uv sync --extra viz >/dev/null
-	CTX='$(CTX)' OUT='$(OUT)' uv run python -m otel_a2a_relay.client gif
-
-# Regenerate the byte-exact GIF baselines used by the visual diff test.
-# Run after an intentional renderer change. Review the diff, then commit.
-gif-fixture-update:
-	@uv sync --extra viz >/dev/null
-	uv run python -m tests.fixtures.regen_session_gifs
-
-get:
-	TASK='$(TASK)' uv run python -m otel_a2a_relay.client get
-
-tasks:
-	uv run python -m otel_a2a_relay.client tasks
-
-cancel:
-	TASK='$(TASK)' uv run python -m otel_a2a_relay.client cancel
-
-peers:
-	uv run python -m otel_a2a_relay.client peers
-
-harness:
+phoenix-harness:
 	uv run o2r-harness
 
-# Idempotent Phoenix-side setup: annotation configs + named datasets the
-# relay's spans expect. Safe to re-run; existing names are no-ops.
 phoenix-bootstrap:
-	uv run python scripts/phoenix_bootstrap.py $(ARGS)
+	uv run o2r-phoenix-bootstrap
 
 phoenix-bootstrap-dry-run:
-	uv run python scripts/phoenix_bootstrap.py --dry-run $(ARGS)
+	uv run o2r-phoenix-bootstrap --dry-run
 
-test:
-	uv run pytest
-
-# End-to-end LUCA-flow snapshot suite. Runs the demo with frozen time and
-# diffs every dist artifact + per-page screenshot against tests/luca_flow/snapshots/.
-# First run on a fresh checkout: `uv run playwright install chromium`.
-luca-test:
-	uv run pytest tests/luca_flow -m luca_flow --no-cov -p no:cacheprovider
-
-# Regenerate the LUCA-flow snapshots in place (after an intentional change).
-# Review the diff before committing.
-luca-snapshots-update:
-	UPDATE_LUCA_SNAPSHOTS=1 uv run pytest tests/luca_flow -m luca_flow --no-cov -p no:cacheprovider
-
-ruff:
-	uv run ruff check src tests
-	uv run ruff format --check src tests
-
-mypy:
-	uv run mypy src tests
-
-lint: ruff mypy
-
-logs:
-	@echo 'tail -f logs/relay.log'
-	@echo 'tail -f logs/agent-a.log'
-	@echo 'tail -f logs/agent-b.log'
-
-tail-relay:
-	tail -f logs/relay.log
-
-tail-agent-a:
-	tail -f logs/agent-a.log
-
-tail-agent-b:
-	tail -f logs/agent-b.log
-
-clean-phoenix-db:
-	rm -f $$HOME/.phoenix/phoenix.db
-
-# LUCA-flow demo. Star-topology multi-agent choreography that produces a
-# real static HTML site (the AURORA microsite) from real NASA imagery.
-# Phoenix is required by default; pass --no-require-phoenix to skip.
-# See examples/luca-flow/ for the spec, script, and fixtures.
+# ----------------------------------------------------------------------
+# LUCA-flow demo (backend-agnostic; uses whichever collector is up)
+# ----------------------------------------------------------------------
 luca-demo:
-	uv run python -m otel_a2a_relay.luca.runner
+	@COLLECTOR=$${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}; \
+	echo "🚀 luca-demo against $$COLLECTOR"; \
+	uv run python -m luca.runner --collector $$COLLECTOR
 
-luca-demo-no-phoenix:
-	uv run python -m otel_a2a_relay.luca.runner --no-require-phoenix
+# ----------------------------------------------------------------------
+# Help
+# ----------------------------------------------------------------------
+help:
+	@echo 'Targets:'
+	@echo
+	@echo '  Workspace:'
+	@echo '    sync                       uv sync --all-packages'
+	@echo '    test                       Per-package pytest (core + arize_phoenix + tempo_grafana)'
+	@echo '    lint / ruff / mypy / fmt   Workspace-wide lint'
+	@echo
+	@echo '  Tempo + Grafana extension:'
+	@echo '    tempo-up                   docker compose up -d (Tempo + Grafana stack)'
+	@echo '    tempo-down                 Stop, preserve data'
+	@echo '    tempo-clean                Stop, wipe volumes'
+	@echo '    tempo-logs / tempo-status  Stream / inspect'
+	@echo '    tempo-harness              Post worked-example trace, print Grafana link'
+	@echo
+	@echo '  Arize Phoenix extension:'
+	@echo '    phoenix-fg                 Run Phoenix in foreground'
+	@echo '    phoenix-harness            Post worked-example trace to Phoenix'
+	@echo '    phoenix-bootstrap          Provision annotation configs + datasets'
+	@echo
+	@echo '  LUCA-flow demo:'
+	@echo '    luca-demo                  Run AURORA flow against $$OTEL_EXPORTER_OTLP_ENDPOINT'
+	@echo '    luca-test                  Diff dist/ against snapshots'
+	@echo '    luca-snapshots-update      Refresh snapshots after intentional change'

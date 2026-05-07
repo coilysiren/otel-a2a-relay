@@ -1,0 +1,81 @@
+{
+  "annotations": {"list": []},
+  "description": "LUCA-flow trace view: per-step latency, per-role span counts, and a TraceQL panel that lands on the latest orchestrator.flow trace tree.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "description": "Live waterfall of the most recent orchestrator.flow trace. Click a bar to drill into the span.",
+      "fieldConfig": {"defaults": {"custom": {}}, "overrides": []},
+      "gridPos": {"h": 16, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{name=\"orchestrator.flow\"}",
+          "limit": 1,
+          "refId": "A"
+        }
+      ],
+      "title": "Most recent orchestrator.flow trace",
+      "type": "traces"
+    },
+    {
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "description": "Per-step latency. One bar per orchestrator.step.<n> span; height = duration. Drill into the slowest step from here.",
+      "fieldConfig": {"defaults": {"unit": "ns"}, "overrides": []},
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 16},
+      "id": 2,
+      "options": {},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{name =~ \"orchestrator.step\\\\.[0-9]+\"} | select(name, duration)",
+          "tableType": "spans",
+          "limit": 50,
+          "refId": "A"
+        }
+      ],
+      "title": "Step latency",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "description": "Per-acceptance-decision count and latency. One row per orchestrator.acceptance span; pivots on o2r.step.acceptance.decision.",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 16},
+      "id": 3,
+      "options": {},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{name=\"orchestrator.acceptance\"} | select(name, span.o2r.step.acceptance.decision, span.o2r.step.actor, span.o2r.step.specialization)",
+          "tableType": "spans",
+          "limit": 100,
+          "refId": "A"
+        }
+      ],
+      "title": "Per-step acceptance decisions",
+      "type": "table"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["o2r", "luca-flow"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "LUCA-flow",
+  "uid": "luca-flow",
+  "version": 1,
+  "weekStart": ""
+}

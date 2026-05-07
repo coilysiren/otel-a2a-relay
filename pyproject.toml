@@ -1,49 +1,46 @@
 [project]
-name = "otel-a2a-relay"
-version = "0.1.0"
-description = "A2A coordination as OTel spans. Drop-in relay between A2A agents that turns wire traffic into traces any OTel-native observability tool can render."
+name = "otel-a2a-relay-workspace"
+version = "0.0.0"
+description = "Monorepo workspace root for otel-a2a-relay-{core,arize-phoenix,tempo-grafana} + the LUCA-flow demo. This package itself ships nothing; it exists so dev tools (uv, ruff, mypy, pytest) can run across the whole tree from one place."
 readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
 authors = [{ name = "Kai Siren" }]
-dependencies = [
-  "fastapi>=0.115",
-  "uvicorn[standard]>=0.30",
-  "opentelemetry-api>=1.27",
-  "opentelemetry-sdk>=1.27",
-  "opentelemetry-exporter-otlp-proto-http>=1.27",
-  "openinference-instrumentation>=0.1.40",
-  "pyyaml>=6.0",
-  "html5lib>=1.1",
-]
-
-# Optional extras. The viz extra powers `make gif` and the topology
-# GIF visual diff test. Pillow does the rendering; everything else
-# the relay needs is already in the base dependency set.
-[project.optional-dependencies]
-viz = [
-  "pillow>=12.2.0",
-]
-
-[project.scripts]
-otel-a2a-relay = "otel_a2a_relay.__main__:main"
-otel-a2a-relay-harness = "otel_a2a_relay.harness:main"
-o2r = "otel_a2a_relay.__main__:main"
-o2r-harness = "otel_a2a_relay.harness:main"
+# No runtime deps - this package is never published. Each member ships its own.
 
 [tool.uv]
 managed = true
+package = false
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.uv.workspace]
+members = ["core", "arize_phoenix", "tempo_grafana", "examples/luca-flow"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/otel_a2a_relay"]
+[tool.uv.sources]
+otel-a2a-relay-core = { workspace = true }
+otel-a2a-relay-arize-phoenix = { workspace = true }
+otel-a2a-relay-tempo-grafana = { workspace = true }
 
-[tool.hatch.build.targets.wheel.force-include]
-"src/otel_a2a_relay/viz/assets/JetBrainsMono-Regular.ttf" = "otel_a2a_relay/viz/assets/JetBrainsMono-Regular.ttf"
-"src/otel_a2a_relay/viz/assets/JetBrainsMono-OFL.txt" = "otel_a2a_relay/viz/assets/JetBrainsMono-OFL.txt"
+[dependency-groups]
+dev = [
+  # Workspace-wide tools. Each member can add its own dev deps too.
+  "mypy>=1.20",
+  "pre-commit>=4.5",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.15",
+  "types-pyyaml>=6.0",
+  "httpx>=0.28",
+  # Pillow drives the `arize_phoenix.viz` GIF renderer + its tests.
+  # In this workspace it's a dev dep so test runs see it; downstream
+  # consumers install it via the `viz` extra on otel-a2a-relay-arize-phoenix.
+  "pillow>=12.2.0",
+  # Phoenix harness wants this for `make luca-test` end-to-end.
+  "arize-phoenix>=15.0",
+  # Each member references the others by workspace dep so dev deps line up.
+  "otel-a2a-relay-core",
+  "otel-a2a-relay-arize-phoenix",
+  "otel-a2a-relay-tempo-grafana",
+]
 
 [tool.ruff]
 line-length = 100
@@ -56,48 +53,18 @@ select = ["E", "F", "I", "N", "UP", "B", "A", "RUF"]
 python_version = "3.13"
 strict = true
 ignore_missing_imports = true
+explicit_package_bases = true
+# The workspace has multiple `tests/` dirs (one per member). Without this,
+# mypy collapses them into a single `tests` namespace and complains about
+# duplicate modules. Each tests dir gets a distinct module path keyed off
+# the package root.
+mypy_path = "core/src:arize_phoenix/src:tempo_grafana/src:examples/luca-flow/src"
 
-[dependency-groups]
-dev = [
-  "arize-phoenix>=15.0",
-  "httpx>=0.28",
-  "mypy>=1.20",
-  "pillow>=12.2.0",
-  "pre-commit>=4.5",
-  "pytest>=8.0",
-  "pytest-cov>=5.0",
-  "pytest-playwright>=0.7.2",
-  "ruff>=0.15",
-  "types-pyyaml>=6.0",
-]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = [
-  "--cov=src/otel_a2a_relay",
-  "--cov-report=term-missing",
-  "--cov-fail-under=100",
-  "-m",
-  "not luca_flow",
-  "--ignore=tests/luca_flow",
-]
-markers = [
-  "luca_flow: end-to-end LUCA-flow demo snapshot suite (slow, needs playwright browsers)",
-]
-
-[tool.coverage.run]
-source = ["src/otel_a2a_relay"]
-omit = [
-  "src/otel_a2a_relay/luca/*",
-  "src/otel_a2a_relay/viz/*",
-  "src/otel_a2a_relay/__main__.py",
-  "src/otel_a2a_relay/harness.py",
-]
-
-[tool.coverage.report]
-exclude_also = [
-  "if __name__ == .__main__.:",
-]
+[[tool.mypy.overrides]]
+# `tests.fixtures.sessions` is consumed by arize_phoenix/tests/test_viz.py
+# and the regen script; it's not part of any importable package.
+module = "tests.*"
+disallow_untyped_decorators = false
 
 [tool.pyright]
 venvPath = "."

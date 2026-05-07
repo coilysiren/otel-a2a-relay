@@ -1,14 +1,16 @@
 # LUCA-flow demo: AURORA microsite
 
-Star-topology multi-agent choreography that dogfoods the relay end-to-end.
-Produces a real static HTML site (the AURORA microsite, a fictional
-consumer desk lamp marketed as if it physically channels solar-wind charged
-particles) from real public-domain NASA imagery committed to this repo.
+Star-topology multi-agent choreography that dogfoods `otel-a2a-relay-core` end-to-end. Produces a real static HTML site (the AURORA microsite, a fictional consumer desk lamp marketed as if it physically channels solar-wind charged particles) from real public-domain NASA imagery committed to this repo.
+
+**Backend-agnostic.** The demo only depends on `otel-a2a-relay-core`. Point `OTEL_EXPORTER_OTLP_ENDPOINT` at any OTLP/HTTP collector to see the spans:
+
+- Phoenix at `http://localhost:6006`
+- Tempo at `http://localhost:4318` (boot with `make tempo-up` from the workspace root)
+- Honeycomb / Datadog / any OTLP/HTTP backend
 
 ## What runs
 
-Eight long-running peers + transient workers, all routed through the relay
-under enforced star topology:
+Eight long-running peers + transient workers, all routed through the relay under enforced star topology:
 
 - **🎯 orchestrator** (`luca/orchestrator.py`) - drives the script, spawns workers
 - **📋 planner** (`luca/planner.py`) - holds the task queue, pure oracle
@@ -33,13 +35,16 @@ under enforced star topology:
 ## Run
 
 ```sh
-make phoenix-fg            # in another terminal (operator-owned)
-make luca-demo             # foreground; ~15 seconds
+# Pick one backend:
+docker compose -f tempo_grafana/docker/docker-compose.yml up -d   # Tempo + Grafana
+# OR
+phoenix serve &                                                   # Phoenix
+
+# Then run the demo:
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 uv run luca-flow      # against Tempo
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 uv run luca-flow      # against Phoenix
 open examples/luca-flow/dist/index.html
 ```
-
-`make luca-demo-no-phoenix` skips the Phoenix healthz gate (useful for
-quick iteration; spans are emitted but not collected).
 
 ## Files
 
@@ -68,43 +73,29 @@ These are real checks against real HTML, not scripted-pass theater. Worker-f's f
 
 ## Locking the outputs
 
-Every dist artifact is byte-snapshotted under `tests/luca_flow/snapshots/`:
+Every dist artifact is byte-snapshotted under `tests/snapshots/`:
 
 - `CHANGELOG.md`, `delivery-report.{md,json}`, every `*.html` page - byte diff
-- Per-page full-page screenshot via Playwright headless chromium - pixel diff with a small tolerance for font hinting
 
-The `LUCA_FREEZE_TIME=2026-01-01T00:00:00Z` env var pins every timestamp and JSON-RPC id that lands in the dist (see `src/otel_a2a_relay/luca/_clock.py`), so two runs produce byte-identical output.
+The `LUCA_FREEZE_TIME=2026-01-01T00:00:00Z` env var pins every timestamp and JSON-RPC id that lands in the dist (see `src/luca/_clock.py`), so two runs produce byte-identical output.
 
 ```sh
 make luca-test                          # diff against snapshots
 make luca-snapshots-update              # regenerate after an intentional change
-uv run playwright install chromium      # one-time setup on a fresh checkout
 ```
 
-The suite is gated behind the `luca_flow` pytest marker, so `make test` skips it.
+The suite is gated behind the `luca_flow` pytest marker, so default test runs skip it.
 
 ## Phoenix-side spans the orchestrator emits
 
 LUCA layers four consumer-flow span shapes on top of the relay's wire-protocol spans (which keep the `a2a.*` prefix). These describe the orchestrator's coordination logic, not the A2A wire:
 
-- **`orchestrator.plan`** - one root span at session start. `output.value` is the full step plan (assignee + intent per step). Enables planned-vs-actual diffs in Phoenix and makes step reassignment after a worker failure queryable without joining across worker spans.
-- **`orchestrator.acceptance`** - one child-of-session span per step's terminal decision. Carries `o2r.step.acceptance.{decision,reason,criterion,score}` plus `o2r.step.actor` and `o2r.step.specialization`. `decision` is `accepted | needs-followup | crashed | rogue-rejected | unknown`. `score=1.0` for accepted, else `0.0`, so Phoenix's per-role rollup is a numeric average.
-- **`orchestrator.flow_complete`** - one terminal span per session. `o2r.flow.outcome_counts` is a JSON map of decision → count. The `task_outcome_correct` annotation config attaches here for the per-session binary score.
-- **Per-worker `agent.specialization`** - rides on every worker span (`designer`, `curator`, `science_writer`, `spec_writer`, `polish_writer`, `rogue`). `agent.role` stays at `worker` (the topology role, used by the relay's star-topology gate); `agent.specialization` is the granular dimension you slice by in Phoenix.
+- **`orchestrator.flow`** - long-lived root span, parent of every step.
+- **`orchestrator.plan`** - first child of the flow span. `output.value` is the full step plan (assignee + intent per step). Enables planned-vs-actual diffs.
+- **`orchestrator.step.<n>`** - one per step. Parent of dispatch + validate + decide for that step. Phoenix and Grafana both render this as one expandable subtree.
+- **`orchestrator.acceptance`** - one child of each step span. Carries `o2r.step.acceptance.{decision,reason,criterion,score}` plus `o2r.step.actor` and `o2r.step.specialization`. `decision` is `accepted | needs-followup | crashed | rogue-rejected | unknown`.
+- **`orchestrator.flow_complete`** - terminal child of the flow span. `o2r.flow.outcome_counts` is a JSON map of decision → count.
 
-These complement the relay's `o2r.relay.failure_class` attribute and the two annotation configs (`relay_failure_class`, `task_outcome_correct`) that `make phoenix-bootstrap` provisions. Together they give Phoenix:
+Per-worker `agent.specialization` rides on every worker span (`designer`, `curator`, `science_writer`, `spec_writer`, `polish_writer`, `rogue`). `agent.role` stays at `worker` (the topology role, used by the relay's star-topology gate); `agent.specialization` is the granular dimension you slice by.
 
-- Per-role analysis (`agent.specialization`)
-- Per-step accept/reject scores (`orchestrator.acceptance`)
-- Per-session correctness annotation (`orchestrator.flow_complete` + `task_outcome_correct`)
-- Per-erroring-span failure-class annotation (relay spans + `relay_failure_class`)
-- Planned-vs-actual queries (`orchestrator.plan` + per-step `orchestrator.acceptance`)
-
-## Phoenix-side bootstrap
-
-```sh
-make phoenix-bootstrap                  # idempotent
-make phoenix-bootstrap-dry-run          # show plan, no writes
-```
-
-Provisions the two annotation configs and two named datasets (`relay-decisions-golden`, `relay-failures-regression`) Phoenix needs to render the relay's data legibility surface end to end. Re-runs are no-ops on already-existing names. Source: `scripts/phoenix_bootstrap.py`.
+These complement the relay's `o2r.relay.failure_class` attribute and the two annotation configs (`relay_failure_class`, `task_outcome_correct`). For Phoenix users, `make phoenix-bootstrap` provisions the configs and datasets. For Tempo users, the `luca-flow` Grafana dashboard at `http://localhost:3000/d/luca-flow/luca-flow` does the same job.

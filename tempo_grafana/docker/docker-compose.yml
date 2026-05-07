@@ -1,0 +1,46 @@
+services:
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP query API (Grafana datasource talks to this)
+      - "4318:4318"   # OTLP HTTP receiver (relay + LUCA peers send traces here)
+      # gRPC OTLP (4317) deliberately not exposed: phoenix serve binds 4317
+      # locally, and the relay uses HTTP anyway. If you stop Phoenix and want
+      # gRPC ingest from elsewhere, add `- "4317:4317"`.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3200/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    depends_on:
+      tempo:
+        condition: service_healthy
+    environment:
+      # Anonymous admin so the operator can land directly on the Explore tab
+      # with no login dance. This is a local-only dev stack.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_FEATURE_TOGGLES_ENABLE: "traceqlEditor traceQLStreaming metricsSummary"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  tempo-data:
+  grafana-data:

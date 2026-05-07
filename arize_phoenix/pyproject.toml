@@ -1,0 +1,55 @@
+[project]
+name = "otel-a2a-relay-arize-phoenix"
+version = "0.3.0"
+description = "Arize Phoenix backend extension for otel-a2a-relay: harness probe, GraphQL/REST query helpers, GIF visualization of session topologies, annotation-config + dataset bootstrapper, `make view` CLI. Pairs the otel-a2a-relay-core protocol with Phoenix's specific UI surface."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Kai Siren" }]
+dependencies = [
+  "otel-a2a-relay-core",
+  "httpx>=0.28",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+viz = [
+  "pillow>=12.2.0",
+]
+
+[project.scripts]
+o2r-harness = "otel_a2a_relay_arize_phoenix.harness:main"
+o2r-phoenix-bootstrap = "otel_a2a_relay_arize_phoenix.bootstrap:main"
+o2r-view = "otel_a2a_relay_arize_phoenix.client:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/otel_a2a_relay_arize_phoenix"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/otel_a2a_relay_arize_phoenix/viz/assets/JetBrainsMono-Regular.ttf" = "otel_a2a_relay_arize_phoenix/viz/assets/JetBrainsMono-Regular.ttf"
+"src/otel_a2a_relay_arize_phoenix/viz/assets/JetBrainsMono-OFL.txt" = "otel_a2a_relay_arize_phoenix/viz/assets/JetBrainsMono-OFL.txt"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+  "--cov=src/otel_a2a_relay_arize_phoenix",
+  "--cov-report=term-missing",
+  "--cov-fail-under=100",
+]
+
+[tool.coverage.run]
+source = ["src/otel_a2a_relay_arize_phoenix"]
+omit = [
+  "src/otel_a2a_relay_arize_phoenix/viz/*",
+  "src/otel_a2a_relay_arize_phoenix/harness.py",
+  "src/otel_a2a_relay_arize_phoenix/bootstrap.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  "if __name__ == .__main__.:",
+]
