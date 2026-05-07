@@ -33,15 +33,17 @@ HUB_INNER = (0xFF, 0xC8, 0xE6)  # softer pink for the inner ring
 
 # Agent palette. Assigned by sorted-name index so two runs over the
 # same session id put the same color on the same agent. The first two
-# slots are deliberately on the cool side so they read as clearly
-# distinct from the hub's hot pink, which is what people actually see
-# in the dogfood A/B demo and the README hero.
+# slots are picked to be maximally distinct hues from each other AND
+# from the hub's hot pink: cyan (cool blue-green), amber (warm orange).
+# The two-leaf dogfood demo lands on cyan + amber against pink, which
+# is the trio of colors that read as three different objects at a
+# glance even on a low-color GIF palette.
 AGENTS = (
     (0x5F, 0xD7, 0xFF),  # cyan
+    (0xFF, 0xB0, 0x5F),  # amber
     (0x9D, 0xFF, 0x9C),  # mint
     (0xC8, 0xA0, 0xFF),  # violet
-    (0xFF, 0xB0, 0x5F),  # amber
-    (0xFF, 0x9C, 0x9C),  # peach
+    (0xFF, 0xCC, 0x66),  # gold
 )
 
 # Edge state palette. Direction (outbound vs return) is encoded by

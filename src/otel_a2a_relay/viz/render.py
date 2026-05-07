@@ -545,6 +545,13 @@ def _draw_log(
         width=1,
     )
 
+    # Build a `text -> originating actor` map so each message takes the
+    # color of whoever produced it, not of whichever leg of the hop is
+    # currently animating. That way "hi A" stays agent-b colored from
+    # the moment agent b sends it through the relay's onward delivery
+    # to agent a - one color per message, like a chat client.
+    originators = _originators(hop_ticks, hub)
+
     # Append-only ordered list of every fired hop with text, capped at
     # LOG_LINES so a chatty session doesn't run off the canvas.
     visible: list[tuple[Hop, int]] = []
@@ -557,11 +564,14 @@ def _draw_log(
 
     for i, (hop, _t) in enumerate(visible):
         y = title_y + i * line_h
-        text_color = theme.failed if hop.status == "failed" else theme.ink
-        src_key = hop.dst if hop.src == hub else hop.src
-        dot_color = (
-            theme.failed if hop.status == "failed" else (agent_color.get(src_key) or theme.ink)
-        )
+        producer = originators.get(hop.text) or hop.src
+        producer_color = agent_color.get(producer) or theme.ink
+        if hop.status == "failed":
+            text_color = theme.failed
+            dot_color = theme.failed
+        else:
+            text_color = producer_color
+            dot_color = producer_color
         cx = sidebar_x + dot_r
         cy = y + 6 * SUPERSAMPLE
         draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=dot_color)
@@ -570,6 +580,27 @@ def _draw_log(
             text = text[: LOG_TEXT_MAX - 1] + "..."
         prefix = f"{_label_for(hop.src, hub)} -> {_label_for(hop.dst, hub)}: "
         draw.text((cx + dot_gap, y), prefix + text, fill=text_color, font=font)
+
+
+def _originators(hop_ticks: dict[Hop, int], hub: str) -> dict[str, str]:
+    """Map each message text to the agent that produced it.
+
+    Walks hops in tick order; the first non-hub source we see for a
+    given text is the originator. Self-loops (where src == dst) are
+    treated as authoritative producer events because that's where an
+    `a2a.client.send` lands in the reduced model.
+    """
+    out: dict[str, str] = {}
+    for hop, _t in sorted(hop_ticks.items(), key=lambda iv: iv[1]):
+        if not hop.text or hop.text in out:
+            continue
+        if hop.src == hop.dst and hop.src != hub:
+            out[hop.text] = hop.src
+        elif hop.src != hub:
+            out[hop.text] = hop.src
+        elif hop.dst != hub:
+            out[hop.text] = hop.dst
+    return out
 
 
 def _label_for(name: str, hub: str) -> str:
