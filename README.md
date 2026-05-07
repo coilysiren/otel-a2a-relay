@@ -1,4 +1,4 @@
-# otel-a2a-relay (o2r)
+# 🔁🔗🤖 otel-a2a-relay (o2r)
 
 [A2A](https://a2a-protocol.org/latest/specification/) coordination as [OTel](https://opentelemetry.io/) spans. Drop-in relay between A2A agents that turns wire traffic into traces any OTel-native observability tool can render.
 
