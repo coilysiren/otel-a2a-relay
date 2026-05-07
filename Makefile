@@ -1,4 +1,4 @@
-.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix luca-test luca-snapshots-update relay agent-a agent-b phoenix-fg send stream view get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
+.PHONY: help up down status restart wait demo luca-demo luca-demo-no-phoenix luca-test luca-snapshots-update relay agent-a agent-b phoenix-fg send stream view gif gif-fixture-update get tasks cancel peers harness test ruff mypy lint logs tail-relay tail-agent-a tail-agent-b clean-phoenix-db
 
 BG := scripts/bg.sh
 
@@ -15,6 +15,8 @@ help:
 	@echo '  demo         Restart and run a two-agent smoke flow.'
 	@echo '  send AS=A TO=B CTX=demo MSG="hi"   Post a message via the relay.'
 	@echo '  view CTX=demo                      Reduce Phoenix spans for one session.'
+	@echo '  gif CTX=demo [OUT=path.gif]        Animated session topology GIF from real spans.'
+	@echo '  gif-fixture-update                 Refresh tests/fixtures/sessions/*.gif baselines.'
 	@echo '  get TASK=t-...                     tasks/get for one task id.'
 	@echo '  tasks                              List tasks the relay has indexed.'
 	@echo '  peers                              List peers + their AgentCards.'
@@ -86,6 +88,20 @@ stream:
 
 view:
 	CTX='$(CTX)' uv run python -m otel_a2a_relay.client view
+
+# Animated topology GIF for one session. Pulls real OTel spans from
+# Phoenix, lays the hub + leaves on a star, animates each hop in start-
+# time order. The viz extra is small (Pillow only) and gets installed
+# transparently.
+gif:
+	@uv sync --extra viz >/dev/null
+	CTX='$(CTX)' OUT='$(OUT)' uv run python -m otel_a2a_relay.client gif
+
+# Regenerate the byte-exact GIF baselines used by the visual diff test.
+# Run after an intentional renderer change. Review the diff, then commit.
+gif-fixture-update:
+	@uv sync --extra viz >/dev/null
+	uv run python -m tests.fixtures.regen_session_gifs
 
 get:
 	TASK='$(TASK)' uv run python -m otel_a2a_relay.client get

@@ -16,6 +16,14 @@ dependencies = [
   "html5lib>=1.1",
 ]
 
+# Optional extras. The viz extra powers `make gif` and the topology
+# GIF visual diff test. Pillow does the rendering; everything else
+# the relay needs is already in the base dependency set.
+[project.optional-dependencies]
+viz = [
+  "pillow>=12.2.0",
+]
+
 [project.scripts]
 otel-a2a-relay = "otel_a2a_relay.__main__:main"
 otel-a2a-relay-harness = "otel_a2a_relay.harness:main"
@@ -31,6 +39,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/otel_a2a_relay"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/otel_a2a_relay/viz/assets/JetBrainsMono-Regular.ttf" = "otel_a2a_relay/viz/assets/JetBrainsMono-Regular.ttf"
+"src/otel_a2a_relay/viz/assets/JetBrainsMono-OFL.txt" = "otel_a2a_relay/viz/assets/JetBrainsMono-OFL.txt"
 
 [tool.ruff]
 line-length = 100
@@ -76,6 +88,7 @@ markers = [
 source = ["src/otel_a2a_relay"]
 omit = [
   "src/otel_a2a_relay/luca/*",
+  "src/otel_a2a_relay/viz/*",
   "src/otel_a2a_relay/__main__.py",
   "src/otel_a2a_relay/harness.py",
 ]

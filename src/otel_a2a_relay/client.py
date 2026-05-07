@@ -25,12 +25,22 @@ import httpx
 from opentelemetry.propagate import inject
 from opentelemetry.trace import SpanKind, Status, StatusCode
 
+from otel_a2a_relay.phoenix import DEFAULT_PHOENIX_URL
+from otel_a2a_relay.phoenix import attrs as _attrs
+from otel_a2a_relay.phoenix import fetch_spans as _fetch_spans
+from otel_a2a_relay.phoenix import flatten as _flatten
 from otel_a2a_relay.telemetry import make_provider
 
 DEFAULT_RELAY_URL = "http://127.0.0.1:8080/"
-DEFAULT_PHOENIX_URL = "http://127.0.0.1:6006"
 
 EVENT_FIELDS = ("from", "to", "seq", "final")
+
+__all__ = (
+    "DEFAULT_PHOENIX_URL",
+    "_attrs",
+    "_fetch_spans",
+    "_flatten",
+)
 
 
 def _env(name: str, required: bool = True, default: str | None = None) -> str:
@@ -119,75 +129,6 @@ def cmd_send() -> int:
     arrow = f"-> {target} " if target else ""
     print(f"[{agent_id}] sent {arrow}task={task_id} state={state}")
     return 0
-
-
-GRAPHQL = """
-query SpansBySession($limit: Int!) {
-  projects(first: 1) {
-    edges {
-      node {
-        spans(first: $limit) {
-          edges {
-            node {
-              name
-              spanKind
-              startTime
-              attributes
-              events {
-                name
-                attributes
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-"""
-
-
-def _fetch_spans(phoenix_url: str, limit: int = 200) -> list[dict[str, Any]]:
-    r = httpx.post(
-        f"{phoenix_url.rstrip('/')}/graphql",
-        json={"query": GRAPHQL, "variables": {"limit": limit}},
-        timeout=10.0,
-    )
-    r.raise_for_status()
-    data = r.json()
-    if "errors" in data:
-        raise RuntimeError(f"graphql errors: {data['errors']}")
-    edges = data["data"]["projects"]["edges"]
-    if not edges:
-        return []
-    span_edges = edges[0]["node"]["spans"]["edges"]
-    return [e["node"] for e in span_edges]
-
-
-def _flatten(d: Any, prefix: str = "") -> dict[str, Any]:
-    """Phoenix returns attributes as nested objects (dotted keys re-nested).
-    Flatten back to dotted keys so callers can ask for `session.id` etc.
-    """
-    out: dict[str, Any] = {}
-    if not isinstance(d, dict):
-        return {prefix: d} if prefix else {}
-    for k, v in d.items():
-        key = f"{prefix}.{k}" if prefix else k
-        if isinstance(v, dict):
-            out.update(_flatten(v, key))
-        else:
-            out[key] = v
-    return out
-
-
-def _attrs(span: dict[str, Any]) -> dict[str, Any]:
-    raw = span.get("attributes")
-    if isinstance(raw, str):
-        try:
-            raw = json.loads(raw)
-        except json.JSONDecodeError:
-            return {}
-    return _flatten(raw or {})
 
 
 def cmd_view() -> int:
@@ -320,6 +261,60 @@ def cmd_stream() -> int:
     return 0
 
 
+def cmd_gif() -> int:
+    """Render a session's spans as an animated topology GIF.
+
+    Reads `CTX` (session id) and optional `OUT` (output path), pulls the
+    session from Phoenix, and writes a GIF that animates each hop in
+    start-time order. The viz module is an optional dependency; we
+    surface a clear install hint if Pillow is missing rather than a
+    raw ImportError.
+    """
+    context_id = _env("CTX")
+    phoenix_url = os.environ.get("PHOENIX_URL", DEFAULT_PHOENIX_URL)
+    out_env = os.environ.get("OUT") or ""
+    out_path = (
+        os.path.abspath(out_env)
+        if out_env
+        else os.path.abspath(f"assets/sessions/{context_id}.gif")
+    )
+
+    try:
+        from otel_a2a_relay.viz import render_session
+    except ImportError as e:  # pragma: no cover - guarded by viz extra
+        print(
+            f"viz extra not installed: {e}\n  install with: uv sync --extra viz",
+            file=sys.stderr,
+        )
+        return 2
+
+    try:
+        all_spans = _fetch_spans(phoenix_url)
+    except (httpx.HTTPError, RuntimeError) as e:
+        print(f"phoenix query failed at {phoenix_url}: {e}", file=sys.stderr)
+        return 1
+    spans = [s for s in all_spans if _attrs(s).get("session.id") == context_id]
+    if not spans:
+        print(f"no spans for session.id={context_id}", file=sys.stderr)
+        return 1
+    spans.sort(key=lambda s: (s.get("startTime") or "", s.get("name") or ""))
+
+    from pathlib import Path as _Path
+
+    try:
+        session = render_session(spans, context_id, _Path(out_path))
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    print(
+        f"wrote {out_path}  hub={session.hub}  leaves={len(session.leaves)}  "
+        f"hops={len(session.hops)}  spans={session.span_count}  "
+        f"duration={session.duration_s:.2f}s"
+    )
+    return 0
+
+
 def cmd_get() -> int:
     """tasks/get against the relay; prints the JSON Task back."""
     task_id = _env("TASK")
@@ -423,6 +418,7 @@ def main(argv: list[str] | None = None) -> int:
         "send": cmd_send,
         "stream": cmd_stream,
         "view": cmd_view,
+        "gif": cmd_gif,
         "get": cmd_get,
         "tasks": cmd_tasks,
         "cancel": cmd_cancel,

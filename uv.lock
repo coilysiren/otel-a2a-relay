@@ -2257,6 +2257,11 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
 ]
 
+[package.optional-dependencies]
+viz = [
+    { name = "pillow" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "arize-phoenix" },
@@ -2278,9 +2283,11 @@ requires-dist = [
     { name = "opentelemetry-api", specifier = ">=1.27" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.27" },
     { name = "opentelemetry-sdk", specifier = ">=1.27" },
+    { name = "pillow", marker = "extra == 'viz'", specifier = ">=12.2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
+provides-extras = ["viz"]
 
 [package.metadata.requires-dev]
 dev = [

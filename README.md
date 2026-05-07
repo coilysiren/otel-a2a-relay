@@ -4,6 +4,10 @@
 
 `otel-a2a-relay` is the canonical name (repo, package, protocol doc). `o2r` is the dictation-friendly shortname used in CLI entrypoints (`o2r`, `o2r-harness`), span identifiers (`service.name=o2r`, the relay's `agent.name`), and prose below.
 
+![Animated session topology: a hot-pink relay hub at the center, two agent leaves on either side, a particle traveling along the arc that connects them, faint trails of past hops fading behind it](assets/session-topology.gif)
+
+A real session, animated. The relay is the magenta hub at the center; A and B are the leaves. Each particle is one A2A hop, drawn from a real Phoenix span; arcs above and below the chord let outbound and return hops cross visibly instead of overdrawing. Generate your own with `make demo && make gif CTX=demo`. Detailed below in [Animated session topology](#animated-session-topology).
+
 ## Pitch
 
 Two A2A agents talk to each other through this relay. Every message becomes one or more OTel spans, exported via [OTLP/HTTP](https://opentelemetry.io/docs/specs/otlp/) to whatever you've pointed `OTEL_EXPORTER_OTLP_ENDPOINT` at. The trace IS the operations view, no derived state needed.
@@ -75,6 +79,28 @@ This is the simplest shape the relay supports: one client, one relay, one peer, 
 The relay's peer registry comes from `OTEL_A2A_RELAY_PEERS=A=http://...,B=http://...`. The Makefile sets this for you. If a target in `metadata.agent.target` has no peer registered, the relay synthesizes a completed Task and skips the forward.
 
 Diagram source: [`scripts/render_topology.py`](scripts/render_topology.py). Regenerate with `uv run --with matplotlib python scripts/render_topology.py`.
+
+## Animated session topology
+
+`assets/topology.png` (above) is the protocol-shape illustration, a fixed cartoon. `assets/session-topology.gif` (the hero at the top) is the temporal one: real OTel spans for one session, animated by start time, against the same star.
+
+```sh
+make phoenix-fg                # operator-owned, in another terminal
+make demo                      # produces a `demo` session
+OUT=mine.gif make gif CTX=demo # writes mine.gif from real Phoenix spans
+```
+
+The renderer pulls every span tagged with `session.id == $CTX` from Phoenix's GraphQL endpoint, reduces them into hops (parent -> agent), auto-detects the relay as the hub, sorts the leaves alphabetically for a stable color palette, and animates each hop in start-time order. Two hops in the same tick render with their arcs bowed in opposite directions, so a forward-and-return pair reads as crossings rather than as a single overdrawn line.
+
+Determinism is baked in: same `session.id` against the same Phoenix DB produces a byte-identical GIF. Tests assert this against a synthetic-span fixture in `tests/fixtures/sessions.py`, so a renderer regression fails CI before the README hero drifts. The renderer is Pillow-only (no matplotlib); freetype ships with Pillow, JetBrains Mono ships in `src/otel_a2a_relay/viz/assets/`, the GIF palette is built once and reused across frames. To intentionally regenerate the README hero after a renderer change, run `make gif-fixture-update` and commit the new bytes.
+
+The viz extra is opt-in:
+
+```sh
+uv sync --extra viz
+```
+
+`make gif` does this automatically. The base relay install stays Pillow-free.
 
 ## Methods
 

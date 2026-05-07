@@ -24,6 +24,7 @@ from otel_a2a_relay.client import (
     _flatten,
     cmd_cancel,
     cmd_get,
+    cmd_gif,
     cmd_peers,
     cmd_send,
     cmd_stream,
@@ -359,6 +360,119 @@ def test_cmd_view_phoenix_error(
     monkeypatch.setattr(httpx, "post", bad_post)
     assert cmd_view() == 1
     assert "phoenix query failed" in capsys.readouterr().err
+
+
+# --------------------------------------------------------------------------- gif
+
+
+def test_cmd_gif_happy_path(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Any,
+) -> None:
+    """End-to-end: stub Phoenix, render the demo fixture, file appears."""
+    from tests.fixtures.sessions import DEMO_SESSION_ID, demo_session_spans
+
+    monkeypatch.setenv("CTX", DEMO_SESSION_ID)
+    monkeypatch.setenv("PHOENIX_URL", "http://phoenix")
+    out = tmp_path / "out.gif"
+    monkeypatch.setenv("OUT", str(out))
+    monkeypatch.setattr(
+        httpx,
+        "post",
+        lambda *_a, **_k: FakeResponse(_phoenix_payload(demo_session_spans())),
+    )
+    assert cmd_gif() == 0
+    assert out.exists() and out.stat().st_size > 0
+    summary = capsys.readouterr().out
+    assert f"wrote {out}" in summary
+    assert "hub=relay" in summary
+
+
+def test_cmd_gif_default_output_path(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Any,
+) -> None:
+    """When OUT is unset, the GIF lands at `assets/sessions/<ctx>.gif`."""
+    from tests.fixtures.sessions import DEMO_SESSION_ID, demo_session_spans
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("CTX", DEMO_SESSION_ID)
+    monkeypatch.delenv("OUT", raising=False)
+    monkeypatch.setattr(
+        httpx,
+        "post",
+        lambda *_a, **_k: FakeResponse(_phoenix_payload(demo_session_spans())),
+    )
+    assert cmd_gif() == 0
+    expected = tmp_path / "assets" / "sessions" / f"{DEMO_SESSION_ID}.gif"
+    assert expected.exists()
+    assert "wrote" in capsys.readouterr().out
+
+
+def test_cmd_gif_phoenix_unreachable(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("CTX", "ctx")
+
+    def bad_post(*_a: Any, **_k: Any) -> FakeResponse:
+        raise httpx.HTTPError("nope")
+
+    monkeypatch.setattr(httpx, "post", bad_post)
+    assert cmd_gif() == 1
+    assert "phoenix query failed" in capsys.readouterr().err
+
+
+def test_cmd_gif_no_spans_fails_loudly(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The issue mandates: no spans for the session id => non-zero exit."""
+    monkeypatch.setenv("CTX", "missing")
+    monkeypatch.setattr(httpx, "post", lambda *_a, **_k: FakeResponse(_phoenix_payload([])))
+    assert cmd_gif() == 1
+    assert "no spans" in capsys.readouterr().err
+
+
+def test_cmd_gif_render_error_exits_one(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Any,
+) -> None:
+    """If the renderer raises ValueError mid-flight, surface it as exit 1."""
+    monkeypatch.setenv("CTX", "ctx")
+    monkeypatch.setenv("OUT", str(tmp_path / "x.gif"))
+    monkeypatch.setattr(
+        httpx,
+        "post",
+        lambda *_a, **_k: FakeResponse(
+            _phoenix_payload(
+                [
+                    {
+                        "name": "a2a.client.send",
+                        "spanKind": "CLIENT",
+                        "startTime": "2026-01-01T00:00:00Z",
+                        "endTime": "2026-01-01T00:00:01Z",
+                        # Session matches but the span has no agent.id and no parent,
+                        # so reduce_spans produces zero hops and zero leaves.
+                        "attributes": {"session": {"id": "ctx"}},
+                        "events": [],
+                    }
+                ]
+            )
+        ),
+    )
+    from otel_a2a_relay import client as client_mod
+
+    def fake_render(*_a: Any, **_k: Any) -> Any:
+        raise ValueError("synthesized render failure")
+
+    monkeypatch.setattr("otel_a2a_relay.viz.render_session", fake_render)
+    # The cmd_gif imports render_session lazily inside the function, so
+    # monkeypatching the module attribute is the right surface.
+    monkeypatch.setattr(client_mod, "_attrs", lambda s: {"session.id": "ctx"})
+    assert cmd_gif() == 1
+    assert "synthesized render failure" in capsys.readouterr().err
 
 
 # --------------------------------------------------------------- get/tasks/cancel/peers
