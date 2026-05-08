@@ -4,6 +4,7 @@
   tempo-up tempo-down tempo-logs tempo-status tempo-harness tempo-clean \
   phoenix-fg phoenix-bootstrap phoenix-bootstrap-dry-run phoenix-harness \
   luca-demo luca-test luca-snapshots-update \
+  gif-fixture-update \
   status
 
 # ----------------------------------------------------------------------
@@ -93,6 +94,12 @@ phoenix-bootstrap:
 
 phoenix-bootstrap-dry-run:
 	uv run o2r-phoenix-bootstrap --dry-run
+
+# Regenerate the byte-exact baseline GIF that test_viz.py compares against.
+# Pillow's freetype build is per-platform, so the canonical bytes are Linux.
+# Run inside the same image CI uses (python:3.13-slim) when off-Linux.
+gif-fixture-update:
+	cd arize_phoenix && uv run python -m tests.fixtures.regen_session_gifs
 
 # ----------------------------------------------------------------------
 # LUCA-flow demo (backend-agnostic; uses whichever collector is up)
