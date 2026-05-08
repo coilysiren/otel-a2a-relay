@@ -1,0 +1,36 @@
+[
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T05:00:00.000Z",
+    "endTime": "2026-01-01T05:00:00.015Z",
+    "attributes": {
+      "session": {"id": "ws-rejected"},
+      "agent": {"id": "W1", "role": "worker"},
+      "peer": {"agent": {"id": "W2"}},
+      "graph": {"node": {"id": "W1"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/send", "task": {"id": "T-006"}},
+      "rpc": {"system": "jsonrpc", "service": "a2a", "method": "message/send"}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.relay.reject",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T05:00:00.005Z",
+    "endTime": "2026-01-01T05:00:00.012Z",
+    "attributes": {
+      "session": {"id": "ws-rejected"},
+      "agent": {"id": "relay", "role": "relay"},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {
+        "task": {"id": "T-006"},
+        "peer": {"sender_role": "worker", "target_role": "worker"},
+        "relay": {"reject_reason": "non_orchestrator_send_in_star_mode", "failure_class": "topology_violation"}
+      },
+      "rpc": {"jsonrpc": {"error": {"code": -32010, "message": "topology violation"}}}
+    },
+    "events": []
+  }
+]

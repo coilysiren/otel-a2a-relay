@@ -1,0 +1,31 @@
+# Per-repo command allowlist for otel-a2a-relay. The harness denies bare
+# `uv:*` invocations; tests, lint, and other dev verbs route through coily
+# so they land in the audit log.
+#
+# Each command's `run` is parsed via strings.Fields and must pass argv
+# validation - no shell metacharacters, no pipes, no $(subshells). The
+# Makefile already wraps the `cd <member> && uv run ...` shape, so coily
+# delegates to make rather than re-encoding the same recipe twice.
+
+commands:
+  test-core:
+    run: make test-core
+    description: Run the core/ pytest suite (covers tracing, span store, corpus).
+  test-arize-phoenix:
+    run: make test-arize-phoenix
+    description: Run the arize_phoenix/ pytest suite.
+  test-tempo-grafana:
+    run: make test-tempo-grafana
+    description: Run the tempo_grafana/ pytest suite.
+  test-all:
+    run: make test
+    description: Run all member-package pytest suites.
+  lint:
+    run: make lint
+    description: Run ruff + mypy across the workspace.
+  fmt:
+    run: make fmt
+    description: Format with ruff.
+  sync:
+    run: make sync
+    description: uv sync --all-packages.

@@ -1,0 +1,55 @@
+[
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T11:00:00.000Z",
+    "endTime": "2026-01-01T11:00:00.500Z",
+    "attributes": {
+      "session": {"id": "ws-tool"},
+      "agent": {"id": "B", "role": "worker"},
+      "graph": {"node": {"id": "B", "parent_id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-tool", "state": "completed"}}
+    },
+    "events": []
+  },
+  {
+    "name": "llm.generate",
+    "spanKind": "INTERNAL",
+    "startTime": "2026-01-01T11:00:00.020Z",
+    "endTime": "2026-01-01T11:00:00.200Z",
+    "attributes": {
+      "session": {"id": "ws-tool"},
+      "agent": {"id": "B", "role": "worker"},
+      "openinference": {"span": {"kind": "LLM"}},
+      "gen_ai": {"system": "openai", "request": {"model": "gpt-4o-mini"}, "usage": {"input_tokens": 120, "output_tokens": 35}}
+    },
+    "events": []
+  },
+  {
+    "name": "tool.search_inventory",
+    "spanKind": "INTERNAL",
+    "startTime": "2026-01-01T11:00:00.210Z",
+    "endTime": "2026-01-01T11:00:00.260Z",
+    "attributes": {
+      "session": {"id": "ws-tool"},
+      "agent": {"id": "B", "role": "worker"},
+      "openinference": {"span": {"kind": "TOOL"}},
+      "tool": {"name": "search_inventory", "input": "{\"sku\":\"X-12\"}", "output": "{\"qty\":3}"}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.message.send",
+    "spanKind": "INTERNAL",
+    "startTime": "2026-01-01T11:00:00.470Z",
+    "endTime": "2026-01-01T11:00:00.495Z",
+    "attributes": {
+      "session": {"id": "ws-tool"},
+      "agent": {"id": "B", "role": "worker"},
+      "openinference": {"span": {"kind": "LLM"}},
+      "output": {"value": "{\"role\":\"agent\",\"parts\":[{\"kind\":\"text\",\"text\":\"3 units in stock\"}]}", "mime_type": "application/json"}
+    },
+    "events": []
+  }
+]

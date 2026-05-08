@@ -1,0 +1,36 @@
+[
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T01:00:00.000Z",
+    "endTime": "2026-01-01T01:00:00.020Z",
+    "attributes": {
+      "session": {"id": "ws-failed"},
+      "agent": {"id": "A", "name": "agent-alpha", "role": "orchestrator"},
+      "peer": {"agent": {"id": "B"}},
+      "graph": {"node": {"id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/stream", "task": {"id": "T-002"}},
+      "rpc": {"system": "jsonrpc", "service": "a2a", "method": "message/stream"}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T01:00:00.030Z",
+    "endTime": "2026-01-01T01:00:00.250Z",
+    "attributes": {
+      "session": {"id": "ws-failed"},
+      "agent": {"id": "B", "name": "agent-beta", "role": "worker"},
+      "graph": {"node": {"id": "B", "parent_id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-002", "state": "failed"}, "relay": {"failure_class": "peer_jsonrpc_error"}}
+    },
+    "events": [
+      {"name": "o2r.task.state_change", "attributes": {"from": "submitted", "to": "working", "ts": "2026-01-01T01:00:00.040Z"}},
+      {"name": "exception", "attributes": {"exception": {"type": "RuntimeError", "message": "downstream model returned 500"}}},
+      {"name": "o2r.task.state_change", "attributes": {"from": "working", "to": "failed", "ts": "2026-01-01T01:00:00.240Z"}}
+    ]
+  }
+]

@@ -1,0 +1,49 @@
+[
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T13:00:00.000Z",
+    "endTime": "2026-01-01T13:00:00.012Z",
+    "attributes": {
+      "session": {"id": "ws-star-ok"},
+      "agent": {"id": "ORCH", "role": "orchestrator"},
+      "peer": {"agent": {"id": "W1"}},
+      "graph": {"node": {"id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/send", "task": {"id": "T-star"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.relay.forward",
+    "spanKind": "INTERNAL",
+    "startTime": "2026-01-01T13:00:00.013Z",
+    "endTime": "2026-01-01T13:00:00.020Z",
+    "attributes": {
+      "session": {"id": "ws-star-ok"},
+      "agent": {"id": "relay", "role": "relay"},
+      "peer": {"agent": {"id": "W1"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {
+        "task": {"id": "T-star"},
+        "peer": {"sender_role": "orchestrator", "target_role": "worker"},
+        "relay": {"mode": "star_enforce_pass"}
+      }
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T13:00:00.025Z",
+    "endTime": "2026-01-01T13:00:00.090Z",
+    "attributes": {
+      "session": {"id": "ws-star-ok"},
+      "agent": {"id": "W1", "role": "worker"},
+      "graph": {"node": {"id": "W1", "parent_id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-star", "state": "completed"}}
+    },
+    "events": []
+  }
+]

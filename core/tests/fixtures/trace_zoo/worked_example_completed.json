@@ -1,0 +1,78 @@
+[
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T00:00:00.000Z",
+    "endTime": "2026-01-01T00:00:00.020Z",
+    "attributes": {
+      "session": {"id": "ws-completed"},
+      "agent": {"id": "A", "name": "agent-alpha", "role": "orchestrator"},
+      "peer": {"agent": {"id": "B"}},
+      "graph": {"node": {"id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/stream", "task": {"id": "T-001"}},
+      "rpc": {"system": "jsonrpc", "service": "a2a", "method": "message/stream"}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.message.send",
+    "spanKind": "INTERNAL",
+    "startTime": "2026-01-01T00:00:00.005Z",
+    "endTime": "2026-01-01T00:00:00.018Z",
+    "attributes": {
+      "session": {"id": "ws-completed"},
+      "agent": {"id": "A", "role": "orchestrator"},
+      "openinference": {"span": {"kind": "LLM"}},
+      "input": {"value": "{\"role\":\"user\",\"parts\":[{\"kind\":\"text\",\"text\":\"plan a deploy\"}]}", "mime_type": "application/json"}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T00:00:00.030Z",
+    "endTime": "2026-01-01T00:00:00.500Z",
+    "attributes": {
+      "session": {"id": "ws-completed"},
+      "agent": {"id": "B", "name": "agent-beta", "role": "worker"},
+      "graph": {"node": {"id": "B", "parent_id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-001", "state": "completed"}}
+    },
+    "events": [
+      {"name": "o2r.task.state_change", "attributes": {"from": "submitted", "to": "working", "ts": "2026-01-01T00:00:00.040Z"}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 0, "message": {"role": "agent"}, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 1, "message": {"role": "agent"}, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 2, "message": {"role": "agent"}, "final": true}},
+      {"name": "o2r.task.state_change", "attributes": {"from": "working", "to": "completed", "ts": "2026-01-01T00:00:00.480Z"}}
+    ]
+  },
+  {
+    "name": "a2a.message.send",
+    "spanKind": "INTERNAL",
+    "startTime": "2026-01-01T00:00:00.470Z",
+    "endTime": "2026-01-01T00:00:00.495Z",
+    "attributes": {
+      "session": {"id": "ws-completed"},
+      "agent": {"id": "B", "role": "worker"},
+      "openinference": {"span": {"kind": "LLM"}},
+      "output": {"value": "{\"role\":\"agent\",\"parts\":[{\"kind\":\"text\",\"text\":\"deploy plan ready\"}]}", "mime_type": "application/json"}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.client.recv",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T00:00:00.510Z",
+    "endTime": "2026-01-01T00:00:00.520Z",
+    "attributes": {
+      "session": {"id": "ws-completed"},
+      "agent": {"id": "A", "role": "orchestrator"},
+      "graph": {"node": {"id": "A", "parent_id": "B"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "tasks/get", "task": {"id": "T-001"}}
+    },
+    "events": []
+  }
+]

@@ -1,0 +1,60 @@
+[
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T10:00:00.000Z",
+    "endTime": "2026-01-01T10:00:00.010Z",
+    "attributes": {
+      "session": {"id": "ws-concurrent"},
+      "agent": {"id": "ORCH", "role": "orchestrator"},
+      "peer": {"agent": {"id": "W1"}},
+      "graph": {"node": {"id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/send", "task": {"id": "T-fanout-1"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T10:00:00.005Z",
+    "endTime": "2026-01-01T10:00:00.014Z",
+    "attributes": {
+      "session": {"id": "ws-concurrent"},
+      "agent": {"id": "ORCH", "role": "orchestrator"},
+      "peer": {"agent": {"id": "W2"}},
+      "graph": {"node": {"id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/send", "task": {"id": "T-fanout-2"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T10:00:00.020Z",
+    "endTime": "2026-01-01T10:00:00.300Z",
+    "attributes": {
+      "session": {"id": "ws-concurrent"},
+      "agent": {"id": "W1", "role": "worker"},
+      "graph": {"node": {"id": "W1", "parent_id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-fanout-1", "state": "completed"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T10:00:00.022Z",
+    "endTime": "2026-01-01T10:00:00.290Z",
+    "attributes": {
+      "session": {"id": "ws-concurrent"},
+      "agent": {"id": "W2", "role": "worker"},
+      "graph": {"node": {"id": "W2", "parent_id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-fanout-2", "state": "completed"}}
+    },
+    "events": []
+  }
+]

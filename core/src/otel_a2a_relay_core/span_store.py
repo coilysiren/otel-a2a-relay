@@ -175,8 +175,8 @@ class MemorySpanProcessor(SpanProcessor):
     def __init__(self, store: MemorySpanStore) -> None:
         self._store = store
 
-    def on_start(
-        self, _span: Any, _parent_context: Any = None
+    def on_start(  # noqa: ARG002
+        self, span: Any, parent_context: Any = None
     ) -> None:  # pragma: no cover - SDK contract
         return None
 
@@ -186,5 +186,5 @@ class MemorySpanProcessor(SpanProcessor):
     def shutdown(self) -> None:  # pragma: no cover - SDK contract
         return None
 
-    def force_flush(self, _timeout_millis: int = 30000) -> bool:
+    def force_flush(self, timeout_millis: int = 30000) -> bool:  # noqa: ARG002
         return True

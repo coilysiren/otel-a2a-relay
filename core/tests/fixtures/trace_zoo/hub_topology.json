@@ -1,0 +1,89 @@
+[
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T08:00:00.000Z",
+    "endTime": "2026-01-01T08:00:00.020Z",
+    "attributes": {
+      "session": {"id": "ws-hub"},
+      "agent": {"id": "ORCH", "role": "orchestrator"},
+      "peer": {"agent": {"id": "W1"}},
+      "graph": {"node": {"id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/send", "task": {"id": "T-W1"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T08:00:00.030Z",
+    "endTime": "2026-01-01T08:00:00.100Z",
+    "attributes": {
+      "session": {"id": "ws-hub"},
+      "agent": {"id": "W1", "role": "worker"},
+      "graph": {"node": {"id": "W1", "parent_id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-W1", "state": "completed"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T08:00:00.110Z",
+    "endTime": "2026-01-01T08:00:00.130Z",
+    "attributes": {
+      "session": {"id": "ws-hub"},
+      "agent": {"id": "ORCH", "role": "orchestrator"},
+      "peer": {"agent": {"id": "W2"}},
+      "graph": {"node": {"id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/send", "task": {"id": "T-W2"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T08:00:00.140Z",
+    "endTime": "2026-01-01T08:00:00.200Z",
+    "attributes": {
+      "session": {"id": "ws-hub"},
+      "agent": {"id": "W2", "role": "worker"},
+      "graph": {"node": {"id": "W2", "parent_id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-W2", "state": "completed"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T08:00:00.210Z",
+    "endTime": "2026-01-01T08:00:00.225Z",
+    "attributes": {
+      "session": {"id": "ws-hub"},
+      "agent": {"id": "ORCH", "role": "orchestrator"},
+      "peer": {"agent": {"id": "W3"}},
+      "graph": {"node": {"id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"method": "message/send", "task": {"id": "T-W3"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T08:00:00.230Z",
+    "endTime": "2026-01-01T08:00:00.300Z",
+    "attributes": {
+      "session": {"id": "ws-hub"},
+      "agent": {"id": "W3", "role": "worker"},
+      "graph": {"node": {"id": "W3", "parent_id": "ORCH"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-W3", "state": "completed"}}
+    },
+    "events": []
+  }
+]

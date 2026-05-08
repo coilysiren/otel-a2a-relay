@@ -1,0 +1,44 @@
+[
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T07:00:00.000Z",
+    "endTime": "2026-01-01T07:00:00.100Z",
+    "attributes": {
+      "session": {"id": "ws-alpha"},
+      "agent": {"id": "B", "role": "worker"},
+      "graph": {"node": {"id": "B", "parent_id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-alpha", "state": "completed"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T07:00:01.000Z",
+    "endTime": "2026-01-01T07:00:01.100Z",
+    "attributes": {
+      "session": {"id": "ws-beta"},
+      "agent": {"id": "C", "role": "worker"},
+      "graph": {"node": {"id": "C", "parent_id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-beta", "state": "completed"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T07:00:02.000Z",
+    "endTime": "2026-01-01T07:00:02.100Z",
+    "attributes": {
+      "session": {"id": "ws-alpha"},
+      "agent": {"id": "B", "role": "worker"},
+      "graph": {"node": {"id": "B", "parent_id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-alpha-2", "state": "completed"}}
+    },
+    "events": []
+  }
+]

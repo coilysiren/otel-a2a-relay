@@ -1,0 +1,27 @@
+[
+  {
+    "name": "a2a.task",
+    "spanKind": "SERVER",
+    "startTime": "2026-01-01T04:00:00.000Z",
+    "endTime": "2026-01-01T04:00:01.200Z",
+    "attributes": {
+      "session": {"id": "ws-streaming"},
+      "agent": {"id": "B", "role": "worker"},
+      "graph": {"node": {"id": "B", "parent_id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-005", "state": "completed"}}
+    },
+    "events": [
+      {"name": "o2r.task.state_change", "attributes": {"from": "submitted", "to": "working", "ts": "2026-01-01T04:00:00.020Z"}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 0, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 1, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 2, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 3, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 4, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 5, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 6, "final": false}},
+      {"name": "a2a.message.stream_chunk", "attributes": {"seq": 7, "final": true}},
+      {"name": "o2r.task.state_change", "attributes": {"from": "working", "to": "completed", "ts": "2026-01-01T04:00:01.180Z"}}
+    ]
+  }
+]

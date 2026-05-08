@@ -1,0 +1,22 @@
+[
+  {
+    "name": "a2a.relay.forward",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T12:00:00.000Z",
+    "endTime": "2026-01-01T12:00:30.000Z",
+    "attributes": {
+      "session": {"id": "ws-timeout"},
+      "agent": {"id": "relay", "role": "relay"},
+      "peer": {"agent": {"id": "B-slow"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {
+        "task": {"id": "T-timeout"},
+        "method": "message/stream",
+        "relay": {"failure_class": "timeout"}
+      }
+    },
+    "events": [
+      {"name": "exception", "attributes": {"exception": {"type": "ReadTimeout", "message": "peer did not respond within 30s"}}}
+    ]
+  }
+]

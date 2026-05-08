@@ -1,0 +1,22 @@
+[
+  {
+    "name": "a2a.relay.forward",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T06:00:00.000Z",
+    "endTime": "2026-01-01T06:00:00.080Z",
+    "attributes": {
+      "session": {"id": "ws-peer-404"},
+      "agent": {"id": "relay", "role": "relay"},
+      "peer": {"agent": {"id": "B-missing"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {
+        "task": {"id": "T-007"},
+        "method": "message/stream",
+        "relay": {"failure_class": "peer_404"}
+      }
+    },
+    "events": [
+      {"name": "exception", "attributes": {"exception": {"type": "PeerNotRegisteredError", "message": "no such peer: B-missing"}}}
+    ]
+  }
+]
