@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
+from opentelemetry import trace
 
 from luca.messages import (
     KIND_DISPATCH,
@@ -59,11 +60,31 @@ def _read_fixtures(fixture_paths: dict[str, str]) -> dict[str, str]:
     return out
 
 
+def _flush_traces() -> None:
+    """Flush any in-flight OTLP exports before the process goes away.
+
+    `os._exit` skips atexit, so the SDK's auto-shutdown hook never runs
+    and SimpleSpanProcessor's synchronous-but-still-network-bound HTTP
+    POSTs get aborted mid-flight. Without this, every worker drops its
+    last 1-3 spans on exit, and the rogue worker (which only emits one
+    span at boot before exiting) drops its only trace - the
+    luca-rogue-bootstrap session in Phoenix shows up empty.
+    """
+    provider = trace.get_tracer_provider()
+    shutdown = getattr(provider, "shutdown", None)
+    if callable(shutdown):
+        try:
+            shutdown()
+        except Exception as e:  # pragma: no cover - best-effort on exit
+            print(f"WORKER: tracer shutdown raised {e!r}", file=sys.stderr, flush=True)
+
+
 def _shutdown_after(delay: float = 1.0, code: int = 0) -> None:
-    """Schedule process exit so the response can flush before we go away."""
+    """Schedule process exit so the response and traces can flush before we go away."""
 
     def _bye() -> None:
         time.sleep(delay)
+        _flush_traces()
         os._exit(code)
 
     threading.Thread(target=_bye, daemon=True).start()
@@ -71,6 +92,7 @@ def _shutdown_after(delay: float = 1.0, code: int = 0) -> None:
 
 def _crash(message: str) -> None:
     print(f"WORKER CRASH: {message}", file=sys.stderr, flush=True)
+    _flush_traces()
     os._exit(1)
 
 

@@ -23,7 +23,12 @@ QUERY = (
 # above 15 (which still proves star-topology + retry + crash + rogue all
 # emitted into the trace).
 MIN_TRACES = 15
-INGEST_WAIT_SECS = 5
+# Phoenix in CI lags on ingest. The 5s baseline produced flakes (#95) where
+# only luca-rogue-bootstrap landed and every other LUCA session was missing.
+# Workers also dropped their last few spans because os._exit skipped the OTel
+# atexit shutdown - that's fixed in luca/worker.py - but giving Phoenix more
+# headroom is the cheap belt to the fix's suspenders.
+INGEST_WAIT_SECS = 15
 
 
 def query() -> list[dict]:
