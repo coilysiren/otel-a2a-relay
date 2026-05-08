@@ -1,5 +1,33 @@
 [
   {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T06:59:59.900Z",
+    "endTime": "2026-01-01T06:59:59.910Z",
+    "attributes": {
+      "session": {"id": "ws-alpha"},
+      "agent": {"id": "A", "role": "orchestrator"},
+      "graph": {"node": {"id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-alpha"}}
+    },
+    "events": []
+  },
+  {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T07:00:00.900Z",
+    "endTime": "2026-01-01T07:00:00.910Z",
+    "attributes": {
+      "session": {"id": "ws-beta"},
+      "agent": {"id": "A", "role": "orchestrator"},
+      "graph": {"node": {"id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-beta"}}
+    },
+    "events": []
+  },
+  {
     "name": "a2a.task",
     "spanKind": "SERVER",
     "startTime": "2026-01-01T07:00:00.000Z",

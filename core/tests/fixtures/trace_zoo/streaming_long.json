@@ -1,5 +1,19 @@
 [
   {
+    "name": "a2a.client.send",
+    "spanKind": "CLIENT",
+    "startTime": "2026-01-01T03:59:59.900Z",
+    "endTime": "2026-01-01T03:59:59.910Z",
+    "attributes": {
+      "session": {"id": "ws-streaming"},
+      "agent": {"id": "A", "role": "orchestrator"},
+      "graph": {"node": {"id": "A"}},
+      "openinference": {"span": {"kind": "AGENT"}},
+      "o2r": {"task": {"id": "T-005"}}
+    },
+    "events": []
+  },
+  {
     "name": "a2a.task",
     "spanKind": "SERVER",
     "startTime": "2026-01-01T04:00:00.000Z",
