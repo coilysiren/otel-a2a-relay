@@ -73,6 +73,33 @@ def list_luca_sessions() -> list[dict]:
     return out
 
 
+def _flatten(d: object, prefix: str = "") -> dict:
+    """Re-flatten Phoenix's nested attribute dict back to dotted keys.
+    Phoenix folds `session.id` to {"session": {"id": ...}} on the way out."""
+    out: dict = {}
+    if not isinstance(d, dict):
+        return {prefix: d} if prefix else {}
+    for k, v in d.items():
+        key = f"{prefix}.{k}" if prefix else k
+        if isinstance(v, dict):
+            out.update(_flatten(v, key))
+        else:
+            out[key] = v
+    return out
+
+
+def _span_session_id(span: dict) -> str | None:
+    raw = span.get("attributes")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+    flat = _flatten(raw or {})
+    val = flat.get("session.id")
+    return val if isinstance(val, str) else None
+
+
 def count_session_spans(session_id: str) -> int:
     """Walk every span in every project and count those carrying
     `session.id == session_id`. The orchestrator session can have spans
@@ -81,12 +108,7 @@ def count_session_spans(session_id: str) -> int:
     count = 0
     for project in body["data"]["projects"]["edges"]:
         for edge in project["node"]["spans"]["edges"]:
-            attrs = edge["node"].get("attributes") or "{}"
-            try:
-                parsed = json.loads(attrs) if isinstance(attrs, str) else attrs
-            except json.JSONDecodeError:
-                continue
-            if parsed.get("session.id") == session_id:
+            if _span_session_id(edge["node"]) == session_id:
                 count += 1
     return count
 
