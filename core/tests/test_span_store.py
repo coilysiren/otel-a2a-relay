@@ -6,7 +6,7 @@ ReadableSpans through the SpanProcessor adapter.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from opentelemetry.sdk.resources import Resource
@@ -193,14 +193,14 @@ class _UnstartedSpan:
 
     name = "unstarted"
     kind = SpanKind.INTERNAL
-    attributes: dict[str, Any] = {}
-    events: list[Any] = []
+    attributes: ClassVar[dict[str, Any]] = {}
+    events: ClassVar[list[Any]] = []
     start_time: int | None = None
     end_time: int | None = None
 
 
 def test_readable_span_to_dict_handles_missing_timestamps() -> None:
-    out = readable_span_to_dict(_UnstartedSpan())  # type: ignore[arg-type]
+    out = readable_span_to_dict(_UnstartedSpan())
     assert out["startTime"] is None
     assert out["endTime"] is None
     assert out["spanKind"] == "INTERNAL"

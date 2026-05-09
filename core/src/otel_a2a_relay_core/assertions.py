@@ -26,13 +26,13 @@ from typing import Any
 
 from otel_a2a_relay_core.span_store import MemorySpanStore
 
-SpanLike = dict[str, Any]
-Spans = Sequence[SpanLike] | MemorySpanStore
+type SpanLike = dict[str, Any]
+type Spans = Sequence[SpanLike] | MemorySpanStore
 
 
 def _materialize(spans: Spans) -> list[SpanLike]:
     if isinstance(spans, MemorySpanStore):
-        return spans.fetch_spans(limit=1_000_000)
+        return list(spans.fetch_spans(limit=1_000_000))
     return list(spans)
 
 
@@ -110,16 +110,12 @@ def every_tool_call_is_observed(spans: Spans) -> list[str]:
         if _kind(s) != "LLM":
             continue
         attrs = s.get("attributes") or {}
-        declares_tool = any(
-            "tool" in k or "tool_calls" in k for k in _flat_keys(attrs)
-        )
+        declares_tool = any("tool" in k or "tool_calls" in k for k in _flat_keys(attrs))
         if not declares_tool:
             continue
         sid = _attr(s, "session", "id")
         if not isinstance(sid, str):
-            violations.append(
-                f"LLM span {s.get('name')!r} declares a tool but has no session.id"
-            )
+            violations.append(f"LLM span {s.get('name')!r} declares a tool but has no session.id")
             continue
         start = s.get("startTime") or ""
         end = s.get("endTime") or ""
@@ -218,9 +214,7 @@ def every_relay_failure_has_class(spans: Spans) -> list[str]:
     for s in _materialize(spans):
         if not _is_relay_emitted(s):
             continue
-        has_exception = any(
-            (ev.get("name") or "") == "exception" for ev in s.get("events") or []
-        )
+        has_exception = any((ev.get("name") or "") == "exception" for ev in s.get("events") or [])
         is_reject = "reject" in str(s.get("name") or "")
         if not (has_exception or is_reject):
             continue
@@ -313,13 +307,10 @@ def task_state_progression_is_valid(spans: Spans) -> list[str]:
                 )
             allowed = _VALID_TASK_STATE_TRANSITIONS.get(from_state)
             if allowed is None:
-                violations.append(
-                    f"task {s.get('name')!r} unknown from-state {from_state!r}"
-                )
+                violations.append(f"task {s.get('name')!r} unknown from-state {from_state!r}")
             elif to_state not in allowed:
                 violations.append(
-                    f"task {s.get('name')!r} invalid transition "
-                    f"{from_state!r} -> {to_state!r}"
+                    f"task {s.get('name')!r} invalid transition {from_state!r} -> {to_state!r}"
                 )
             prev = to_state
     return violations
@@ -354,9 +345,7 @@ def stream_chunk_seqs_are_monotonic(spans: Spans) -> list[str]:
                     f"task {s.get('name')!r} stream_chunk seq {seq} not greater than {last_seq}"
                 )
             if seen_final:
-                violations.append(
-                    f"task {s.get('name')!r} stream_chunk after final: seq={seq}"
-                )
+                violations.append(f"task {s.get('name')!r} stream_chunk after final: seq={seq}")
             if final:
                 seen_final = True
             last_seq = seq
