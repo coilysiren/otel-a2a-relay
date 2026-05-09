@@ -1,0 +1,46 @@
+name: regen-gif-baseline
+
+# Regenerate the byte-exact GIF baseline from CI's Linux Pillow build and
+# commit it back to main. Pillow's freetype is per-platform, so the canonical
+# bytes can only be produced where the test runs (ubuntu-latest, x86_64).
+# No untrusted github.event inputs are referenced.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      - name: uv sync
+        run: uv sync --frozen --all-packages
+
+      - name: Regenerate baseline
+        run: make gif-fixture-update
+
+      - name: Commit and push if baseline changed
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- arize_phoenix/assets/session-topology.gif; then
+            echo "Baseline already current; nothing to commit."
+            exit 0
+          fi
+          git add arize_phoenix/assets/session-topology.gif
+          git commit -m "viz: regenerate GIF baseline from CI Pillow build
+
+closes #96"
+          git push
