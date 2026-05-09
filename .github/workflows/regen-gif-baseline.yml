@@ -41,9 +41,11 @@ jobs:
           fi
           BASELINE=arize_phoenix/assets/session-topology.gif
           SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${BASELINE}?ref=main" --jq .sha)
-          B64=$(base64 -w0 "$BASELINE")
-          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${BASELINE}" \
-            -f message="viz: regenerate GIF baseline from CI Pillow build (closes #96)" \
-            -f content="$B64" \
-            -f sha="$SHA" \
-            -f branch=main
+          jq -n \
+            --arg message "viz: regenerate GIF baseline from CI Pillow build (closes #96)" \
+            --arg content "$(base64 -w0 "$BASELINE")" \
+            --arg sha "$SHA" \
+            --arg branch main \
+            '{message:$message, content:$content, sha:$sha, branch:$branch}' \
+            > /tmp/payload.json
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${BASELINE}" --input /tmp/payload.json
