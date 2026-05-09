@@ -40,7 +40,5 @@ jobs:
             exit 0
           fi
           git add arize_phoenix/assets/session-topology.gif
-          git commit -m "viz: regenerate GIF baseline from CI Pillow build
-
-closes #96"
+          git commit -m "viz: regenerate GIF baseline from CI Pillow build (closes #96)"
           git push
