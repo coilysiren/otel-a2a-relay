@@ -30,15 +30,20 @@ jobs:
       - name: Regenerate baseline
         run: make gif-fixture-update
 
-      - name: Commit and push if baseline changed
+      - name: Commit baseline via Contents API (signed)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet -- arize_phoenix/assets/session-topology.gif; then
             echo "Baseline already current; nothing to commit."
             exit 0
           fi
-          git add arize_phoenix/assets/session-topology.gif
-          git commit -m "viz: regenerate GIF baseline from CI Pillow build (closes #96)"
-          git push
+          BASELINE=arize_phoenix/assets/session-topology.gif
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${BASELINE}?ref=main" --jq .sha)
+          B64=$(base64 -w0 "$BASELINE")
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/${BASELINE}" \
+            -f message="viz: regenerate GIF baseline from CI Pillow build (closes #96)" \
+            -f content="$B64" \
+            -f sha="$SHA" \
+            -f branch=main
