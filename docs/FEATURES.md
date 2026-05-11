@@ -6,6 +6,8 @@ Last full sweep: 2026-05-08.
 
 ## Core relay
 
+Exercise: `coily exec test-core`.
+
 - **A2A JSON-RPC 2.0 server** over HTTP. Methods: `message/send`, `message/stream`, `tasks/get`, `tasks/cancel`.
 - **AgentCard discovery** at `/.well-known/agent.json`, plus `/peers` aggregation endpoint.
 - **Star-topology enforcement**. Only the orchestrator can target peers. Other peers can only target the orchestrator. Violations return JSON-RPC error `-32010`.
@@ -31,6 +33,8 @@ Last full sweep: 2026-05-08.
 
 ## Arize Phoenix integration
 
+Exercise: `coily exec test-arize-phoenix`.
+
 - **`o2r-harness`**: posts a worked-example trace and prints validation steps.
 - **`o2r-phoenix-bootstrap`**: idempotent provisioning of annotation configs (`relay_failure_class`, `task_outcome_correct`) and datasets (`relay-decisions-golden`, `relay-failures-regression`) via Phoenix REST API.
 - **`o2r-view`**: reduces Phoenix session spans to a readable per-hop log with agent tagging and event details.
@@ -38,6 +42,8 @@ Last full sweep: 2026-05-08.
 - **REST + GraphQL query helpers** for Phoenix.
 
 ## Tempo + Grafana integration
+
+Exercise: `coily exec test-tempo-grafana`.
 
 - **Dockerized stack**: Tempo 2.6.1, Prometheus 2.55.1, Grafana 11.3.1 with provisioned datasources.
 - **Provisioned dashboards**:
@@ -60,3 +66,11 @@ Last full sweep: 2026-05-08.
   - `orchestrator.flow` (long-lived root)
   - `orchestrator.step.<n>` (per-step subtrees)
   - `orchestrator.acceptance` (decision + reason + criterion + score)
+
+## See also
+
+- [README.md](../README.md) - human-facing intro and quickstart.
+- [AGENTS.md](../AGENTS.md) - agent-facing operating rules.
+- [.coily/coily.yaml](../.coily/coily.yaml) - allowlisted commands. Agents route through coily, not bare `make` / `uv` / `python`.
+
+Cross-reference convention from [coilysiren/coilyco-ai#313](https://github.com/coilysiren/coilyco-ai/issues/313). This repo is the worked example.

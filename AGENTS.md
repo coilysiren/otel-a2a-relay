@@ -4,6 +4,10 @@ See `../AGENTS.md` for workspace-level conventions (git workflow, test/lint auto
 
 ---
 
+## Allowlisted commands
+
+Agents cannot run bare `make`, `uv`, `python`, or `docker compose` in this repo. Route every command through coily, which reads [.coily/coily.yaml](.coily/coily.yaml). Current verbs: `test-core`, `test-arize-phoenix`, `test-tempo-grafana`, `test-all`, `lint`, `fmt`, `sync`. Add new verbs to that file before invoking them; do not bypass.
+
 ## Public repo
 
 This is a public repo. Same rules as coilyco-ai's "treat as public" surface: no LAN IPs, public IPs, addresses, real names, secondary email aliases, or private identity tags. Role-based descriptors only when referring to people in issues, PR bodies, commit messages, or docs.
@@ -70,3 +74,11 @@ The operator-facing CLI for talking to a relay is `coily channel <verb>` in `coi
 Protocol versions live in the doc heading (`# Protocol vX.Y`). Bump on any spec-shape change that the harness has revalidated. Don't bump for prose-only edits.
 
 The relay binary itself will get its own semver once there is a binary. For now the protocol version is the only version that matters.
+
+## See also
+
+- [README.md](README.md) - human-facing intro and quickstart.
+- [docs/FEATURES.md](docs/FEATURES.md) - inventory of what ships today.
+- [.coily/coily.yaml](.coily/coily.yaml) - allowlisted commands. Agents route through coily, not bare `make` / `uv` / `python`.
+
+Cross-reference convention from [coilysiren/coilyco-ai#313](https://github.com/coilysiren/coilyco-ai/issues/313). This repo is the worked example.
