@@ -27,6 +27,16 @@ repos:
 
   - repo: local
     hooks:
+      - id: check-coily-yaml
+        name: coily.yaml verb/target name match
+        description: Enforce that every .coily/coily.yaml command's run is `make <verb>`. Tracks coilysiren/coily#116.
+        entry: python3 scripts/check-coily-yaml.py
+        language: system
+        files: ^\.coily/coily\.yaml$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
       - id: coily-trailer
         name: coily audit-log trailer
         description: Append Audit-log trailers to the commit message based on coily's audit log for this repo.
