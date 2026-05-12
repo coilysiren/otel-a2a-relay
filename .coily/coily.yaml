@@ -17,7 +17,7 @@ commands:
   test-tempo-grafana:
     run: make test-tempo-grafana
     description: Run the tempo_grafana/ pytest suite.
-  test-all:
+  test:
     run: make test
     description: Run all member-package pytest suites.
   lint:

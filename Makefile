@@ -10,21 +10,21 @@
 # ----------------------------------------------------------------------
 # Sync
 # ----------------------------------------------------------------------
-sync:
+sync: ## uv sync --all-packages.
 	uv sync --all-packages
 
 # ----------------------------------------------------------------------
 # Tests
 # ----------------------------------------------------------------------
-test: test-core test-arize-phoenix test-tempo-grafana
+test: test-core test-arize-phoenix test-tempo-grafana ## Run all member-package pytest suites.
 
-test-core:
+test-core: ## Run the core/ pytest suite (covers tracing, span store, corpus).
 	cd core && uv run pytest
 
-test-arize-phoenix:
+test-arize-phoenix: ## Run the arize_phoenix/ pytest suite.
 	cd arize_phoenix && uv run pytest
 
-test-tempo-grafana:
+test-tempo-grafana: ## Run the tempo_grafana/ pytest suite.
 	cd tempo_grafana && uv run pytest
 
 # Slow end-to-end LUCA-flow snapshot suite. Runs the demo as a subprocess.
@@ -37,13 +37,13 @@ luca-snapshots-update:
 # ----------------------------------------------------------------------
 # Lint
 # ----------------------------------------------------------------------
-lint: ruff mypy
+lint: ruff mypy ## Run ruff + mypy across the workspace.
 
 ruff:
 	uv run ruff check core arize_phoenix tempo_grafana examples
 	uv run ruff format --check core arize_phoenix tempo_grafana examples
 
-fmt:
+fmt: ## Format with ruff.
 	uv run ruff check --fix core arize_phoenix tempo_grafana examples
 	uv run ruff format core arize_phoenix tempo_grafana examples
 
