@@ -32,17 +32,7 @@ Skipping step 2 is how the spec drifts from reality. Do not skip it even when "t
 
 ## Validating against Phoenix
 
-Local Phoenix:
-
-```sh
-uv sync
-uv run phoenix serve &
-uv run o2r-harness
-```
-
-Or via pyinvoke: `invoke phoenix` and `invoke harness`. The full task list is in `tasks.py`.
-
-Two GraphQL queries cover the validation surface:
+See README quickstart for the bring-up recipe. Two GraphQL queries cover the validation surface:
 
 - Per-span attribute check:
   ```graphql
