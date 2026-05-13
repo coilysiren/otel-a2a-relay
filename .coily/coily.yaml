@@ -29,3 +29,9 @@ commands:
   sync:
     run: make sync
     description: uv sync --all-packages.
+  phoenix-fg:
+    run: make phoenix-fg
+    description: Run `phoenix serve` in foreground. Backs the sequencing-gate harness re-run.
+  phoenix-harness:
+    run: make phoenix-harness
+    description: Post the worked-example trace to a running Phoenix. Validates protocol shape end-to-end.

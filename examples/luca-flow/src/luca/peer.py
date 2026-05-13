@@ -94,7 +94,6 @@ def create_peer_app(
         tracer = bootstrap(
             namespace=LUCA_NAMESPACE,
             deployment=os.environ.get("LUCA_DEPLOYMENT", LUCA_DEFAULT_DEPLOYMENT),
-            product_area=os.environ.get("LUCA_PRODUCT_AREA") or None,
             role=role,
         )
     spec = specialization or role

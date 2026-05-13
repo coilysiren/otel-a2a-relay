@@ -17,10 +17,10 @@ def test_slugify_collapses_separators() -> None:
     assert slugify("a/b\\c") == "a-b-c"
 
 
-def test_project_name_with_and_without_product_area() -> None:
-    assert project_name("acme", None) == "acme"
-    assert project_name("Acme", "Checkout") == "acme.checkout"
-    assert project_name("Acme Corp", "K8s Plane") == "acme-corp.k8s-plane"
+def test_project_name_slugifies_deployment() -> None:
+    assert project_name("acme") == "acme"
+    assert project_name("Acme Corp") == "acme-corp"
+    assert project_name("Some__Deployment  Name!") == "some-deployment-name"
 
 
 def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -29,18 +29,17 @@ def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch: pytest.Mon
     tracer = bootstrap(
         namespace="frob",
         deployment="acme",
-        product_area="checkout",
         role="planner",
         version="1.2.3",
         deployment_env="prod",
         git_commit="deadbeef",
-        extra_resource={"frob.colony.tier": "gold"},
+        extra_resource={"frob.deployment.tier": "gold"},
         extra_processor=SimpleSpanProcessor(exporter),
         emit_readme_span=True,
     )
 
-    # Phoenix project env var is set from slugified <deployment>.<product_area>.
-    assert os.environ["PHOENIX_PROJECT_NAME"] == "acme.checkout"
+    # Phoenix project env var is set from slugified <deployment>.
+    assert os.environ["PHOENIX_PROJECT_NAME"] == "acme"
 
     # Session-start span emitted.
     spans = exporter.get_finished_spans()
@@ -50,52 +49,34 @@ def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch: pytest.Mon
     attrs = dict(span.attributes or {})
     assert attrs["namespace"] == "frob"
     assert attrs["deployment"] == "acme"
-    assert attrs["product_area"] == "checkout"
     assert attrs["role"] == "planner"
-    assert attrs["phoenix.project.name"] == "acme.checkout"
+    assert attrs["phoenix.project.name"] == "acme"
     assert attrs["version"] == "1.2.3"
     readme = str(attrs["readme"])
     assert "namespace=frob" in readme
     assert "deployment=acme" in readme
-    assert "product_area=checkout" in readme
     assert "role=planner" in readme
     assert "version=1.2.3" in readme
 
-    # Resource attributes carry caller identity.
+    # Resource attributes carry caller identity. v0.4 renamed `<namespace>.colony`
+    # to `<namespace>.deployment` and dropped `<namespace>.product_area` entirely;
+    # see otel-a2a-relay#121.
     res = dict(span.resource.attributes)
     assert res["service.namespace"] == "frob"
     assert res["service.name"] == "planner"
-    assert res["openinference.project.name"] == "acme.checkout"
-    assert res["frob.colony"] == "acme"
-    assert res["frob.product_area"] == "checkout"
+    assert res["openinference.project.name"] == "acme"
+    assert res["frob.deployment"] == "acme"
+    assert "frob.colony" not in res
+    assert "frob.product_area" not in res
     assert res["service.version"] == "1.2.3"
     assert res["deployment.environment.name"] == "prod"
     assert res["vcs.repository.ref.revision"] == "deadbeef"
-    assert res["frob.colony.tier"] == "gold"
+    assert res["frob.deployment.tier"] == "gold"
 
     # The returned tracer is functional.
     with tracer.start_as_current_span("downstream"):
         pass
     assert any(s.name == "downstream" for s in exporter.get_finished_spans())
-
-
-def test_bootstrap_without_product_area_falls_back_to_deployment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("PHOENIX_PROJECT_NAME", raising=False)
-    exporter = InMemorySpanExporter()
-    bootstrap(
-        namespace="frob",
-        deployment="acme",
-        role="relay",
-        extra_processor=SimpleSpanProcessor(exporter),
-        emit_readme_span=True,
-    )
-    assert os.environ["PHOENIX_PROJECT_NAME"] == "acme"
-    span = exporter.get_finished_spans()[0]
-    attrs = dict(span.attributes or {})
-    assert "product_area" not in attrs
-    assert attrs["phoenix.project.name"] == "acme"
 
 
 def test_bootstrap_does_not_emit_readme_span_by_default(
@@ -123,7 +104,6 @@ def test_bootstrap_does_not_clobber_existing_phoenix_project_env(
     bootstrap(
         namespace="frob",
         deployment="acme",
-        product_area="checkout",
         role="planner",
         extra_processor=SimpleSpanProcessor(exporter),
     )

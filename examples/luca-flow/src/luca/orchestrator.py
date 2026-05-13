@@ -612,7 +612,6 @@ def run_flow(
     tracer = bootstrap(
         namespace=LUCA_NAMESPACE,
         deployment=os.environ.get("LUCA_DEPLOYMENT", LUCA_DEFAULT_DEPLOYMENT),
-        product_area=os.environ.get("LUCA_PRODUCT_AREA") or None,
         role=ORCHESTRATOR_ROLE,
     )
 

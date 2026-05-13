@@ -41,12 +41,9 @@ def traces_endpoint(host: str | None = None) -> str:
     return f"{base}/v1/traces"
 
 
-def project_name(deployment: str, product_area: str | None) -> str:
-    """Phoenix project name = `<deployment>` or `<deployment>.<product_area>`, slugified."""
-    dep = slugify(deployment)
-    if product_area:
-        return f"{dep}.{slugify(product_area)}"
-    return dep
+def project_name(deployment: str) -> str:
+    """Phoenix project name = slugified `<deployment>`."""
+    return slugify(deployment)
 
 
 def bootstrap(
@@ -54,7 +51,6 @@ def bootstrap(
     namespace: str,
     deployment: str,
     role: str,
-    product_area: str | None = None,
     deployment_env: str | None = None,
     version: str | None = None,
     git_commit: str | None = None,
@@ -68,19 +64,12 @@ def bootstrap(
     Required:
       namespace   - logical system name. OTel `service.namespace`. Also the root
                     prefix for caller-specific resource attributes
-                    (`<namespace>.colony`, `<namespace>.product_area`, ...).
-                    NOTE: the `<namespace>.colony` attribute key still reflects
-                    the retired colony / multi-tenant framing. A coordinated
-                    rename is tracked at coilysiren/otel-a2a-relay#121 (needs a
-                    Phoenix harness re-run, kept stable for now).
+                    (`<namespace>.deployment`, ...).
       deployment  - logical install identifier. Slugified into the Phoenix
                     project name.
       role        - this process's role in the graph. OTel `service.name`.
 
     Optional:
-      product_area    - hard-boundary slice within a deployment. Joined with
-                        `deployment` for the Phoenix project name as
-                        `<deployment>.<product_area>`.
       deployment_env, version, git_commit  - resource attributes for slicing.
       extra_resource  - dict of additional resource attributes, merged last.
       extra_processor - additional SpanProcessor for tests.
@@ -93,13 +82,12 @@ def bootstrap(
 
     Side effects:
       Sets `PHOENIX_PROJECT_NAME` env var if not already set, derived from the
-      slugified `<deployment>.<product_area>` (or just `<deployment>`). Phoenix
-      reads this on the exporter side, not us.
+      slugified `<deployment>`. Phoenix reads this on the exporter side, not us.
 
     Returns the configured `Tracer`. The caller owns its lifetime; nothing in
     the relay holds a reference.
     """
-    proj = project_name(deployment, product_area)
+    proj = project_name(deployment)
     os.environ.setdefault("PHOENIX_PROJECT_NAME", proj)
 
     resource_attrs: dict[str, Any] = {
@@ -109,10 +97,8 @@ def bootstrap(
         # `PHOENIX_PROJECT_NAME` is the env-var equivalent that the Phoenix-OTel
         # registration helpers set; we set both so either path works.
         "openinference.project.name": proj,
-        f"{namespace}.colony": deployment,
+        f"{namespace}.deployment": deployment,
     }
-    if product_area:
-        resource_attrs[f"{namespace}.product_area"] = product_area
     if deployment_env:
         resource_attrs["deployment.environment.name"] = deployment_env
     if version:
@@ -135,10 +121,8 @@ def bootstrap(
         readme_parts = [
             f"namespace={namespace}",
             f"deployment={deployment}",
+            f"role={role}",
         ]
-        if product_area:
-            readme_parts.append(f"product_area={product_area}")
-        readme_parts.append(f"role={role}")
         if version:
             readme_parts.append(f"version={version}")
         readme = " ".join(readme_parts)
@@ -150,8 +134,6 @@ def bootstrap(
             "role": role,
             "phoenix.project.name": proj,
         }
-        if product_area:
-            session_attrs["product_area"] = product_area
         if deployment_env:
             session_attrs["deployment_env"] = deployment_env
         if version:

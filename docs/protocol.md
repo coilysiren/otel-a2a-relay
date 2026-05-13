@@ -1,10 +1,16 @@
-# Protocol v0.3
+# Protocol v0.4
 
 The relay's job: translate agent-to-agent activity into OTel spans, with no protocol changes visible to the agents themselves.
 
 The persistence substrate is OTel spans. The wire format implemented today is [A2A](https://a2a-protocol.org/latest/specification/). The spec is shaped so other wire formats (and the GitHub-issue-rooted agent-channel pattern from [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24)) can map onto the same span / session / graph shape. Agents never read raw spans. Drop the relay between two existing agent peers and they coordinate normally, except every exchange is now a queryable trace.
 
-This document is the v0.3 protocol shape. v0.2 was about renaming wire-protocol attributes from `a2a.*` to `o2r.*` and adding the `tracing.bootstrap()` entrypoint. v0.3 layers on data-legibility additions surfaced by real Phoenix sessions (see [otel-a2a-relay#93](https://github.com/coilysiren/otel-a2a-relay/issues/93)):
+This document is the v0.4 protocol shape. v0.4 retires the colony / multi-tenant framing from `tracing.bootstrap()` (see [otel-a2a-relay#121](https://github.com/coilysiren/otel-a2a-relay/issues/121)) to align with the local-only substrate shape that luca adopted on 2026-05-12:
+
+- **`<namespace>.colony` resource attribute renamed to `<namespace>.deployment`.** The old key encoded a per-colony multi-tenant deployment that is not a real use case for a local-only substrate.
+- **`product_area` parameter dropped.** Was the "hard-boundary slice within a deployment" knob - a per-tenant routing concept that does not exist in the local-only shape. Phoenix project name is now derived from `<deployment>` alone.
+- **Bootstrap docstring de-coloned.** No more "enterprise install" / "colony-defined" language.
+
+v0.2 renamed wire-protocol attributes from `a2a.*` to `o2r.*` and added the `tracing.bootstrap()` entrypoint. v0.3 layered on data-legibility additions surfaced by real Phoenix sessions (see [otel-a2a-relay#93](https://github.com/coilysiren/otel-a2a-relay/issues/93)):
 
 - **Sessions propagate via OpenInference's `using_session(...)` context manager**, not just hand-set `session.id` attributes. Every relay-emitted span sits inside `using_session(context_id)` so any nested OpenInference-instrumented call inherits the session ID.
 - **Every span carries `agent.role`.** Workers, validators, planners, orchestrators are no longer anonymous in per-role analysis.
@@ -159,7 +165,6 @@ tracer = bootstrap(
     namespace="frob",          # required - logical system name (OTel service.namespace)
     deployment="acme",         # required - logical install identifier
     role="planner",            # required - this process's role (OTel service.name)
-    product_area="checkout",   # optional - hard-boundary slice within a deployment
     deployment_env="prod",     # optional
     version="1.2.3",           # optional
     git_commit="deadbeef",     # optional
@@ -169,9 +174,9 @@ tracer = bootstrap(
 
 Returns a configured `Tracer`. Side effects:
 
-- Sets `PHOENIX_PROJECT_NAME` env var (if not already set) to the slugified `<deployment>.<product_area>` (or just `<deployment>` if no product area). The slug rule is: lowercase, `[a-z0-9-]`, collapse separators. Phoenix's exporter reads the env var.
-- Resource attributes record `service.namespace=<namespace>`, `service.name=<role>`, `<namespace>.colony=<deployment>`, `<namespace>.product_area=<product_area>` (if present), plus any optional fields and `extra_resource`. The relay never inspects or special-cases the namespace.
-- When the caller passes `emit_readme_span=True`, emits one `tracing.session.start` span with a `readme` attribute (`namespace=<x> deployment=<y> product_area=<z> role=<r> version=<v>`). Off by default. The smoke span has zero IO and zero session context, so a real flow's project list stays free of it. Tests and one-off probes opt in.
+- Sets `PHOENIX_PROJECT_NAME` env var (if not already set) to the slugified `<deployment>`. The slug rule is: lowercase, `[a-z0-9-]`, collapse separators. Phoenix's exporter reads the env var.
+- Resource attributes record `service.namespace=<namespace>`, `service.name=<role>`, `<namespace>.deployment=<deployment>`, plus any optional fields and `extra_resource`. The relay never inspects or special-cases the namespace.
+- When the caller passes `emit_readme_span=True`, emits one `tracing.session.start` span with a `readme` attribute (`namespace=<x> deployment=<y> role=<r> version=<v>`). Off by default. The smoke span has zero IO and zero session context, so a real flow's project list stays free of it. Tests and one-off probes opt in.
 
 What's out of scope:
 
