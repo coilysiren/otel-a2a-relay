@@ -157,9 +157,9 @@ from otel_a2a_relay.tracing import bootstrap
 
 tracer = bootstrap(
     namespace="frob",          # required - logical system name (OTel service.namespace)
-    deployment="acme",         # required - the colony / enterprise install
+    deployment="acme",         # required - logical install identifier
     role="planner",            # required - this process's role (OTel service.name)
-    product_area="checkout",   # optional - hard-boundary slice within the deployment
+    product_area="checkout",   # optional - hard-boundary slice within a deployment
     deployment_env="prod",     # optional
     version="1.2.3",           # optional
     git_commit="deadbeef",     # optional

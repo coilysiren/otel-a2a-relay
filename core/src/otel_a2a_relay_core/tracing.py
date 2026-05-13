@@ -69,12 +69,16 @@ def bootstrap(
       namespace   - logical system name. OTel `service.namespace`. Also the root
                     prefix for caller-specific resource attributes
                     (`<namespace>.colony`, `<namespace>.product_area`, ...).
-      deployment  - the colony (enterprise install). Slugified into the Phoenix
+                    NOTE: the `<namespace>.colony` attribute key still reflects
+                    the retired colony / multi-tenant framing. A coordinated
+                    rename is tracked at coilysiren/otel-a2a-relay#121 (needs a
+                    Phoenix harness re-run, kept stable for now).
+      deployment  - logical install identifier. Slugified into the Phoenix
                     project name.
       role        - this process's role in the graph. OTel `service.name`.
 
     Optional:
-      product_area    - colony-defined hard-boundary slice. Joined with
+      product_area    - hard-boundary slice within a deployment. Joined with
                         `deployment` for the Phoenix project name as
                         `<deployment>.<product_area>`.
       deployment_env, version, git_commit  - resource attributes for slicing.
