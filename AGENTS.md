@@ -14,7 +14,7 @@ This is a public repo. Same rules as coilyco-ai's "treat as public" surface: no 
 
 ## Protocol doc is the source of truth
 
-`docs/protocol.md` is the canonical specification of the A2A-to-OTel-span mapping. The relay's job is to be a faithful implementation of it. The harness's job is to validate it against a real Phoenix.
+`docs/protocol.md` is the canonical specification of the agent-activity-to-OTel-span mapping. A2A is the wire format implemented today; the spec is shaped so other wire formats can map onto the same span / session / graph shape without breaking the protocol contract. The relay's job is to be a faithful implementation of the spec. The harness's job is to validate it against a real Phoenix.
 
 If the doc and the implementation disagree, the doc wins by default and the code gets fixed. The exception is when a Phoenix harness run surfaces a real finding that the doc got wrong - then the doc gets rewritten and the version bumped (v0 -> v0.1 was the first such cycle, see otel-a2a-relay#1 for the precedent).
 

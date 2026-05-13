@@ -1,6 +1,6 @@
 # 🔁🔗🤖 otel-a2a-relay (o2r)
 
-[A2A](https://a2a-protocol.org/latest/specification/) coordination as [OTel](https://opentelemetry.io/) spans. Drop-in relay between A2A agents that turns wire traffic into traces any OTel-native observability tool can render.
+Agent activity as [OTel](https://opentelemetry.io/) spans. The persistence layer is the legible thing: every agent message, handoff, and task transition becomes a queryable trace any OTel-native observability tool can render. [A2A](https://a2a-protocol.org/latest/specification/) is the current supported wire format. The session derivation generalizes to any transport-keyed channel - GitHub issue, Slack thread, Linear ticket - so the same trace shape holds when other wire formats land.
 
 `otel-a2a-relay` is the canonical name (repo, package, protocol doc). `o2r` is the dictation-friendly shortname used in CLI entrypoints (`o2r`, `o2r-harness`), span identifiers (`service.name=o2r`, the relay's `agent.name`), and prose below.
 
@@ -10,11 +10,12 @@ A real session, animated. The relay is the magenta hub at the center; A and B ar
 
 ## Pitch
 
-Two A2A agents talk to each other through this relay. Every message becomes one or more OTel spans, exported via [OTLP/HTTP](https://opentelemetry.io/docs/specs/otlp/) to whatever you've pointed `OTEL_EXPORTER_OTLP_ENDPOINT` at. The trace IS the operations view, no derived state needed.
+Agent peers coordinate through this relay. Every message becomes one or more OTel spans, exported via [OTLP/HTTP](https://opentelemetry.io/docs/specs/otlp/) to whatever you've pointed `OTEL_EXPORTER_OTLP_ENDPOINT` at. The trace IS the operations view, no derived state needed. Subsumes the agent-channel protocol (see [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24)): the deterministic `sha256(<repo>:<issue>)` session ID makes any GitHub-issue-rooted coordination a first-class channel without server-side state.
 
-- Agent-facing format: A2A ([JSON-RPC 2.0](https://www.jsonrpc.org/specification) over HTTP, [AgentCards](https://a2a-protocol.org/latest/specification/#5-agent-discovery-the-agent-card), `message/send`, `tasks/get`, `tasks/cancel`).
-- Relay-persistence format: OTel spans, [OpenInference](https://github.com/Arize-ai/openinference) attributes for Phoenix's Agent Graph and Sessions views.
+- Currently supported wire format: A2A ([JSON-RPC 2.0](https://www.jsonrpc.org/specification) over HTTP, [AgentCards](https://a2a-protocol.org/latest/specification/#5-agent-discovery-the-agent-card), `message/send`, `tasks/get`, `tasks/cancel`).
+- Persistence format: OTel spans, [OpenInference](https://github.com/Arize-ai/openinference) attributes for Phoenix's Agent Graph and Sessions views.
 - Trace propagation: [W3C `traceparent`](https://www.w3.org/TR/trace-context/) end-to-end. Client → relay → peer is one trace.
+- Channel derivation: deterministic `session.id` from any transport key (GitHub issue today, Slack thread / Linear ticket / file-on-disk by the same pattern).
 - Default visualizer: [Phoenix](https://github.com/Arize-ai/phoenix). Anything OTLP-native works.
 
 ## Workspace layout
