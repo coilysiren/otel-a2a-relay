@@ -43,9 +43,14 @@ MIN_ORCHESTRATOR_SPANS = 25
 # Phoenix in CI lags on ingest. The 5s baseline produced flakes (#95) where
 # only luca-rogue-bootstrap landed and every other LUCA session was missing.
 # Workers also dropped their last few spans because os._exit skipped the OTel
-# atexit shutdown - that's fixed in luca/worker.py - but giving Phoenix more
-# headroom is the cheap belt to the fix's suspenders.
-INGEST_WAIT_SECS = 15
+# atexit shutdown - that's fixed in luca/worker.py. The 15s sleep that
+# followed (otel-a2a-relay#118) was a band-aid: a longer sleep is the
+# canonical "until the next time it flakes" fix, since OTLP HTTP has no
+# acknowledged-ingest primitive. Replaced with a poll-until-landed loop
+# below: cheap when ingest is fast (no fixed dead-wait) and bounded when
+# slow (still bails after `INGEST_POLL_TIMEOUT_SECS`).
+INGEST_POLL_TIMEOUT_SECS = 30
+INGEST_POLL_INTERVAL_SECS = 1.0
 
 
 def _post(query: str) -> dict:
@@ -113,16 +118,53 @@ def count_session_spans(session_id: str) -> int:
     return count
 
 
+def _poll_until_span_count(session_id: str, target: int) -> int:
+    """Poll the per-span count until the target is reached or the deadline passes.
+
+    Returns the last count observed. Caller is responsible for asserting it
+    meets the target.
+    """
+    deadline = time.monotonic() + INGEST_POLL_TIMEOUT_SECS
+    spans = 0
+    while True:
+        spans = count_session_spans(session_id)
+        if spans >= target:
+            return spans
+        if time.monotonic() >= deadline:
+            return spans
+        time.sleep(INGEST_POLL_INTERVAL_SECS)
+
+
+def _poll_until_both_sessions_landed() -> tuple[list[dict], list[dict], list[dict]]:
+    """Poll Phoenix until both expected sessions land or the deadline passes.
+
+    Returns (all_luca_sessions, aurora_sessions, rogue_sessions). Caller is
+    responsible for asserting non-emptiness. The poll handles the async
+    nature of OTLP HTTP ingest deterministically: zero dead-wait when ingest
+    is fast, bounded retry when slow.
+    """
+    deadline = time.monotonic() + INGEST_POLL_TIMEOUT_SECS
+    luca: list[dict] = []
+    aurora: list[dict] = []
+    rogue: list[dict] = []
+    while True:
+        luca = list_luca_sessions()
+        aurora = [s for s in luca if s["sessionId"].startswith("luca-aurora-")]
+        rogue = [s for s in luca if s["sessionId"] == "luca-rogue-bootstrap"]
+        if aurora and rogue:
+            return luca, aurora, rogue
+        if time.monotonic() >= deadline:
+            return luca, aurora, rogue
+        time.sleep(INGEST_POLL_INTERVAL_SECS)
+
+
 def main() -> int:
-    print(f"Waiting {INGEST_WAIT_SECS}s for Phoenix ingest to settle...")
-    time.sleep(INGEST_WAIT_SECS)
-    luca = list_luca_sessions()
+    print(f"Polling Phoenix for ingest up to {INGEST_POLL_TIMEOUT_SECS}s...")
+    luca, aurora, rogue = _poll_until_both_sessions_landed()
     print("luca sessions:", luca)
     if not luca:
         print("FAIL: no luca-* sessions found in Phoenix", file=sys.stderr)
         return 1
-    aurora = [s for s in luca if s["sessionId"].startswith("luca-aurora-")]
-    rogue = [s for s in luca if s["sessionId"] == "luca-rogue-bootstrap"]
     if not aurora:
         print("FAIL: no luca-aurora-* session found", file=sys.stderr)
         return 1
@@ -130,7 +172,7 @@ def main() -> int:
         print("FAIL: luca-rogue-bootstrap session missing", file=sys.stderr)
         return 1
     primary = aurora[0]
-    spans = count_session_spans(primary["sessionId"])
+    spans = _poll_until_span_count(primary["sessionId"], MIN_ORCHESTRATOR_SPANS)
     print(f"orchestrator session {primary['sessionId']} has {spans} spans")
     if spans < MIN_ORCHESTRATOR_SPANS:
         print(

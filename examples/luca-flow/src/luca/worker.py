@@ -60,6 +60,9 @@ def _read_fixtures(fixture_paths: dict[str, str]) -> dict[str, str]:
     return out
 
 
+_FLUSH_TIMEOUT_MILLIS = 5000
+
+
 def _flush_traces() -> None:
     """Flush any in-flight OTLP exports before the process goes away.
 
@@ -69,8 +72,19 @@ def _flush_traces() -> None:
     last 1-3 spans on exit, and the rogue worker (which only emits one
     span at boot before exiting) drops its only trace - the
     luca-rogue-bootstrap session in Phoenix shows up empty.
+
+    `force_flush(timeout_millis)` is the SDK's deterministic-drain primitive:
+    blocks until every queued span has been handed to its exporter or the
+    timeout elapses. Calling it first gives the in-flight HTTP POSTs a
+    bounded chance to complete before `shutdown` tears the provider down.
     """
     provider = trace.get_tracer_provider()
+    force_flush = getattr(provider, "force_flush", None)
+    if callable(force_flush):
+        try:
+            force_flush(_FLUSH_TIMEOUT_MILLIS)
+        except Exception as e:  # pragma: no cover - best-effort on exit
+            print(f"WORKER: tracer force_flush raised {e!r}", file=sys.stderr, flush=True)
     shutdown = getattr(provider, "shutdown", None)
     if callable(shutdown):
         try:
