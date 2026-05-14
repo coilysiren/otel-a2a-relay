@@ -6,6 +6,7 @@
   luca-demo luca-test luca-snapshots-update \
   gif-fixture-update gif-fixture-update-ci-replay \
   protocol-decisions protocol-decisions-check \
+  protocol-artifacts protocol-artifacts-check \
   status
 
 # ----------------------------------------------------------------------
@@ -125,6 +126,13 @@ protocol-decisions:
 
 protocol-decisions-check:
 	uv run python scripts/protocol_decision_log.py --check
+
+# Emit JSON Schema + OTel semconv from docs/protocol.md's attribute registry.
+protocol-artifacts:
+	uv run python scripts/emit_protocol_artifacts.py
+
+protocol-artifacts-check:
+	uv run python scripts/emit_protocol_artifacts.py --check
 
 # ----------------------------------------------------------------------
 # Help

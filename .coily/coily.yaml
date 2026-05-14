@@ -44,6 +44,12 @@ commands:
   gif-fixture-update-ci-replay:
     run: make gif-fixture-update-ci-replay
     description: Local docker replay of the regen-gif-baseline workflow's regen step.
+  protocol-artifacts:
+    run: make protocol-artifacts
+    description: Emit JSON Schema + OTel semconv from docs/protocol.md's attribute registry.
+  protocol-artifacts-check:
+    run: make protocol-artifacts-check
+    description: Exit non-zero if docs/generated/ is stale vs docs/protocol.md.
 
 # Catalog metadata for the cross-repo knowledge graph.
 # Schema: coilysiren/coilyco-ai#420 (tracker).
