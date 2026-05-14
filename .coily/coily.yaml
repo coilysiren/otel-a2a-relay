@@ -35,3 +35,17 @@ commands:
   phoenix-harness:
     run: make phoenix-harness
     description: Post the worked-example trace to a running Phoenix. Validates protocol shape end-to-end.
+
+# Catalog metadata for the cross-repo knowledge graph.
+# Schema: coilysiren/coilyco-ai#420 (tracker).
+catalog:
+  kind: Component
+  type: service
+  system: observability
+  owner: kai
+  lifecycle: production
+  description: "Generalized agent-activity emitter. Turns agent communication, tool use, and lifecycle into OTel spans any observability tool can render. Subsumes the agent-channel protocol. (o2r)"
+  dependsOn: []
+  providesApis:
+    - otel-spans
+    - a2a-relay
