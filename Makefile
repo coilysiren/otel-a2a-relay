@@ -3,6 +3,7 @@
   lint ruff mypy fmt \
   tempo-up tempo-down tempo-logs tempo-status tempo-harness tempo-clean \
   phoenix-fg phoenix-bootstrap phoenix-bootstrap-dry-run phoenix-harness \
+  phoenix-up phoenix-down phoenix-clean phoenix-logs phoenix-status \
   luca-demo luca-test luca-snapshots-update \
   gif-fixture-update gif-fixture-update-ci-replay \
   protocol-decisions protocol-decisions-check \
@@ -96,6 +97,27 @@ phoenix-bootstrap:
 
 phoenix-bootstrap-dry-run:
 	uv run o2r-phoenix-bootstrap --dry-run
+
+# Always-on Phoenix via docker compose. The Mac-local `phoenix-fg` is fine
+# for desktop work; this stack is what the sequencing gate's "real Phoenix
+# run before any spec-shape change ships" relies on from a phone.
+phoenix-up:
+	docker compose -f arize_phoenix/docker/docker-compose.yml up -d
+	@echo
+	@echo "  Phoenix UI / OTLP/HTTP:   http://localhost:6006"
+	@echo "  OTLP/gRPC:                localhost:4317"
+
+phoenix-down:
+	docker compose -f arize_phoenix/docker/docker-compose.yml down
+
+phoenix-clean:
+	docker compose -f arize_phoenix/docker/docker-compose.yml down -v
+
+phoenix-logs:
+	docker compose -f arize_phoenix/docker/docker-compose.yml logs -f --tail=100
+
+phoenix-status:
+	docker compose -f arize_phoenix/docker/docker-compose.yml ps
 
 # Regenerate the byte-exact baseline GIF that test_viz.py compares against.
 # Pillow's freetype build is per-platform, so the canonical bytes are Linux.

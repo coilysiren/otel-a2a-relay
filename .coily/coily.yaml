@@ -50,6 +50,21 @@ commands:
   protocol-artifacts-check:
     run: make protocol-artifacts-check
     description: Exit non-zero if docs/generated/ is stale vs docs/protocol.md.
+  phoenix-up:
+    run: make phoenix-up
+    description: docker compose up -d for the always-on Phoenix stack.
+  phoenix-down:
+    run: make phoenix-down
+    description: Stop the always-on Phoenix stack, preserve the data volume.
+  phoenix-clean:
+    run: make phoenix-clean
+    description: Stop the always-on Phoenix stack and wipe its data volume.
+  phoenix-logs:
+    run: make phoenix-logs
+    description: Follow logs for the always-on Phoenix stack.
+  phoenix-status:
+    run: make phoenix-status
+    description: docker compose ps for the always-on Phoenix stack.
 
 # Catalog metadata for the cross-repo knowledge graph.
 # Schema: coilysiren/coilyco-ai#420 (tracker).

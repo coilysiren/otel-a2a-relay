@@ -1,0 +1,29 @@
+services:
+  phoenix:
+    # Pin to the same major as the harness has validated against (15.x).
+    # When bumping, re-run `make phoenix-harness` first.
+    image: arizephoenix/phoenix:version-15.4.0
+    container_name: o2r-phoenix
+    restart: unless-stopped
+    environment:
+      # Enable the agents / sessions UI surface the harness exercises.
+      PHOENIX_DANGEROUSLY_ENABLE_AGENTS: "true"
+      # SQLite DB inside the volume so restarts keep state.
+      PHOENIX_WORKING_DIR: /phoenix-data
+    volumes:
+      - phoenix-data:/phoenix-data
+    ports:
+      # OTLP/HTTP receiver. Same port the local `phoenix serve` binds.
+      - "6006:6006"
+      # OTLP/gRPC receiver. Not used by the relay but exposed for
+      # OpenInference-instrumented peers that prefer gRPC.
+      - "4317:4317"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:6006/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  phoenix-data:

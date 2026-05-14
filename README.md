@@ -35,7 +35,7 @@ Pick a backend (or run both side by side - they coexist on different ports). All
 
 ```sh
 uv sync --all-packages
-make phoenix-fg                   # in another terminal (operator-owned)
+make phoenix-up                   # docker compose, always-on (or `make phoenix-fg` for foreground)
 make phoenix-bootstrap            # one-time annotation configs + datasets
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 make luca-demo
 python -m webbrowser http://localhost:6006   # Phoenix Sessions tab

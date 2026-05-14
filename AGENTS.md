@@ -25,7 +25,7 @@ Do not ship a protocol change without re-running the harness. "Mentally simulate
 The order is fixed:
 
 1. Protocol doc + harness updated together.
-2. Harness re-run against a real Phoenix instance (`phoenix serve` locally, or the homelab Phoenix once it exists). Both the GraphQL spans query and the Sessions query must show the new attributes where the spec calls for them.
+2. Harness re-run against a real Phoenix instance (`phoenix serve` locally, or the always-on Phoenix stack from `arize_phoenix/docker/docker-compose.yml` via `make phoenix-up`). Both the GraphQL spans query and the Sessions query must show the new attributes where the spec calls for them.
 3. Only then: relay code changes that depend on the new shape.
 
 Skipping step 2 is how the spec drifts from reality. Do not skip it even when "the change is small."
