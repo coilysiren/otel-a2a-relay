@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coilysiren.me/otel-a2a-relay/o2r-attributes.schema.json",
+  "title": "o2r span attribute registry",
+  "description": "Generated from docs/protocol.md. Do not hand-edit.",
+  "type": "object",
+  "properties": {
+    "agent.id": {
+      "type": "string",
+      "description": "Stable per-agent identifier inside the deployment."
+    },
+    "agent.name": {
+      "type": "string",
+      "description": "Human-readable agent name."
+    },
+    "agent.role": {
+      "type": "string",
+      "description": "Broad role in the topology.",
+      "enum": [
+        "relay",
+        "orchestrator",
+        "planner",
+        "validator",
+        "worker",
+        "deployer"
+      ]
+    },
+    "agent.specialization": {
+      "type": "string",
+      "description": "Narrower per-agent specialization. Consumer-defined."
+    },
+    "session.id": {
+      "type": "string",
+      "description": "Deterministic session identifier. sha256(repo:issue)[:16] for GitHub-rooted channels."
+    },
+    "user.id": {
+      "type": "string",
+      "description": "Sender identity. Propagated via OpenInference using_user()."
+    },
+    "graph.node.id": {
+      "type": "string",
+      "description": "Topology node identifier for cross-trace graph rendering."
+    },
+    "graph.node.parent_id": {
+      "type": "string",
+      "description": "Parent node id in the topology graph."
+    },
+    "o2r.task.id": {
+      "type": "string",
+      "description": "Task identifier within the session."
+    },
+    "o2r.task.state": {
+      "type": "string",
+      "description": "Current task state."
+    },
+    "o2r.task.state_change": {
+      "type": "string",
+      "description": "State transition recorded as a span event attribute."
+    },
+    "o2r.message.text": {
+      "type": "string",
+      "description": "Content of the originating message."
+    },
+    "o2r.message.reply_text": {
+      "type": "string",
+      "description": "Content of the completion reply."
+    },
+    "o2r.peer.target": {
+      "type": "string",
+      "description": "Target peer id for a relay forward."
+    },
+    "o2r.peer.sender_role": {
+      "type": "string",
+      "description": "Registered role of the sending peer."
+    },
+    "o2r.peer.target_role": {
+      "type": "string",
+      "description": "Registered role of the target peer."
+    },
+    "o2r.relay.mode": {
+      "type": "string",
+      "description": "Relay routing mode in effect for this span."
+    },
+    "o2r.relay.reject_reason": {
+      "type": "string",
+      "description": "Reason a relay rejected a message."
+    },
+    "o2r.relay.failure_class": {
+      "type": "string",
+      "description": "Coarse failure class on any erroring relay span.",
+      "enum": [
+        "topology_violation",
+        "peer_disconnect",
+        "peer_404",
+        "timeout",
+        "peer_jsonrpc_error",
+        "unknown"
+      ]
+    },
+    "o2r.method": {
+      "type": "string",
+      "description": "A2A JSON-RPC method name driving this span."
+    }
+  },
+  "required": [
+    "agent.id",
+    "agent.name",
+    "agent.role",
+    "session.id",
+    "graph.node.id",
+    "o2r.task.id",
+    "o2r.task.state",
+    "o2r.peer.target",
+    "o2r.peer.sender_role",
+    "o2r.peer.target_role",
+    "o2r.relay.failure_class",
+    "o2r.method"
+  ],
+  "additionalProperties": true
+}

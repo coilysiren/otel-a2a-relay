@@ -1,0 +1,100 @@
+groups:
+- id: registry.o2r
+  type: attribute_group
+  brief: o2r span attribute registry. Generated from docs/protocol.md.
+  attributes:
+  - id: agent.id
+    type: string
+    requirement_level: required
+    brief: Stable per-agent identifier inside the deployment.
+  - id: agent.name
+    type: string
+    requirement_level: required
+    brief: Human-readable agent name.
+  - id: agent.role
+    type: string
+    requirement_level: required
+    brief: Broad role in the topology.
+    members:
+    - relay
+    - orchestrator
+    - planner
+    - validator
+    - worker
+    - deployer
+  - id: agent.specialization
+    type: string
+    requirement_level: optional
+    brief: Narrower per-agent specialization. Consumer-defined.
+  - id: session.id
+    type: string
+    requirement_level: required
+    brief: Deterministic session identifier. sha256(repo:issue)[:16] for GitHub-rooted
+      channels.
+  - id: user.id
+    type: string
+    requirement_level: recommended
+    brief: Sender identity. Propagated via OpenInference using_user().
+  - id: graph.node.id
+    type: string
+    requirement_level: required
+    brief: Topology node identifier for cross-trace graph rendering.
+  - id: graph.node.parent_id
+    type: string
+    requirement_level: recommended
+    brief: Parent node id in the topology graph.
+  - id: o2r.task.id
+    type: string
+    requirement_level: required
+    brief: Task identifier within the session.
+  - id: o2r.task.state
+    type: string
+    requirement_level: required
+    brief: Current task state.
+  - id: o2r.task.state_change
+    type: string
+    requirement_level: optional
+    brief: State transition recorded as a span event attribute.
+  - id: o2r.message.text
+    type: string
+    requirement_level: optional
+    brief: Content of the originating message.
+  - id: o2r.message.reply_text
+    type: string
+    requirement_level: optional
+    brief: Content of the completion reply.
+  - id: o2r.peer.target
+    type: string
+    requirement_level: required
+    brief: Target peer id for a relay forward.
+  - id: o2r.peer.sender_role
+    type: string
+    requirement_level: required
+    brief: Registered role of the sending peer.
+  - id: o2r.peer.target_role
+    type: string
+    requirement_level: required
+    brief: Registered role of the target peer.
+  - id: o2r.relay.mode
+    type: string
+    requirement_level: optional
+    brief: Relay routing mode in effect for this span.
+  - id: o2r.relay.reject_reason
+    type: string
+    requirement_level: optional
+    brief: Reason a relay rejected a message.
+  - id: o2r.relay.failure_class
+    type: string
+    requirement_level: required
+    brief: Coarse failure class on any erroring relay span.
+    members:
+    - topology_violation
+    - peer_disconnect
+    - peer_404
+    - timeout
+    - peer_jsonrpc_error
+    - unknown
+  - id: o2r.method
+    type: string
+    requirement_level: required
+    brief: A2A JSON-RPC method name driving this span.
