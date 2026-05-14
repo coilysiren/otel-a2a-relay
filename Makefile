@@ -84,7 +84,7 @@ tempo-harness:
 # Arize Phoenix (otel-a2a-relay-arize-phoenix extension)
 # ----------------------------------------------------------------------
 phoenix-fg:
-	uv run phoenix serve
+	PHOENIX_DANGEROUSLY_ENABLE_AGENTS=true uv run phoenix serve
 
 phoenix-harness:
 	uv run o2r-harness
