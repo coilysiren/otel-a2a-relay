@@ -38,7 +38,7 @@ uv sync --all-packages
 make phoenix-fg                   # in another terminal (operator-owned)
 make phoenix-bootstrap            # one-time annotation configs + datasets
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 make luca-demo
-open http://localhost:6006        # Phoenix Sessions tab
+python -m webbrowser http://localhost:6006   # Phoenix Sessions tab
 ```
 
 ### Tempo + Grafana backend
@@ -47,7 +47,7 @@ open http://localhost:6006        # Phoenix Sessions tab
 uv sync --all-packages
 make tempo-up                     # docker compose Tempo + Grafana
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 make luca-demo
-open http://localhost:3000/d/luca-flow/luca-flow
+python -m webbrowser http://localhost:3000/d/luca-flow/luca-flow
 ```
 
 ### Other backends

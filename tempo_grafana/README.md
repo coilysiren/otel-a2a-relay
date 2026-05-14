@@ -13,7 +13,7 @@ Tempo + Grafana backend extension for `otel-a2a-relay-core`. Adds:
 ```sh
 make tempo-up                                              # workspace root
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 make luca-demo
-open http://localhost:3000                                 # auto-lands on o2r-overview
+python -m webbrowser http://localhost:3000                 # auto-lands on o2r-overview
 make tempo-down                                            # stop, preserve data
 make tempo-clean                                           # stop + wipe volumes
 ```

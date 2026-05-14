@@ -43,7 +43,7 @@ phoenix serve &                                                   # Phoenix
 # Then run the demo:
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 uv run luca-flow      # against Tempo
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 uv run luca-flow      # against Phoenix
-open examples/luca-flow/dist/index.html
+python -m webbrowser examples/luca-flow/dist/index.html
 ```
 
 ## Files
