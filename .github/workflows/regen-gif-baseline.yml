@@ -4,6 +4,10 @@ name: regen-gif-baseline
 # commit it back to main. Pillow's freetype is per-platform, so the canonical
 # bytes can only be produced where the test runs (ubuntu-latest, x86_64).
 # No untrusted github.event inputs are referenced.
+#
+# Iterating on this workflow? Run `make gif-fixture-update-ci-replay`
+# (or `scripts/replay_regen_gif_baseline.sh`) for a local docker replay
+# of the regen step so the iteration doesn't round-trip through GHA.
 
 on:
   workflow_dispatch:

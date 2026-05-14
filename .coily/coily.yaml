@@ -41,6 +41,9 @@ commands:
   protocol-decisions-check:
     run: make protocol-decisions-check
     description: Exit non-zero if docs/protocol-decisions.md is stale vs current git blame.
+  gif-fixture-update-ci-replay:
+    run: make gif-fixture-update-ci-replay
+    description: Local docker replay of the regen-gif-baseline workflow's regen step.
 
 # Catalog metadata for the cross-repo knowledge graph.
 # Schema: coilysiren/coilyco-ai#420 (tracker).

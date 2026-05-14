@@ -4,7 +4,7 @@
   tempo-up tempo-down tempo-logs tempo-status tempo-harness tempo-clean \
   phoenix-fg phoenix-bootstrap phoenix-bootstrap-dry-run phoenix-harness \
   luca-demo luca-test luca-snapshots-update \
-  gif-fixture-update \
+  gif-fixture-update gif-fixture-update-ci-replay \
   protocol-decisions protocol-decisions-check \
   status
 
@@ -101,6 +101,11 @@ phoenix-bootstrap-dry-run:
 # Run inside the same image CI uses (python:3.13-slim) when off-Linux.
 gif-fixture-update:
 	cd arize_phoenix && uv run python -m tests.fixtures.regen_session_gifs
+
+# Local replay of the regen-gif-baseline GHA workflow, in docker. Use this
+# instead of pushing experimental workflow changes through CI.
+gif-fixture-update-ci-replay:
+	scripts/replay_regen_gif_baseline.sh
 
 # ----------------------------------------------------------------------
 # LUCA-flow demo (backend-agnostic; uses whichever collector is up)
