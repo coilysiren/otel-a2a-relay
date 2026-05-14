@@ -5,6 +5,7 @@
   phoenix-fg phoenix-bootstrap phoenix-bootstrap-dry-run phoenix-harness \
   luca-demo luca-test luca-snapshots-update \
   gif-fixture-update \
+  protocol-decisions protocol-decisions-check \
   status
 
 # ----------------------------------------------------------------------
@@ -108,6 +109,17 @@ luca-demo:
 	@COLLECTOR=$${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}; \
 	echo "🚀 luca-demo against $$COLLECTOR"; \
 	uv run python -m luca.runner --collector $$COLLECTOR
+
+# ----------------------------------------------------------------------
+# Protocol decision log
+# ----------------------------------------------------------------------
+# Auto-generated from `git blame` on docs/protocol.md. Regenerate after any
+# protocol-shape change so docs/protocol-decisions.md tracks the doc.
+protocol-decisions:
+	uv run python scripts/protocol_decision_log.py
+
+protocol-decisions-check:
+	uv run python scripts/protocol_decision_log.py --check
 
 # ----------------------------------------------------------------------
 # Help
