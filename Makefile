@@ -1,5 +1,5 @@
 .PHONY: help \
-  sync test test-core test-arize-phoenix test-tempo-grafana test-luca \
+  sync test test-core test-channels test-arize-phoenix test-tempo-grafana test-luca \
   lint ruff mypy fmt \
   tempo-up tempo-down tempo-logs tempo-status tempo-harness tempo-clean \
   phoenix-fg phoenix-bootstrap phoenix-bootstrap-dry-run phoenix-harness \
@@ -19,10 +19,13 @@ sync: ## uv sync --all-packages.
 # ----------------------------------------------------------------------
 # Tests
 # ----------------------------------------------------------------------
-test: test-core test-arize-phoenix test-tempo-grafana ## Run all member-package pytest suites.
+test: test-core test-channels test-arize-phoenix test-tempo-grafana ## Run all member-package pytest suites.
 
 test-core: ## Run the core/ pytest suite (covers tracing, span store, corpus).
 	cd core && uv run pytest
+
+test-channels: ## Run the channels/ pytest suite (ids, models, onboarding, router shape).
+	cd channels && uv run pytest
 
 test-arize-phoenix: ## Run the arize_phoenix/ pytest suite.
 	cd arize_phoenix && uv run pytest
@@ -43,16 +46,17 @@ luca-snapshots-update:
 lint: ruff mypy ## Run ruff + mypy across the workspace.
 
 ruff:
-	uv run ruff check core arize_phoenix tempo_grafana examples
-	uv run ruff format --check core arize_phoenix tempo_grafana examples
+	uv run ruff check core channels arize_phoenix tempo_grafana examples
+	uv run ruff format --check core channels arize_phoenix tempo_grafana examples
 
 fmt: ## Format with ruff.
-	uv run ruff check --fix core arize_phoenix tempo_grafana examples
-	uv run ruff format core arize_phoenix tempo_grafana examples
+	uv run ruff check --fix core channels arize_phoenix tempo_grafana examples
+	uv run ruff format core channels arize_phoenix tempo_grafana examples
 
 mypy:
 	@# Per-package so multiple `tests/` namespaces don't collide.
 	cd core && uv run mypy src tests
+	cd channels && uv run mypy src tests
 	cd arize_phoenix && uv run mypy src tests
 	cd tempo_grafana && uv run mypy src tests
 	cd examples/luca-flow && uv run mypy src tests
@@ -164,7 +168,7 @@ help:
 	@echo
 	@echo '  Workspace:'
 	@echo '    sync                       uv sync --all-packages'
-	@echo '    test                       Per-package pytest (core + arize_phoenix + tempo_grafana)'
+	@echo '    test                       Per-package pytest (core + channels + arize_phoenix + tempo_grafana)'
 	@echo '    lint / ruff / mypy / fmt   Workspace-wide lint'
 	@echo
 	@echo '  Tempo + Grafana extension:'

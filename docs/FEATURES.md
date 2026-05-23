@@ -41,6 +41,18 @@ Exercise: `coily exec test-arize-phoenix`.
 - **GIF rendering** of session topologies from real Phoenix spans, with temporal animation. Same `session.id` produces byte-identical GIFs (deterministic). Pillow renderer with embedded JetBrains Mono font, optional `viz` extra.
 - **REST + GraphQL query helpers** for Phoenix.
 
+## Agent Channel coordination layer
+
+Exercise: `coily exec test-channels`.
+
+- **`otel-a2a-relay-channels` package** ships a FastAPI router + Postgres schema + Pydantic models for the cross-host coordination protocol in [`docs/channels-protocol.md`](channels-protocol.md).
+- **8 routes** under `/agent-channel`: create, list, self-describing onboarding (json / yaml / markdown), latest spec, latest state, event log, append event, close.
+- **4-character dictatable IDs** drawn from the alphabet in `agentic-os docs/dictatable-id-alphabet.md` (28^4 channels, dropped collisions: I, L, O, 1, 0, N, 2, 3).
+- **Self-describing onboarding** at `GET /agent-channel/{id}`: prose, charter, current state, recent events, and the participate cheat sheet.
+- **Append-only event log** with kinds `spec`, `state`, `status`, `comms`, `log` (free-string, so the protocol can add kinds without a schema change).
+- **OTel span per event**: every `POST /agent-channel/{id}/event` opens one span `agent-channel.event.{kind}` with `session.id=<channel-id>`, `agent.id=<author>`, `openinference.span.kind=AGENT`, `o2r.channel.*`, `input.value=<payload>` so the event lights up in Phoenix / Tempo alongside A2A traces.
+- **Backend-agnostic**: `make_router(...)` accepts a `pool_provider`, optional `auth_dependency`, and `base_url` so any FastAPI app can mount the router.
+
 ## Tempo + Grafana integration
 
 Exercise: `coily exec test-tempo-grafana`.

@@ -11,6 +11,9 @@ commands:
   test-core:
     run: make test-core
     description: Run the core/ pytest suite (covers tracing, span store, corpus).
+  test-channels:
+    run: make test-channels
+    description: Run the channels/ pytest suite (ids, models, onboarding, router shape).
   test-arize-phoenix:
     run: make test-arize-phoenix
     description: Run the arize_phoenix/ pytest suite.

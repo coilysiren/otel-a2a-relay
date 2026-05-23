@@ -10,7 +10,12 @@ A real session, animated. The relay is the magenta hub at the center; A and B ar
 
 ## Pitch
 
-Agent peers coordinate through this relay. Every message becomes one or more OTel spans, exported via [OTLP/HTTP](https://opentelemetry.io/docs/specs/otlp/) to whatever you've pointed `OTEL_EXPORTER_OTLP_ENDPOINT` at. The trace IS the operations view, no derived state needed. Subsumes the agent-channel protocol (see [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24)): the deterministic `sha256(<repo>:<issue>)` session ID makes any GitHub-issue-rooted coordination a first-class channel without server-side state.
+Agent peers coordinate through this relay. Every message becomes one or more OTel spans, exported via [OTLP/HTTP](https://opentelemetry.io/docs/specs/otlp/) to whatever you've pointed `OTEL_EXPORTER_OTLP_ENDPOINT` at. The trace IS the operations view, no derived state needed.
+
+The repo ships two complementary coordination shapes that share the same span schema:
+
+1. **A2A wire format** - the relay translates JSON-RPC 2.0 over HTTP into traces, including a deterministic `sha256(<repo>:<issue>)` session ID for any GitHub-issue-rooted coordination.
+2. **Agent Channel** - a Postgres-backed coordination channel with 4-character dictatable IDs, an append-only event log (`spec` / `state` / `status` / `comms` / `log`), handoff and liveness rules, and a self-describing onboarding endpoint. Spec: [`docs/channels-protocol.md`](docs/channels-protocol.md). Reusable implementation: [`channels/`](channels/) (the `otel-a2a-relay-channels` package). Every channel event also emits one OTel span, so the same trace view covers both shapes. Origin: [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24).
 
 - Currently supported wire format: A2A ([JSON-RPC 2.0](https://www.jsonrpc.org/specification) over HTTP, [AgentCards](https://a2a-protocol.org/latest/specification/#5-agent-discovery-the-agent-card), `message/send`, `tasks/get`, `tasks/cancel`).
 - Persistence format: OTel spans, [OpenInference](https://github.com/Arize-ai/openinference) attributes for Phoenix's Agent Graph and Sessions views.
@@ -23,6 +28,7 @@ Agent peers coordinate through this relay. Every message becomes one or more OTe
 This repository is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with a backend-agnostic core and per-backend extensions. Each member is its own publishable Python package; cross-package deps are wired through the workspace.
 
 - `otel-a2a-relay-core` - the relay HTTP server, `tracing.bootstrap()`, the echo A2A peer, the in-memory task store. No backend coupling. Point `OTEL_EXPORTER_OTLP_ENDPOINT` at any OTLP/HTTP collector.
+- `otel-a2a-relay-channels` - the Agent Channel coordination layer. FastAPI router + Postgres schema + Pydantic models for the protocol in [`docs/channels-protocol.md`](docs/channels-protocol.md). Pool and auth are caller-injected so any FastAPI app can mount it.
 - `otel-a2a-relay-arize-phoenix` - Phoenix-side validation harness, REST/GraphQL query helpers, animated topology GIF renderer, annotation+dataset bootstrapper, `make view` CLI.
 - `otel-a2a-relay-tempo-grafana` - Tempo-side bootstrap helper, harness probe, dockerized Tempo+Grafana stack with provisioned datasource and a LUCA-flow Grafana dashboard.
 - `luca-flow` - the AURORA microsite multi-agent demo, backend-agnostic.

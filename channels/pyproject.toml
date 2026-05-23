@@ -1,0 +1,46 @@
+[project]
+name = "otel-a2a-relay-channels"
+version = "0.1.0"
+description = "Reusable Agent Channel coordination layer for otel-a2a-relay: a FastAPI router + Postgres schema + Pydantic models for the cross-host agent coordination protocol documented in docs/channels-protocol.md. Backend-agnostic. Pool and auth are caller-injected so any FastAPI app can mount it."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Kai Siren" }]
+dependencies = [
+  "fastapi>=0.115",
+  "pydantic>=2.0",
+  "asyncpg>=0.29",
+  "pyyaml>=6.0",
+  "opentelemetry-api>=1.27",
+  "otel-a2a-relay-core",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/otel_a2a_relay_channels"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+  "--cov=src/otel_a2a_relay_channels",
+  "--cov-report=term-missing",
+  "--cov-fail-under=100",
+]
+
+[tool.coverage.run]
+source = ["src/otel_a2a_relay_channels"]
+# router.py's route bodies require a live asyncpg.Pool; integration tests
+# against a real Postgres live in the consumer (e.g. coilysiren/backend's
+# tests/test_datastore.py family). The package's pure tests cover ids,
+# models, onboarding, and the router-construction surface.
+omit = [
+  "src/otel_a2a_relay_channels/router.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  "if __name__ == .__main__.:",
+]

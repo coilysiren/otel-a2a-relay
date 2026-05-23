@@ -13,10 +13,11 @@ managed = true
 package = false
 
 [tool.uv.workspace]
-members = ["core", "arize_phoenix", "tempo_grafana", "examples/luca-flow"]
+members = ["core", "channels", "arize_phoenix", "tempo_grafana", "examples/luca-flow"]
 
 [tool.uv.sources]
 otel-a2a-relay-core = { workspace = true }
+otel-a2a-relay-channels = { workspace = true }
 otel-a2a-relay-arize-phoenix = { workspace = true }
 otel-a2a-relay-tempo-grafana = { workspace = true }
 
@@ -39,6 +40,7 @@ dev = [
   "arize-phoenix>=15.0",
   # Each member references the others by workspace dep so dev deps line up.
   "otel-a2a-relay-core",
+  "otel-a2a-relay-channels",
   "otel-a2a-relay-arize-phoenix",
   "otel-a2a-relay-tempo-grafana",
 ]
@@ -59,7 +61,7 @@ explicit_package_bases = true
 # mypy collapses them into a single `tests` namespace and complains about
 # duplicate modules. Each tests dir gets a distinct module path keyed off
 # the package root.
-mypy_path = "core/src:arize_phoenix/src:tempo_grafana/src:examples/luca-flow/src"
+mypy_path = "core/src:channels/src:arize_phoenix/src:tempo_grafana/src:examples/luca-flow/src"
 
 [[tool.mypy.overrides]]
 # `tests.fixtures.sessions` is consumed by arize_phoenix/tests/test_viz.py
