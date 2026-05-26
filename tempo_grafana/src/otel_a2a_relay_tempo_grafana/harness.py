@@ -186,7 +186,7 @@ def _wait_for_tempo(query_url: str, *, timeout: float = 30.0) -> dict[str, objec
                     return body
         except httpx.HTTPError as e:
             last_err = str(e)
-        # Fallback: tag-style search (some Tempo versions key off span attrs not resource).
+        # Fallback: tag-style search (some Tempo versions key off span attrs).
         try:
             tag_url = f"{query_url.rstrip('/')}/api/search?tags=session.id%3D{SESSION_ID}&limit=10"
             r2 = httpx.get(tag_url, timeout=2.0)

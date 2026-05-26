@@ -448,12 +448,7 @@ def test_stream_chunk_seqs_monotonic_flags_missing_seq() -> None:
     assert any("missing integer seq" in v for v in stream_chunk_seqs_are_monotonic(spans))
 
 
-# ---------------------------------------------------------------------------
-# Corpus-wide invariant checks. These run every macro across every fixture
-# and serve as a single regression gate: any new fixture has to satisfy the
-# v0.3 invariants, and any new macro has to be designed not to false-positive
-# on the existing corpus.
-# ---------------------------------------------------------------------------
+# --- Corpus-wide invariant checks: every macro x every fixture. ---
 
 
 def test_corpus_satisfies_pii_invariant() -> None:

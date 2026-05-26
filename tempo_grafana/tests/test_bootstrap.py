@@ -64,10 +64,7 @@ def test_bootstrap_tempo_respects_env_override(monkeypatch: pytest.MonkeyPatch) 
         role="harness",
         extra_processor=SimpleSpanProcessor(exporter),
     )
-    # Bootstrap doesn't expose the resolved endpoint, but it does pass it
-    # through to the OTLP exporter. The cleanest assertion we can make
-    # without poking the SDK internals is that it ran without exception
-    # and the env var still points where the caller set it.
+    # Bootstrap forwards endpoint via env; assert env survives the call.
     assert os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] == "http://my-collector:9999"
 
 

@@ -1,21 +1,5 @@
 #!/usr/bin/env bash
-# Local replay of .github/workflows/regen-gif-baseline.yml's regen step.
-#
-# Pillow's freetype build is per-platform, so the byte-exact baseline can
-# only be produced on linux/amd64. This script runs the same regen step in
-# a docker container that mirrors the workflow's runner, so iteration on
-# the regen logic doesn't have to round-trip through GitHub Actions.
-#
-# The commit-back step is intentionally NOT replayed - that requires a
-# GitHub token and signed-commit machinery the workflow handles. After a
-# successful local run, diff `arize_phoenix/assets/session-topology.gif`
-# and commit by hand, or push and let the dispatch workflow re-commit it.
-#
-# Usage:
-#   scripts/replay_regen_gif_baseline.sh
-#
-# Environment:
-#   PYTHON_IMAGE  override the python image (default: python:3.13-slim)
+# Local replay of regen-gif-baseline.yml's regen step (linux/amd64 docker).
 
 set -euo pipefail
 

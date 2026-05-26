@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Tiny process manager. Stores pidfile + logfile under logs/<name>.{pid,log}.
-#
-#   bg.sh start <name> -- <cmd...>
-#   bg.sh stop  <name>
-#   bg.sh status <name>
+# Tiny process manager. bg.sh {start|stop|status} <name> -- <cmd...>.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOGS="$ROOT/logs"

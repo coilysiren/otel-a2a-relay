@@ -19,15 +19,8 @@ from __future__ import annotations
 
 from typing import Any
 
-# A two-leaf, four-hop session. The shape mimics:
-#   A -> relay -> B  (forward, completed)
-#   B -> relay -> A  (reply, completed)
-#   A -> relay (forward to B that fails on the peer side, status=failed)
-#   B -> relay (a final ack, completed)
-#
-# Two pairs of spans share start times so the tick-quantizer collapses
-# them into the same frame, producing the visible crossings the issue
-# calls out as the visual story.
+# Two-leaf four-hop session: A<->relay<->B with one failed forward and one ack.
+# Paired start times exercise tick-quantizer collapsing into the same frame.
 
 DEMO_SESSION_ID = "demo-fixture"
 

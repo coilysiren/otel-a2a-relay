@@ -37,9 +37,7 @@ __all__ = [
     "emit_span",
 ]
 
-# Default location matches repo-recall's resolver. The substrate does not
-# require Phoenix or any other backend to be running; this directory is the
-# whole interface.
+# Matches repo-recall's resolver; the directory itself is the whole interface.
 DEFAULT_SPANS_DIR = Path.home() / ".local" / "share" / "repo-recall" / "spans"
 
 

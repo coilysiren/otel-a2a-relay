@@ -28,20 +28,11 @@ INK = (0xEA, 0xEC, 0xF2)  # primary text
 MUTE = (0x6A, 0x6F, 0x82)  # secondary text
 HAIR = (0x2A, 0x2D, 0x40)  # frame outlines
 
-# All hues authored in OKLCH (perceptually uniform) and converted to
-# sRGB once at design time, so the palette balances the way it looks
-# rather than the way the RGB numbers happen to round.
-#
-#   relay (hub):  oklch(0.82 0.15 200)  -> cyan
-#   agent a:      oklch(0.78 0.18 350)  -> pink
-#   agent b:      oklch(0.85 0.16  90)  -> amber/yellow
+# Hues authored in OKLCH and converted to sRGB once at design time.
 HUB: tuple[int, int, int] = (0x00, 0xE0, 0xEA)  # cyan, oklch(0.82 0.15 200)
 HUB_INNER = (0xA6, 0xF9, 0xFD)  # softer cyan, oklch(0.93 0.08 200)
 
-# Agent palette. Assigned by sorted-name index so two runs over the
-# same session id put the same color on the same agent. The first two
-# slots are picked so the cyan/pink/amber trio reads as three clearly
-# distinct hues at a glance, even on a low-color GIF palette.
+# Agent palette assigned by sorted-name index for run-to-run stability.
 AGENTS = (
     (0xFF, 0x82, 0xC7),  # pink, oklch(0.78 0.18 350)
     (0xF6, 0xC8, 0x35),  # amber/yellow, oklch(0.85 0.16 90)
@@ -50,9 +41,7 @@ AGENTS = (
     (0x5F, 0xD7, 0xFF),  # spare cyan (kept out of slot 0/1 to stay clear of the hub)
 )
 
-# Edge state palette. Direction (outbound vs return) is encoded by
-# whether the source is the hub. Status (completed / failed / in-flight)
-# is encoded by the trail style and head color.
+# Edge palette: direction via source==hub, status via trail style + head color.
 COMPLETED = INK
 FAILED = (0xFF, 0x5F, 0x5F)
 IN_FLIGHT = (0xFF, 0xE0, 0x6B)
@@ -78,16 +67,13 @@ class Theme:
     @property
     def font_path(self) -> Path:
         """Absolute path to the bundled JetBrains Mono Regular TTF."""
-        # importlib.resources guarantees this resolves whether the package
-        # is installed or running from a source checkout.
+        # importlib.resources resolves under install or source checkout.
         assets = files("otel_a2a_relay_arize_phoenix.viz.assets")
         return Path(str(assets.joinpath("JetBrainsMono-Regular.ttf")))
 
     def agent_color(self, name: str) -> tuple[int, int, int]:
         """Pick a stable agent color from the palette by name."""
-        # `sum(name)` is deterministic and stable under the same input.
-        # We sort agents by name once before color assignment, so this
-        # is only used as a fallback for non-listed agents.
+        # Fallback for non-listed agents; deterministic per name.
         idx = sum(ord(c) for c in name) % len(self.agents)
         return self.agents[idx]
 

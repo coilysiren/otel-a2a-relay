@@ -93,9 +93,7 @@ def bootstrap(
     resource_attrs: dict[str, Any] = {
         "service.namespace": namespace,
         "service.name": role,
-        # Phoenix routes spans to a project by reading this resource attribute.
-        # `PHOENIX_PROJECT_NAME` is the env-var equivalent that the Phoenix-OTel
-        # registration helpers set; we set both so either path works.
+        # Phoenix routes spans by this attribute (env equivalent: PHOENIX_PROJECT_NAME).
         "openinference.project.name": proj,
         f"{namespace}.deployment": deployment,
     }

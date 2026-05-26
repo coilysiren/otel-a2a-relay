@@ -640,9 +640,7 @@ def run_flow(
         _emit_plan_span(state)
         _run_step_loop(state)
 
-        # Final flow-complete envelope to the planner. Inside the flow span
-        # so Phoenix's trace tree shows it as the last relay-child of the
-        # flow, alongside the orchestrator.flow_complete sibling.
+        # Inside the flow span so Phoenix renders it as the last relay-child.
         _note_to_planner(
             state,
             step=0,

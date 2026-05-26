@@ -595,7 +595,7 @@ def test_cmd_peers_unreachable(
     assert cmd_peers() == 1
 
 
-# --------------------------------------------------------------------------- main dispatch
+# --- main dispatch ---
 
 
 def test_main_no_args_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:

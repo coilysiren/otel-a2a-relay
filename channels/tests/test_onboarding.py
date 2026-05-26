@@ -80,9 +80,7 @@ def test_channel_markdown_handles_missing_optionals() -> None:
 
 
 def test_channel_markdown_top_level_scalar_spec() -> None:
-    # A scalar `spec` / `state` value exercises the top-level non-collection
-    # branch of _md_lines (a future protocol kind could legitimately publish
-    # a raw string as its payload).
+    # Scalar spec/state exercises _md_lines's top-level non-collection branch.
     data: dict[str, typing.Any] = {
         "channel": {
             "id": "ABCD",

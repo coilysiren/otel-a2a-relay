@@ -5,22 +5,16 @@ Used by the luca-demo CI workflow as the final gate. Exits non-zero if
 no `luca-*` session is found, or if the session has fewer traces than the
 flow should produce.
 """
+
 from __future__ import annotations
 
 import json
 import sys
+import time
 import urllib.request
 
-import time
-
 PHOENIX = "http://localhost:6006/graphql"
-# Query every project's sessions, not just the first. The relay's TracerProvider
-# sets `service.name=o2r` and no `openinference.project.name`, so its spans land
-# in a different Phoenix project than the LUCA peers' spans (`demo`). Looking at
-# only `projects(first:1)` was finding whichever project Phoenix returned first
-# (often the relay's, which only sees the rogue bypass session because that
-# session is the one with no upstream LUCA tracer in play). Aggregating across
-# every project picks up the LUCA peers' `luca-aurora-*` session reliably.
+# Aggregate across every project; relay spans (o2r) and peer spans (demo) split.
 QUERY_SESSIONS = (
     "{ projects(first:50) { edges { node { name sessions(first:50) "
     "{ edges { node { sessionId numTraces } } } } } } }"
@@ -29,26 +23,9 @@ QUERY_PROJECT_SPANS = (
     "{ projects(first:50) { edges { node { name "
     "spans(first:1000) { edges { node { name attributes } } } } } } }"
 )
-# The orchestrator wraps the whole AURORA flow in a single `orchestrator.flow`
-# span, and every step span / relay span / peer span is propagated as a child
-# under that root via traceparent injection. So the orchestrator session has
-# exactly one trace (the flow root), not one trace per routed message. The
-# old >=15 invariant predated traceparent propagation, when each message/send
-# started its own trace at the relay. The structural assertion that survives
-# the propagation change: the orchestrator session AND the rogue-bootstrap
-# session must both exist (proves star-topology coordination + the rogue's
-# bypass attempt both reached Phoenix) and the orchestrator session's trace
-# must hold many spans (proves the workers all checked in under it).
+# Post-traceparent: orchestrator session has one trace; require many spans on it.
 MIN_ORCHESTRATOR_SPANS = 25
-# Phoenix in CI lags on ingest. The 5s baseline produced flakes (#95) where
-# only luca-rogue-bootstrap landed and every other LUCA session was missing.
-# Workers also dropped their last few spans because os._exit skipped the OTel
-# atexit shutdown - that's fixed in luca/worker.py. The 15s sleep that
-# followed (otel-a2a-relay#118) was a band-aid: a longer sleep is the
-# canonical "until the next time it flakes" fix, since OTLP HTTP has no
-# acknowledged-ingest primitive. Replaced with a poll-until-landed loop
-# below: cheap when ingest is fast (no fixed dead-wait) and bounded when
-# slow (still bails after `INGEST_POLL_TIMEOUT_SECS`).
+# Poll-until-landed instead of a fixed sleep; OTLP HTTP has no ack primitive.
 INGEST_POLL_TIMEOUT_SECS = 30
 INGEST_POLL_INTERVAL_SECS = 1.0
 

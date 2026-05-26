@@ -186,9 +186,7 @@ def make_handler(args: argparse.Namespace, boot_state: dict[str, Any]) -> Any:
                     "relay_response": boot_state.get("bypass_response"),
                 },
             )
-            # Exit non-zero after responding so the orchestrator's view of the
-            # rogue worker is "did the bad thing, then went away." The reply
-            # is returned first; the schedule below kills the process after.
+            # Reply first, then schedule a non-zero exit so the worker "goes away".
             _shutdown_after(code=1 if rejected else 0)
             return reply
 

@@ -31,10 +31,7 @@ WIDTH = 720
 HEIGHT = 340
 SUPERSAMPLE = 2
 
-# Region budget: title strip up top, message log on the right, footer
-# strip at the bottom, star fills the remainder. Tuned by eye so the
-# star sits visually centered in the area between the title and the
-# scrubber.
+# Region budget: title strip, right-side message log, footer, star fills the rest.
 SIDEBAR_W = 220
 TOP_STRIP = 56
 BOTTOM_STRIP = 64
@@ -75,9 +72,7 @@ def _quantize_ticks(hops: tuple[Hop, ...]) -> dict[Hop, int]:
     indexed.sort(key=lambda iv: (iv[1].start, iv[0]))
     starts = [iv[1].start for iv in indexed]
 
-    # Pick the number of ticks. With unique start times, every hop is
-    # its own tick (clamped to MAX_TICKS). With clumped starts,
-    # collapse to the natural cluster count.
+    # Tick count tracks unique start times, clamped to MAX_TICKS.
     unique_starts = sorted(set(starts))
     if len(unique_starts) <= MAX_TICKS:
         # Honor the natural clustering - one tick per unique start time.
@@ -316,9 +311,7 @@ def _render_frame(
 
     _draw_background(draw, w, h, theme)
 
-    # Frame -> tick is straightforward: every FRAMES_PER_TICK frames is
-    # one logical tick. Within a tick, sub-progress drives the
-    # particle's traversal and the trailing edges' fade.
+    # Every FRAMES_PER_TICK frames is one logical tick; sub drives particle traversal.
     tick = frame_idx // FRAMES_PER_TICK
     sub = (frame_idx % FRAMES_PER_TICK) / FRAMES_PER_TICK
     eased = _ease_in_out(sub)
@@ -562,9 +555,7 @@ def _draw_log(
 
     for i, (hop, _t) in enumerate(visible):
         y = title_y + i * line_h
-        # Color = immediate emitter, matching the on-canvas edge/particle.
-        # `agent a -> relay` is agent-a colored; `relay -> agent b` is
-        # relay-colored. Status is not encoded in hue.
+        # Color tracks the immediate emitter; status is not encoded in hue.
         emitter_color = theme.hub if hop.src == hub else (agent_color.get(hop.src) or theme.ink)
         text_color = emitter_color
         dot_color = emitter_color
@@ -660,10 +651,7 @@ def _save_gif(frames: list[Image.Image], out_path: Path) -> None:
         "P", palette=Image.Palette.ADAPTIVE, colors=PALETTE_COLORS, dither=Image.Dither.NONE
     )
     quantized = [f.quantize(palette=pal_image, dither=Image.Dither.NONE) for f in frames]
-    # `optimize=True` lets Pillow store per-frame diff rectangles when
-    # consecutive frames overlap, which cuts the file by ~3-4x without
-    # affecting determinism (Pillow's optimizer is a pure function of
-    # the frame stack, no timestamp embedding).
+    # optimize=True cuts file size ~3-4x via per-frame diff rectangles; deterministic.
     quantized[0].save(
         out_path,
         format="GIF",

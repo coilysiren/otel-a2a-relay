@@ -114,9 +114,7 @@ def test_emit_span_falls_back_to_default_dir_when_unset(
     fake_home = tmp_path / "home"
     monkeypatch.setenv("HOME", str(fake_home))
     monkeypatch.delenv("REPO_RECALL_SPANS_DIR", raising=False)
-    # Path.home() reads $HOME on POSIX; override DEFAULT_SPANS_DIR
-    # explicitly to keep the test independent of how Path.home() resolves
-    # at import time.
+    # Override DEFAULT_SPANS_DIR so Path.home() import-time resolution is irrelevant.
     monkeypatch.setattr(
         "otel_a2a_relay_core.file_emit.DEFAULT_SPANS_DIR",
         fake_home / ".local" / "share" / "repo-recall" / "spans",
@@ -153,9 +151,7 @@ def test_emit_span_re_emit_overwrites(tmp_path: Path) -> None:
 
 
 def test_emit_span_round_trips_json_keys_for_repo_recall(tmp_path: Path) -> None:
-    # The whole point of the file-drop sink: produce a JSON shape
-    # repo-recall's parser accepts. Mirrors what tests/smoke.rs in
-    # repo-recall expects post-#65 alignment (session.id not session.uuid).
+    # Mirrors repo-recall tests/smoke.rs post-#65 (session.id not session.uuid).
     out = emit_span(
         trace_id="trace-x",
         span_id="span-y",

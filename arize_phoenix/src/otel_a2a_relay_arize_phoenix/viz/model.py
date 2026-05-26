@@ -88,9 +88,7 @@ def _status_for(span: dict[str, Any]) -> str:
         return "in-flight"
     if state == "completed":
         return "completed"
-    # Span carries no explicit task state - synthesize from the events
-    # that the relay emits on state change. A `final=true` event
-    # implies the hop completed.
+    # No explicit task state - infer from final=true relay events.
     for ev in span.get("events") or []:
         ev_attrs = span_attrs(ev)
         if ev_attrs.get("final") is True:
@@ -194,14 +192,9 @@ def star_layout(
     n = len(leaves)
     if n == 0:
         return out
-    # Two leaves on a vertical line read as boring; rotate to horizontal
-    # so the chord runs across the canvas and the bow on each direction
-    # shows above/below the hub. For n>=3 the natural top-anchored star
-    # is recognizable, so we keep it.
+    # n==2: rotate to horizontal so the chord runs across the canvas.
     if n == 2:
-        # Only width constrains horizontal layout. Reserve a wider
-        # margin so the longer-form leaf labels ("agent a", "agent b")
-        # do not clip against the canvas edges.
+        # Wider margin so long leaf labels don't clip the canvas edge.
         radius = width / 2.0 - max(margin, 80)
         start = 0.0
     else:

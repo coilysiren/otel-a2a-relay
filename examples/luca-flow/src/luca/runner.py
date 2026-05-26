@@ -97,12 +97,7 @@ def main() -> int:
         print(f"❌ no spec.yaml at {root}", file=sys.stderr)
         return 2
 
-    # Collector reachability probe. Backend-agnostic, three-pass:
-    #   1. Phoenix's `/healthz` (works for `phoenix serve`).
-    #   2. Tempo's `/ready` on the OTLP port (works for some Tempo modes;
-    #      typically the query API is on a different port).
-    #   3. TCP connect on the OTLP port itself - last resort, just confirms
-    #      something is listening so traces won't be dropped on the floor.
+    # Three-pass collector probe: Phoenix /healthz, Tempo /ready, TCP connect.
     if args.require_collector:
         ok = False
         probe_label = ""

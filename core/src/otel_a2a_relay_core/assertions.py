@@ -61,9 +61,7 @@ def _is_relay_emitted(span: SpanLike) -> bool:
     return str(span.get("name") or "").startswith("a2a.")
 
 
-# Default PII patterns. Conservative: emails and US-style SSNs only. Callers
-# pass `extra_patterns=[...]` for caller-specific rules. Each pattern is a
-# `(label, compiled_re)` tuple so violation messages are legible.
+# Default PII patterns (email, US SSN); callers pass extra_patterns for more.
 _DEFAULT_PII_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("email", re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")),
     ("ssn", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),

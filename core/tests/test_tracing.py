@@ -58,9 +58,7 @@ def test_bootstrap_emits_session_start_and_sets_resource(monkeypatch: pytest.Mon
     assert "role=planner" in readme
     assert "version=1.2.3" in readme
 
-    # Resource attributes carry caller identity. v0.4 renamed `<namespace>.colony`
-    # to `<namespace>.deployment` and dropped `<namespace>.product_area` entirely;
-    # see otel-a2a-relay#121.
+    # v0.4 renamed colony -> deployment, dropped product_area (otel-a2a-relay#121).
     res = dict(span.resource.attributes)
     assert res["service.namespace"] == "frob"
     assert res["service.name"] == "planner"
