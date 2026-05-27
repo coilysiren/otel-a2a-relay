@@ -72,3 +72,43 @@ disallow_untyped_decorators = false
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+
+# Temporary excludes: agentic-os pre-commit hooks. Tracks otel-a2a-relay#17,
+# which will split oversized docs and SKILL.md files. Drop entries here as
+# the splits land. Workspace-member READMEs and generated artifacts are
+# long-term excludes (the layout rule does not fit a uv workspace).
+[tool.agentic-os.documentation-layout]
+excludes = [
+  "docs/generated/**",
+  "arize_phoenix/README.md",
+  "arize_phoenix/docker/README.md",
+  "channels/README.md",
+  "core/README.md",
+  "core/tests/fixtures/trace_zoo/README.md",
+  "examples/luca-flow/README.md",
+  "examples/luca-flow/CITATIONS.md",
+  "tempo_grafana/README.md",
+  "docs/FEATURES.md",
+  "docs/channels-protocol.md",
+  "docs/protocol.md",
+  "docs/protocols-survey.md",
+  "skills/ops-eng-o2r-agent-channel/SKILL.md",
+  "skills/ops-eng-o2r-grafana/SKILL.md",
+  "skills/ops-eng-o2r-phoenix/SKILL.md",
+]
+
+[tool.agentic-os.catalog-doc-size]
+excludes = [
+  "docs/FEATURES.md",
+  "docs/channels-protocol.md",
+  "docs/protocol.md",
+  "docs/protocols-survey.md",
+  "examples/luca-flow/README.md",
+  "skills/ops-eng-o2r-agent-channel/SKILL.md",
+  "skills/ops-eng-o2r-grafana/SKILL.md",
+  "skills/ops-eng-o2r-phoenix/SKILL.md",
+  "tempo_grafana/README.md",
+]
+
+[tool.agentic-os.code-comments]
+excludes = [".claude/lockdown-deny.sh"]

@@ -2,73 +2,56 @@
 
 See `../AGENTS.md` for workspace-level conventions (git workflow, test/lint autonomy, readonly ops, writing voice, deploy knowledge). This file covers only what's specific to this repo.
 
----
+## Scope
 
-## Allowlisted commands
+`otel-a2a-relay` (a.k.a. `o2r`) is the canonical implementation of the agent-activity-to-OTel-span mapping. A2A is the wire format today; the spec generalizes to other transport-keyed channels. The relay implements the spec faithfully. The Phoenix harness validates it against reality.
 
-Agents cannot run bare `make`, `uv`, `python`, or `docker compose` in this repo. Route every command through coily, which reads [.coily/coily.yaml](.coily/coily.yaml). Current verbs: `test-core`, `test-arize-phoenix`, `test-tempo-grafana`, `test-all`, `lint`, `fmt`, `sync`. Add new verbs to that file before invoking them; do not bypass.
+## Project shape
 
-## Public repo
+[uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with a backend-agnostic core and per-backend extensions: `otel-a2a-relay-core`, `-channels`, `-arize-phoenix`, `-tempo-grafana`, plus the `luca-flow` demo. Workspace map in [README.md](README.md); per-package inventory in [docs/FEATURES.md](docs/FEATURES.md).
 
-This is a public repo. Same rules as coilyco-ai's "treat as public" surface: no LAN IPs, public IPs, addresses, real names, secondary email aliases, or private identity tags. Role-based descriptors only when referring to people in issues, PR bodies, commit messages, or docs.
+## Repo boundaries
 
-## Protocol doc is the source of truth
+Ships the relay only (`serve` mode, A2A endpoints, OTLP emitter, Agent Channel router). The operator CLI lives in [`coilysiren/coily`](https://github.com/coilysiren/coily) as `coily channel <verb>`. Cross-repo features: file in both, cross-link.
 
-`docs/protocol.md` is the canonical specification of the agent-activity-to-OTel-span mapping. A2A is the wire format implemented today; the spec is shaped so other wire formats can map onto the same span / session / graph shape without breaking the protocol contract. The relay's job is to be a faithful implementation of the spec. The harness's job is to validate it against a real Phoenix.
+## Commands
 
-If the doc and the implementation disagree, the doc wins by default and the code gets fixed. The exception is when a Phoenix harness run surfaces a real finding that the doc got wrong - then the doc gets rewritten and the version bumped (v0 -> v0.1 was the first such cycle, see otel-a2a-relay#1 for the precedent).
+Agents cannot run bare `make`, `uv`, `python`, or `docker compose`. Route every command through coily, which reads [.coily/coily.yaml](.coily/coily.yaml). Current verbs: `test-core`, `test-arize-phoenix`, `test-tempo-grafana`, `test-all`, `lint`, `fmt`, `sync`. Add new verbs to that file before invoking them; do not bypass.
 
-Do not ship a protocol change without re-running the harness. "Mentally simulated" is how v0 ended up wrong about Resource attributes and span links.
+## Validation
 
-## Sequencing gate
+`docs/protocol.md` is the canonical specification. If the doc and the implementation disagree, the doc wins by default and the code gets fixed. The exception is when a Phoenix harness run surfaces a real finding the doc got wrong - then the doc gets rewritten and the version bumped (v0 -> v0.1 was the first cycle, see otel-a2a-relay#1).
 
-The order is fixed:
+Do not ship a protocol change without re-running the harness. "Mentally simulated" is how v0 ended up wrong about Resource attributes and span links. Sequencing gate:
 
 1. Protocol doc + harness updated together.
-2. Harness re-run against a real Phoenix instance (`phoenix serve` locally, or the always-on Phoenix stack from `arize_phoenix/docker/docker-compose.yml` via `make phoenix-up`). Both the GraphQL spans query and the Sessions query must show the new attributes where the spec calls for them.
+2. Harness re-run against a real Phoenix (`phoenix serve` locally, or `make phoenix-up`). Both the GraphQL spans query and the Sessions query must show the new attributes.
 3. Only then: relay code changes that depend on the new shape.
 
-Skipping step 2 is how the spec drifts from reality. Do not skip it even when "the change is small."
+GraphQL introspection (`{ __type(name:"Span") { fields { name } } }`) is authoritative for what Phoenix actually exposes; the REST API at `/v1/projects/<id>/spans` does NOT show Resource attributes or span links. Full validation recipe in [docs/harness.md](docs/harness.md).
 
-## Validating against Phoenix
+## Safety
 
-See README quickstart for the bring-up recipe. Two GraphQL queries cover the validation surface:
+Public repo. No LAN IPs, public IPs, addresses, real names, secondary email aliases, or private identity tags. Role-based descriptors only when referring to people in issues, PRs, commits, or docs.
 
-- Per-span attribute check:
-  ```graphql
-  { projects(first:1) { edges { node { spans(first:20) { edges { node { name spanKind attributes } } } } } } }
-  ```
-- Sessions grouping check:
-  ```graphql
-  { projects(first:1) { edges { node { sessions(first:5) { edges { node { sessionId numTraces } } } } } } }
-  ```
+`phoenix serve` keeps state in `~/.phoenix/phoenix.db`. Across upgrades the migration can fail with `alembic.script.revision.ResolutionError`. Fix: `rm ~/.phoenix/phoenix.db` and restart. The harness is single-shot; the DB is disposable.
 
-Phoenix's REST API at `/v1/projects/<id>/spans` shows span attributes too, but does NOT show OTel Resource attributes or span links. If you need to confirm what Phoenix is actually exposing, GraphQL introspection is authoritative:
+## Cross-repo contracts
 
-```graphql
-{ __type(name:"Span") { fields { name } } }
-```
+The Agent Channel protocol is specified in [docs/channels-protocol.md](docs/channels-protocol.md); clients across the org must track that spec. Operator-side changes route through `coilysiren/coily` (see Repo boundaries).
 
-If a field you expect is not on this list, Phoenix is dropping it and the spec needs to compensate. v0.1 dropped Resource attributes and span links specifically because of this introspection.
+## Release
 
-## Phoenix DB resets
+Protocol versions live in the doc heading (`# Protocol vX.Y`). Bump on any spec-shape change the harness has revalidated. Don't bump for prose-only edits. The relay binary will get its own semver once there is a binary; for now the protocol version is the one that matters.
 
-`phoenix serve` keeps state in `~/.phoenix/phoenix.db`. Across version upgrades the migration can fail with `alembic.script.revision.ResolutionError: No such revision or branch '...'`. Fix is `rm ~/.phoenix/phoenix.db` and restart - the harness is single-shot, the DB is disposable.
+## Agent rules
 
-## Operator surface lives in `coily`
-
-The operator-facing CLI for talking to a relay is `coily channel <verb>` in `coilysiren/coily`. This repo ships only the relay (`serve` mode, A2A endpoints, OTLP emitter). When a feature spans both, file the relay-side issue here and the CLI-side issue in `coily`, cross-linked.
-
-## Versioning
-
-Protocol versions live in the doc heading (`# Protocol vX.Y`). Bump on any spec-shape change that the harness has revalidated. Don't bump for prose-only edits.
-
-The relay binary itself will get its own semver once there is a binary. For now the protocol version is the only version that matters.
+Inherited from `../AGENTS.md`. Plus: don't ship a protocol change without rerunning the harness against a real Phoenix instance.
 
 ## See also
 
 - [README.md](README.md) - human-facing intro and quickstart.
 - [docs/FEATURES.md](docs/FEATURES.md) - inventory of what ships today.
-- [.coily/coily.yaml](.coily/coily.yaml) - allowlisted commands. Agents route through coily, not bare `make` / `uv` / `python`.
+- [.coily/coily.yaml](.coily/coily.yaml) - allowlisted commands.
 
-Cross-reference convention from [coilysiren/coilyco-ai#313](https://github.com/coilysiren/coilyco-ai/issues/313). This repo is the worked example.
+Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilysiren/agentic-os/issues/59).

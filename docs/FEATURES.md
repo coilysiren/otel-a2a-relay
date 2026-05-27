@@ -85,4 +85,4 @@ Exercise: `coily exec test-tempo-grafana`.
 - [AGENTS.md](../AGENTS.md) - agent-facing operating rules.
 - [.coily/coily.yaml](../.coily/coily.yaml) - allowlisted commands. Agents route through coily, not bare `make` / `uv` / `python`.
 
-Cross-reference convention from [coilysiren/coilyco-ai#313](https://github.com/coilysiren/coilyco-ai/issues/313). This repo is the worked example.
+Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilysiren/agentic-os/issues/59).
