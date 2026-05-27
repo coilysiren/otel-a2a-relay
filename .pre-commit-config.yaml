@@ -6,15 +6,16 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.0
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies:
-          - opentelemetry-api>=1.27
-          - opentelemetry-sdk>=1.27
-          - opentelemetry-exporter-otlp-proto-http>=1.27
-          - types-pyyaml>=6.0
+        name: mypy (per-package)
+        description: Run mypy per workspace member so each one uses its own resolved env. Avoids the dep-drift trap of pinning the workspace's transitive type-check deps in additional_dependencies.
+        entry: bash -c 'set -e; for pkg in core channels arize_phoenix tempo_grafana examples/luca-flow; do (cd "$pkg" && uv run mypy src tests); done'
+        language: system
+        pass_filenames: false
+        files: \.py$
+        stages: [pre-commit, pre-push]
 
   - repo: local
     hooks:

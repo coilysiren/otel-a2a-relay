@@ -2,47 +2,42 @@
 
 Star-topology multi-agent choreography that dogfoods `otel-a2a-relay-core` end-to-end. Produces a real static HTML site (the AURORA microsite, a fictional consumer desk lamp marketed as if it physically channels solar-wind charged particles) from real public-domain NASA imagery committed to this repo.
 
-**Backend-agnostic.** The demo only depends on `otel-a2a-relay-core`. Point `OTEL_EXPORTER_OTLP_ENDPOINT` at any OTLP/HTTP collector to see the spans:
-
-- Phoenix at `http://localhost:6006`
-- Tempo at `http://localhost:4318` (boot with `make tempo-up` from the workspace root)
-- Honeycomb / Datadog / any OTLP/HTTP backend
+**Backend-agnostic.** Point `OTEL_EXPORTER_OTLP_ENDPOINT` at any OTLP/HTTP collector (Phoenix `:6006`, Tempo `:4318` via `make tempo-up`, Honeycomb, Datadog).
 
 ## What runs
 
 Eight long-running peers + transient workers, all routed through the relay under enforced star topology:
 
-- **🎯 orchestrator** (`luca/orchestrator.py`) - drives the script, spawns workers
-- **📋 planner** (`luca/planner.py`) - holds the task queue, pure oracle
-- **🔍 validator** (`luca/validator.py`) - real HTML / citation / nav checks
-- **🛠️ workers a-h** (`luca/worker.py`) - transient subprocesses spawned by orchestrator
-- **📦 deployer** (`luca/deployer.py`) - assembles `dist/` after the flow
+- **orchestrator** (`luca/orchestrator.py`) - drives the script, spawns workers
+- **planner** (`luca/planner.py`) - holds the task queue, pure oracle
+- **validator** (`luca/validator.py`) - real HTML / citation / nav checks
+- **workers a-h** (`luca/worker.py`) - transient subprocesses spawned by orchestrator
+- **deployer** (`luca/deployer.py`) - assembles `dist/` after the flow
 
 ## Choreography
 
 `script.yaml` is the only place that contains directional guidance like "worker D crashes on receive." Steps:
 
-1. 🎨 worker-a builds the design system + hero. Validates pass.
-2. 🖼️ worker-b drafts a partial gallery. Returns `needs-followup`.
-3. 🖼️ worker-c completes the gallery. Validates pass.
-4. 🛰️ worker-d crashes immediately on dispatch (exit 1).
-5. 🔭 worker-e picks up the same task with an alternate framing. Validates pass.
-6. 🔧 worker-f writes the spec sheet. First submission missing `<h1>`. Validator rejects, retry passes.
-7. 🦹 worker-g attempts to message the validator directly, bypassing the orchestrator. Relay returns `-32010` (star-topology violation). Worker exits 1.
-8. ✨ worker-h writes the mission, about, and preorder pages. Validates pass.
-9. 📦 deployer assembles `dist/`, writes `CHANGELOG.md` + `delivery-report.md`.
+1. worker-a builds the design system + hero. Validates pass.
+2. worker-b drafts a partial gallery. Returns `needs-followup`.
+3. worker-c completes the gallery. Validates pass.
+4. worker-d crashes immediately on dispatch (exit 1).
+5. worker-e picks up the same task with an alternate framing. Validates pass.
+6. worker-f writes the spec sheet. First submission missing `<h1>`. Validator rejects, retry passes.
+7. worker-g attempts to message the validator directly. Relay returns `-32010` (star-topology violation). Worker exits 1.
+8. worker-h writes the mission, about, and preorder pages. Validates pass.
+9. deployer assembles `dist/`, writes `CHANGELOG.md` + `delivery-report.md`.
 
 ## Run
 
 ```sh
 # Pick one backend:
 docker compose -f tempo_grafana/docker/docker-compose.yml up -d   # Tempo + Grafana
-# OR
 phoenix serve &                                                   # Phoenix
 
 # Then run the demo:
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 uv run luca-flow      # against Tempo
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 uv run luca-flow      # against Phoenix
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 uv run luca-flow      # Tempo
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006 uv run luca-flow      # Phoenix
 python -m webbrowser examples/luca-flow/dist/index.html
 ```
 
@@ -51,51 +46,24 @@ python -m webbrowser examples/luca-flow/dist/index.html
 - `spec.yaml` - the steady-state target the team builds against
 - `script.yaml` - the step-by-step choreography (only place for behavior flags)
 - `fixtures/` - per-worker canned content (real HTML)
-- `assets/img/nasa/` - 12 NASA public-domain photographs and visualizations
-- `assets/img/nasa/SOURCES.yaml` - per-image attribution
+- `assets/img/nasa/` - 12 NASA public-domain photographs (per-image attribution in `SOURCES.yaml`)
 - `assets/fonts/` - three self-hosted webfonts (SIL OFL 1.1)
 - `CITATIONS.md` - long-form citation document
 - `dist/` - regenerated each run (gitignored)
 
 ## Validation rules
 
-The validator runs against every submitted page:
-
-- HTML5 parses cleanly
-- Exactly one `<h1>`
-- Every `<img>` has `alt` and a `data-nasa-id` that resolves in `SOURCES.yaml`
-- Internal `<a href>` links resolve to known pages
-- Min word count from `spec.yaml`
-- Min image count from `spec.yaml`
-- No external `<script>` or runtime CDN reference
-
-These are real checks against real HTML, not scripted-pass theater. Worker-f's first submission deterministically violates the `<h1>` rule; worker-b's partial gallery violates the image-count rule (which is why it returns `needs-followup` rather than submitting).
+The validator runs against every submitted page: HTML5 parses cleanly; exactly one `<h1>`; every `<img>` has `alt` and a `data-nasa-id` resolving in `SOURCES.yaml`; internal links resolve; min word/image count from `spec.yaml`; no external `<script>` or CDN. Real checks, not scripted-pass theater.
 
 ## Locking the outputs
 
-Every dist artifact is byte-snapshotted under `tests/snapshots/`:
-
-- `CHANGELOG.md`, `delivery-report.{md,json}`, every `*.html` page - byte diff
-
-The `LUCA_FREEZE_TIME=2026-01-01T00:00:00Z` env var pins every timestamp and JSON-RPC id that lands in the dist (see `src/luca/_clock.py`), so two runs produce byte-identical output.
+Every dist artifact is byte-snapshotted under `tests/snapshots/`. The `LUCA_FREEZE_TIME=2026-01-01T00:00:00Z` env var pins every timestamp and JSON-RPC id (see `src/luca/_clock.py`), so two runs produce byte-identical output. The suite is gated behind the `luca_flow` pytest marker, so default test runs skip it.
 
 ```sh
 make luca-test                          # diff against snapshots
 make luca-snapshots-update              # regenerate after an intentional change
 ```
 
-The suite is gated behind the `luca_flow` pytest marker, so default test runs skip it.
+## Orchestrator spans
 
-## Phoenix-side spans the orchestrator emits
-
-LUCA layers four consumer-flow span shapes on top of the relay's wire-protocol spans (which keep the `a2a.*` prefix). These describe the orchestrator's coordination logic, not the A2A wire:
-
-- **`orchestrator.flow`** - long-lived root span, parent of every step.
-- **`orchestrator.plan`** - first child of the flow span. `output.value` is the full step plan (assignee + intent per step). Enables planned-vs-actual diffs.
-- **`orchestrator.step.<n>`** - one per step. Parent of dispatch + validate + decide for that step. Phoenix and Grafana both render this as one expandable subtree.
-- **`orchestrator.acceptance`** - one child of each step span. Carries `o2r.step.acceptance.{decision,reason,criterion,score}` plus `o2r.step.actor` and `o2r.step.specialization`. `decision` is `accepted | needs-followup | crashed | rogue-rejected | unknown`.
-- **`orchestrator.flow_complete`** - terminal child of the flow span. `o2r.flow.outcome_counts` is a JSON map of decision → count.
-
-Per-worker `agent.specialization` rides on every worker span (`designer`, `curator`, `science_writer`, `spec_writer`, `polish_writer`, `rogue`). `agent.role` stays at `worker` (the topology role, used by the relay's star-topology gate); `agent.specialization` is the granular dimension you slice by.
-
-These complement the relay's `o2r.relay.failure_class` attribute and the two annotation configs (`relay_failure_class`, `task_outcome_correct`). For Phoenix users, `make phoenix-bootstrap` provisions the configs and datasets. For Tempo users, the `luca-flow` Grafana dashboard at `http://localhost:3000/d/luca-flow/luca-flow` does the same job.
+See [`docs/luca-flow-spans.md`](../../docs/luca-flow-spans.md) for the `orchestrator.flow` / `orchestrator.plan` / `orchestrator.step.<n>` / `orchestrator.acceptance` / `orchestrator.flow_complete` span shapes and their attributes.
