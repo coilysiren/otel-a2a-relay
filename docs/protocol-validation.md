@@ -24,7 +24,7 @@ Run against Phoenix platform v15.4.0 via `phoenix serve` + the `harness/` postin
 
 ## What v0.3 changed
 
-Surfaced by real Phoenix sessions (see [otel-a2a-relay#93](https://github.com/coilysiren/otel-a2a-relay/issues/93)):
+Surfaced by real Phoenix sessions (see [otel-a2a-relay#93](https://github.com/coilyco-flight-deck/otel-a2a-relay/issues/93)):
 
 - **Sessions propagate via OpenInference's `using_session(...)` context manager**, not just hand-set `session.id` attributes. Every relay-emitted span sits inside `using_session(context_id)` so any nested OpenInference-instrumented call inherits the session ID.
 - **Every span carries `agent.role`.** Workers, validators, planners, orchestrators are no longer anonymous in per-role analysis.

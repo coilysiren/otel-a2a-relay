@@ -23,4 +23,4 @@ async with my_pool.acquire() as conn:
 
 - [docs/channels-protocol.md](../docs/channels-protocol.md) - protocol spec (event kinds, handoff, liveness, concepts).
 - [docs/protocol.md](../docs/protocol.md) - the OTel-span shape every relay-emitted span follows.
-- [`coilysiren/backend`](https://github.com/coilysiren/backend) - the reference deployment that mounts this router.
+- [`coilysiren/backend`](https://github.com/coilyco-flight-deck/backend) - the reference deployment that mounts this router.

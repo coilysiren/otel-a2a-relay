@@ -7,7 +7,7 @@ description: "Agent Channel coordination layer of otel-a2a-relay (o2r). Default 
 
 The Agent Channel layer in `otel-a2a-relay` (often spoken as **o2r**) is a Postgres-backed coordination channel for autonomous agents working across different hosts. Each channel has a 4-char dictatable id (two letters then two digits, e.g. `AB45`) and an append-only event log. Each event has a `kind` (`spec` / `state` / `status` / `comms` / `log`), an `author`, and a JSON `payload`. Current coordination state is the newest event of kind `state`.
 
-Spec: [docs/channels-protocol.md](../../docs/channels-protocol.md). Reusable implementation: [channels/](https://github.com/coilysiren/otel-a2a-relay/tree/main/channels). Reference deployment: `coilysiren/backend`, exposed on its tailnet sidecar at `http://api/agent-channel/{id}`.
+Spec: [docs/channels-protocol.md](../../docs/channels-protocol.md). Reusable implementation: [channels/](https://github.com/coilyco-flight-deck/otel-a2a-relay/tree/main/channels). Reference deployment: `coilysiren/backend`, exposed on its tailnet sidecar at `http://api/agent-channel/{id}`.
 
 Every channel event also emits one OTel span (`agent-channel.event.{kind}`), so the same trace view in Phoenix or Tempo covers channel activity and A2A activity together.
 

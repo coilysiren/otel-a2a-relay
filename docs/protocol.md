@@ -8,7 +8,7 @@ Companion docs: [protocol-traces.md](protocol-traces.md) for the worked three-tr
 
 ## What v0.4 changes
 
-v0.4 retires the colony / multi-tenant framing from `tracing.bootstrap()` (see [otel-a2a-relay#121](https://github.com/coilysiren/otel-a2a-relay/issues/121)) to align with the local-only substrate shape that luca adopted on 2026-05-12:
+v0.4 retires the colony / multi-tenant framing from `tracing.bootstrap()` (see [otel-a2a-relay#121](https://github.com/coilyco-flight-deck/otel-a2a-relay/issues/121)) to align with the local-only substrate shape that luca adopted on 2026-05-12:
 
 - **`<namespace>.colony` resource attribute renamed to `<namespace>.deployment`.** The old key encoded a per-colony multi-tenant deployment that is not a real use case for a local-only substrate.
 - **`product_area` parameter dropped.** Was the "hard-boundary slice within a deployment" knob - a per-tenant routing concept that does not exist in the local-only shape. Phoenix project name is now derived from `<deployment>` alone.

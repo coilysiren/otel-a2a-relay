@@ -12,7 +12,7 @@ See `../AGENTS.md` for workspace-level conventions (git workflow, test/lint auto
 
 ## Repo boundaries
 
-Ships the relay only (`serve` mode, A2A endpoints, OTLP emitter, Agent Channel router). The operator CLI lives in [`coilysiren/coily`](https://github.com/coilysiren/coily) as `coily channel <verb>`. Cross-repo features: file in both, cross-link.
+Ships the relay only (`serve` mode, A2A endpoints, OTLP emitter, Agent Channel router). The operator CLI lives in [`coilysiren/coily`](https://github.com/coilyco-bridge/coily) as `coily channel <verb>`. Cross-repo features: file in both, cross-link.
 
 ## Commands
 
@@ -32,7 +32,7 @@ GraphQL introspection (`{ __type(name:"Span") { fields { name } } }`) is authori
 
 ## Safety
 
-Public repo. No LAN IPs, public IPs, addresses, real names, secondary email aliases, or private identity tags. Role-based descriptors only when referring to people in issues, PRs, commits, or docs.
+Public repo. No LAN IPs, public IPs, addresses, real names, secondary email aliases, or private identity tags. Role-based descriptors only for people in issues, PRs, commits, docs.
 
 `phoenix serve` keeps state in `~/.phoenix/phoenix.db`. Across upgrades the migration can fail with `alembic.script.revision.ResolutionError`. Fix: `rm ~/.phoenix/phoenix.db` and restart. The harness is single-shot; the DB is disposable.
 
@@ -54,4 +54,4 @@ Inherited from `../AGENTS.md`. Plus: don't ship a protocol change without rerunn
 - [docs/FEATURES.md](docs/FEATURES.md) - inventory of what ships today.
 - [.coily/coily.yaml](.coily/coily.yaml) - allowlisted commands.
 
-Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilysiren/agentic-os/issues/59).
+Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilyco-flight-deck/agentic-os/issues/59).

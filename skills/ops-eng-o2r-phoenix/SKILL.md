@@ -7,7 +7,7 @@ description: "Arize Phoenix backend for otel-a2a-relay (o2r). Names the specific
 
 Local Phoenix runs at `http://localhost:6006`. The relay points `OTEL_EXPORTER_OTLP_ENDPOINT` at the same host (Phoenix accepts OTLP/HTTP on 6006).
 
-Repo: [otel-a2a-relay/arize_phoenix/](https://github.com/coilysiren/otel-a2a-relay/tree/main/arize_phoenix). Upstream: [Arize Phoenix](https://docs.arize.com/phoenix).
+Repo: [otel-a2a-relay/arize_phoenix/](https://github.com/coilyco-flight-deck/otel-a2a-relay/tree/main/arize_phoenix). Upstream: [Arize Phoenix](https://docs.arize.com/phoenix).
 
 ## Which UI surface answers which question
 

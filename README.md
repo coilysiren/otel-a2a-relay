@@ -42,7 +42,7 @@ Tempo + Grafana, other backends, the topology diagram, methods, and span shape: 
 
 ## Related
 
-Operator CLI: [`coily channel`](https://github.com/coilysiren/coily) once that side catches up. Origin discussion: [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24).
+Operator CLI: [`coily channel`](https://github.com/coilyco-bridge/coily) once that side catches up. Origin discussion: [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24).
 
 ## See also
 
@@ -50,7 +50,7 @@ Operator CLI: [`coily channel`](https://github.com/coilysiren/coily) once that s
 - [docs/FEATURES.md](docs/FEATURES.md) - inventory of what ships today.
 - [.coily/coily.yaml](.coily/coily.yaml) - allowlisted commands. Agents route through coily, not bare `make` / `uv` / `python`.
 
-Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilysiren/agentic-os/issues/59).
+Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilyco-flight-deck/agentic-os/issues/59).
 
 ## License
 

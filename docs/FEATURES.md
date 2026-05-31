@@ -1,6 +1,6 @@
 # Features
 
-Baseline inventory of what `otel-a2a-relay` ships today. Last full sweep: 2026-05-08.
+Inventory of what `otel-a2a-relay` ships today. Last full sweep: 2026-05-08.
 
 ## Core relay
 
@@ -21,7 +21,7 @@ Exercise: `coily exec test-core`.
 - **Per-span payloads** include task state, state-change events, stream chunks, input/output.
 - **Session propagation** via OpenInference `using_session()`.
 - **Span attributes** documented in [protocol-attributes.md](protocol-attributes.md).
-- **Reusable span assertions** library.
+- **Reusable span assertions**.
 - **In-memory span store** for test fixtures.
 
 ## Arize Phoenix integration
@@ -69,4 +69,4 @@ Exercise: `coily exec test-tempo-grafana`.
 
 - [README.md](../README.md), [AGENTS.md](../AGENTS.md), [.coily/coily.yaml](../.coily/coily.yaml).
 
-Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilysiren/agentic-os/issues/59).
+Cross-reference convention from [coilysiren/agentic-os#59](https://github.com/coilyco-flight-deck/agentic-os/issues/59).

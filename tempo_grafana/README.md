@@ -112,7 +112,7 @@ If you swap in Mimir or a remote Prometheus, change `tempo.yaml`'s `storage.remo
 ## Known quirks
 
 - **Service graph appears empty for ~60s after a fresh `make tempo-up`**: the generator's pairing window is 60s and it flushes on close. Run a luca-demo, wait a minute, refresh.
-- **Some service-graph edges show `connection_type=virtual_node`**: those are spans where Tempo could not pair a CLIENT side with the SERVER. Currently the orchestrator's HTTP calls into the relay don't emit an explicit CLIENT span (just `httpx.post()`), so the relay's `a2a.task` SERVER span has no peer; Tempo synthesizes a `virtual_node` for the user-side. Wiring an explicit CLIENT span around `_send_via_relay` would fix this; see [otel-a2a-relay#XX](https://github.com/coilysiren/otel-a2a-relay/issues) (TODO file when surfaced).
+- **Some service-graph edges show `connection_type=virtual_node`**: those are spans where Tempo could not pair a CLIENT side with the SERVER. Currently the orchestrator's HTTP calls into the relay don't emit an explicit CLIENT span (just `httpx.post()`), so the relay's `a2a.task` SERVER span has no peer; Tempo synthesizes a `virtual_node` for the user-side. Wiring an explicit CLIENT span around `_send_via_relay` would fix this; see [otel-a2a-relay#XX](https://github.com/coilyco-flight-deck/otel-a2a-relay/issues) (TODO file when surfaced).
 - **The relay shows up as `o2r` in the service graph, not `relay`**: the relay's `service.name` resource attribute is the protocol-canonical `o2r`. The per-span `agent.role` attribute is `relay`; that one's available for filtering and shows up on `spanBar`.
 
 ## Sibling

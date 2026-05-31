@@ -7,7 +7,7 @@ description: "Tempo + Grafana backend for otel-a2a-relay (o2r). Names the specif
 
 Local stack runs at `http://localhost:3000` (Grafana). Tempo accepts OTLP/HTTP on `:4318` and serves the query API on `:3200`. Prometheus is on `:9090` for span-metrics and service-graph.
 
-Repo: [otel-a2a-relay/tempo_grafana/](https://github.com/coilysiren/otel-a2a-relay/tree/main/tempo_grafana). Docker stack: `tempo_grafana/docker/docker-compose.yml`.
+Repo: [otel-a2a-relay/tempo_grafana/](https://github.com/coilyco-flight-deck/otel-a2a-relay/tree/main/tempo_grafana). Docker stack: `tempo_grafana/docker/docker-compose.yml`.
 
 Peer files in this skill folder: [dashboards.md](dashboards.md) (what each dashboard shows), [cheatsheet.md](cheatsheet.md) (TraceQL recipes + endpoint map + config knobs + common traps).
 
