@@ -16,8 +16,8 @@ writes it atomically to the watched directory.
 
 Callers supply trace_id and span_id rather than having the lib mint
 them. That keeps parent/child threading the caller's responsibility,
-matching how OTel itself works. The Claude Code subagent hook
-(coilyco-ai#223), for instance, derives trace_id from the Claude Code
+matching how OTel itself works. The Claude Code subagent hook,
+for instance, derives trace_id from the Claude Code
 session UUID and span_id from a per-invocation uuid4.
 """
 

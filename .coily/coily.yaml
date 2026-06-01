@@ -70,7 +70,7 @@ commands:
     description: docker compose ps for the always-on Phoenix stack.
 
 # Catalog metadata for the cross-repo knowledge graph.
-# Schema: coilysiren/coilyco-ai#420 (tracker).
+# Schema originated in pre-migration coilyco-ai design work.
 catalog:
   kind: Component
   type: service

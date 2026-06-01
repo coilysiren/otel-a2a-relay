@@ -15,7 +15,7 @@ Agent peers coordinate through this relay. Every message becomes one or more OTe
 Two coordination shapes share one span schema:
 
 1. **A2A wire format** - JSON-RPC 2.0 over HTTP translated into traces, including a deterministic `sha256(<repo>:<issue>)` session id for any GitHub-issue-rooted coordination.
-2. **Agent Channel** - Postgres-backed coordination with 4-character dictatable ids, an append-only event log, and self-describing onboarding. Spec: [`docs/channels-protocol.md`](docs/channels-protocol.md). Origin: [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24).
+2. **Agent Channel** - Postgres-backed coordination with 4-character dictatable ids, an append-only event log, and self-describing onboarding. Spec: [`docs/channels-protocol.md`](docs/channels-protocol.md). Origin: pre-migration coilyco-ai design work, now folded into this repo.
 
 Trace propagation is [W3C `traceparent`](https://www.w3.org/TR/trace-context/) end-to-end. Default visualizer: [Phoenix](https://github.com/Arize-ai/phoenix). Anything OTLP-native works.
 
@@ -42,7 +42,7 @@ Tempo + Grafana, other backends, the topology diagram, methods, and span shape: 
 
 ## Related
 
-Operator CLI: [`coily channel`](https://github.com/coilyco-bridge/coily) once that side catches up. Origin discussion: [coilysiren/coilyco-ai#24](https://github.com/coilysiren/coilyco-ai/issues/24).
+Operator CLI: [`coily channel`](https://github.com/coilyco-bridge/coily) once that side catches up. Origin discussion: pre-migration coilyco-ai design work, now folded into this repo.
 
 ## See also
 
