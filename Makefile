@@ -90,10 +90,10 @@ tempo-harness:
 # ----------------------------------------------------------------------
 # Arize Phoenix (otel-a2a-relay-arize-phoenix extension)
 # ----------------------------------------------------------------------
-phoenix-fg:
+phoenix-fg: ## Run `phoenix serve` in foreground. Backs the sequencing-gate harness re-run.
 	PHOENIX_DANGEROUSLY_ENABLE_AGENTS=true uv run phoenix serve
 
-phoenix-harness:
+phoenix-harness: ## Post the worked-example trace to a running Phoenix. Validates protocol shape end-to-end.
 	uv run o2r-harness
 
 phoenix-bootstrap:
@@ -105,22 +105,22 @@ phoenix-bootstrap-dry-run:
 # Always-on Phoenix via docker compose. The Mac-local `phoenix-fg` is fine
 # for desktop work; this stack is what the sequencing gate's "real Phoenix
 # run before any spec-shape change ships" relies on from a phone.
-phoenix-up:
+phoenix-up: ## docker compose up -d for the always-on Phoenix stack.
 	docker compose -f arize_phoenix/docker/docker-compose.yml up -d
 	@echo
 	@echo "  Phoenix UI / OTLP/HTTP:   http://localhost:6006"
 	@echo "  OTLP/gRPC:                localhost:4317"
 
-phoenix-down:
+phoenix-down: ## Stop the always-on Phoenix stack, preserve the data volume.
 	docker compose -f arize_phoenix/docker/docker-compose.yml down
 
-phoenix-clean:
+phoenix-clean: ## Stop the always-on Phoenix stack and wipe its data volume.
 	docker compose -f arize_phoenix/docker/docker-compose.yml down -v
 
-phoenix-logs:
+phoenix-logs: ## Follow logs for the always-on Phoenix stack.
 	docker compose -f arize_phoenix/docker/docker-compose.yml logs -f --tail=100
 
-phoenix-status:
+phoenix-status: ## docker compose ps for the always-on Phoenix stack.
 	docker compose -f arize_phoenix/docker/docker-compose.yml ps
 
 # Regenerate the byte-exact baseline GIF that test_viz.py compares against.
@@ -131,7 +131,7 @@ gif-fixture-update:
 
 # Local replay of the regen-gif-baseline GHA workflow, in docker. Use this
 # instead of pushing experimental workflow changes through CI.
-gif-fixture-update-ci-replay:
+gif-fixture-update-ci-replay: ## Local docker replay of the regen-gif-baseline workflow's regen step.
 	scripts/replay_regen_gif_baseline.sh
 
 # ----------------------------------------------------------------------
@@ -147,17 +147,17 @@ luca-demo:
 # ----------------------------------------------------------------------
 # Auto-generated from `git blame` on docs/protocol.md. Regenerate after any
 # protocol-shape change so docs/protocol-decisions.md tracks the doc.
-protocol-decisions:
+protocol-decisions: ## Regenerate docs/protocol-decisions.md from docs/protocol.md git blame.
 	uv run python scripts/protocol_decision_log.py
 
-protocol-decisions-check:
+protocol-decisions-check: ## Exit non-zero if docs/protocol-decisions.md is stale vs current git blame.
 	uv run python scripts/protocol_decision_log.py --check
 
 # Emit JSON Schema + OTel semconv from docs/protocol.md's attribute registry.
-protocol-artifacts:
+protocol-artifacts: ## Emit JSON Schema + OTel semconv from docs/protocol.md's attribute registry.
 	uv run python scripts/emit_protocol_artifacts.py
 
-protocol-artifacts-check:
+protocol-artifacts-check: ## Exit non-zero if docs/generated/ is stale vs docs/protocol.md.
 	uv run python scripts/emit_protocol_artifacts.py --check
 
 # ----------------------------------------------------------------------

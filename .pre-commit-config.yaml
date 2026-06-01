@@ -31,10 +31,10 @@ repos:
     hooks:
       - id: check-coily-yaml
         name: coily.yaml verb/target name match
-        description: Enforce that every .coily/coily.yaml command's run is `make <verb>`. Tracks coilysiren/coily#116.
-        entry: python3 scripts/check-coily-yaml.py
+        description: Lint .coily/coily.yaml verb names + descriptions against the Makefile via `coily lint` (coilysiren/coily#116 shipped as `coily lint`).
+        entry: coily lint
         language: system
-        files: ^\.coily/coily\.yaml$
+        files: ^(\.coily/coily\.yaml|Makefile)$
         pass_filenames: false
 
   - repo: local
